@@ -13,7 +13,7 @@ A python tool for building bases for No Mans Sky in Autodesk Maya.
 <p align="center">
   <a href="#key-features">Key Features</a> •
   <a href="#requirements">Requirements</a> •
-  <a href="#installation">Installation & How To Use</a> •
+  <a href="#how-to-use">Installation & How To Use</a> •
   <a href="#credits">Credits & Support</a> •
   <a href="#examples">Examples</a>
 </p>
@@ -62,20 +62,20 @@ nms_builder.ui.load()
 
 Created and maintained by.
 
-* Charlie Banks (@charliebanks)
+* Charlie Banks (<a href="http://www.twitter.com/charliebanks" target="_blank">@charliebanks</a>)
 
 Feel free to contact for support and requests.
 
 <a name="examples"></a>
 ## Examples
 <p align="center">
-  <img src="https://raw.githubusercontent.com/charliebanks/nms-base-builder/develop/src/images/example_1.jpg" alt="NMS" width="75%">
+  <img src="https://raw.githubusercontent.com/charliebanks/nms-base-builder/develop/src/images/example_1.jpg" alt="NMS1" width="100%">
 </p>
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/charliebanks/nms-base-builder/develop/src/images/example_2.jpg" alt="NMS" width="75%">
+  <img src="https://raw.githubusercontent.com/charliebanks/nms-base-builder/develop/src/images/example_2.jpg" alt="NMS2" width="100%">
 </p>
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/charliebanks/nms-base-builder/develop/src/images/example_3.png" alt="NMS" width="75%">
+  <img src="https://raw.githubusercontent.com/charliebanks/nms-base-builder/develop/src/images/example_3.png" alt="NMS3" width="100%">
 </p>

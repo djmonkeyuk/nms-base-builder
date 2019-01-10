@@ -12,9 +12,10 @@ A python tool for building bases for No Mans Sky in Autodesk Maya.
 
 <p align="center">
   <a href="#key-features">Key Features</a> •
-  <a href="#how-to-use">How To Use</a> •
+  <a href="#requirements">Requirements</a> •
   <a href="#installation">Installation & How To Use</a> •
-  <a href="#credits">Credits & Support</a>
+  <a href="#credits">Credits & Support</a> •
+  <a href="#examples">Examples</a>
 </p>
 
 <p align="center">
@@ -25,6 +26,7 @@ A python tool for building bases for No Mans Sky in Autodesk Maya.
 ## Key Features
 
 * Build bases for No Mans Sky using proxy representations for building parts.
+* Complete freedome of movement when placing building parts - want something upside down? Up in the air? You can place it that way!
 * Define "presets" of building parts.
 * Save and Load bases.
 * Import and Export base data compatable with the No Mans Sky Save Editor.
@@ -63,3 +65,17 @@ Created and maintained by.
 * Charlie Banks (@charliebanks)
 
 Feel free to contact for support and requests.
+
+<a name="examples"></a>
+## Examples
+<p align="center">
+  <img src="https://raw.githubusercontent.com/charliebanks/nms-base-builder/develop/src/images/example_1.jpg" alt="NMS" width="75%">
+</p>
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/charliebanks/nms-base-builder/develop/src/images/example_2.jpg" alt="NMS" width="75%">
+</p>
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/charliebanks/nms-base-builder/develop/src/images/example_3.png" alt="NMS" width="75%">
+</p>

@@ -1,11 +1,11 @@
 # No Mans Sky Base Builder
 
 <p align="center" style="font-size:26px">
-  <img src="https://raw.githubusercontent.com/charliebanks/nms-base-builder/develop/src/images/builder_logo.png" alt="No Mans Sky">
+  <img src="https://raw.githubusercontent.com/charliebanks/nms-base-builder/develop/images/builder_logo.png" alt="No Mans Sky">
   <br />
   <strong>No Mans Sky: Base Builder</strong>
   <br />
-A python tool for building bases for No Mans Sky in Autodesk Maya.
+A plugin for Blender to build in No Mans Sky.
 </p>
 
 
@@ -19,7 +19,7 @@ A python tool for building bases for No Mans Sky in Autodesk Maya.
 </p>
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/charliebanks/nms-base-builder/develop/src/images/nms_base_builder.jpg" alt="NMS" width="75%">
+  <img src="https://raw.githubusercontent.com/charliebanks/nms-base-builder/develop/images/nms_base_builder.jpg" alt="NMS" width="75%">
 </p>
 
 <a name="key-features"></a>
@@ -37,23 +37,23 @@ A python tool for building bases for No Mans Sky in Autodesk Maya.
 <a name="requirements"></a>
 ## Requirements
 * No Mans Sky Save Editor (https://nomansskymods.com/mods/no-mans-sky-save-editor/)
-* Autodesk Maya
+* Blender
 <br />
 
 <a name="how-to-use"></a>
 
 ## Installation and How To Use
 
-1. Download or clone this repository.
-2. Extract the contents of the "src" folder to your Documents/maya/scripts folder.
-3. Run the following as a python script in the Maya script editor. You can also assign this as a hotkey or shelf button in Maya.
+# Vidoes
+Installation Video: https://www.youtube.com/watch?v=_zN82oueFTE
+Simple Use Video: https://www.youtube.com/watch?v=qXcguoROM-A
 
-Maya
-
-```python
-import nms_builder.ui
-nms_builder.ui.load()
-```
+# Written Steps
+1. Download the latest release. (https://github.com/charliebanks/nms-base-builder/releases)
+2. Open "User Preferences" in Blender.
+3. Go to the Add-ons tab.
+4. Click "Install Add-on from File..." at the bottom of the window.
+5. Select the downloaded zip file.
 
 <br />
 <a name="credits"></a>

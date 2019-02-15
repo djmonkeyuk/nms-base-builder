@@ -5,7 +5,7 @@
   <br />
   <strong>No Mans Sky: Base Builder</strong>
   <br />
-A plugin for Blender to build in No Mans Sky.
+A plugin for Blender to build bases in No Mans Sky.
 </p>
 
 
@@ -44,11 +44,11 @@ A plugin for Blender to build in No Mans Sky.
 
 ## Installation and How To Use
 
-# Vidoes
+### Vidoes
 Installation Video: https://www.youtube.com/watch?v=_zN82oueFTE
 Simple Use Video: https://www.youtube.com/watch?v=qXcguoROM-A
 
-# Written Steps
+### Written Steps
 1. Download the latest release. (https://github.com/charliebanks/nms-base-builder/releases)
 2. Open "User Preferences" in Blender.
 3. Go to the Add-ons tab.

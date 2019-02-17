@@ -69,13 +69,13 @@ Feel free to contact for support and requests.
 <a name="examples"></a>
 ## Examples
 <p align="center">
-  <img src="https://raw.githubusercontent.com/charliebanks/nms-base-builder/develop/src/images/example_1.jpg" alt="NMS1" width="100%">
+  <img src="https://raw.githubusercontent.com/charliebanks/nms-base-builder/develop/images/example_1.jpg" alt="NMS1" width="100%">
 </p>
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/charliebanks/nms-base-builder/develop/src/images/example_2.jpg" alt="NMS2" width="100%">
+  <img src="https://raw.githubusercontent.com/charliebanks/nms-base-builder/develop/images/example_2.jpg" alt="NMS2" width="100%">
 </p>
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/charliebanks/nms-base-builder/develop/src/images/example_3.png" alt="NMS3" width="100%">
+  <img src="https://raw.githubusercontent.com/charliebanks/nms-base-builder/develop/images/example_3.png" alt="NMS3" width="100%">
 </p>

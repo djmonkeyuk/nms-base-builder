@@ -36,7 +36,7 @@ A plugin for Blender to build bases in No Mans Sky.
 <a name="requirements"></a>
 ## Requirements
 * No Mans Sky Save Editor (https://nomansskymods.com/mods/no-mans-sky-save-editor/)
-* Blender
+* Blender (https://www.blender.org/)
 <br />
 
 <a name="how-to-use"></a>

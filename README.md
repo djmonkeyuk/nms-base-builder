@@ -64,7 +64,7 @@ Created and maintained by.
 
 * Charlie Banks (<a href="http://www.twitter.com/charliebanks" target="_blank">@charliebanks</a>)
 
-Feel free to contact for support and requests.
+Feel free to get in touch :)
 
 <a name="examples"></a>
 ## Examples

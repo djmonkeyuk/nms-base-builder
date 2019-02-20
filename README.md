@@ -1,7 +1,7 @@
 # No Mans Sky Base Builder
 
 <p align="center" style="font-size:26px">
-  <img src="https://raw.githubusercontent.com/charliebanks/nms-base-builder/develop/images/builder_logo.png" alt="No Mans Sky">
+  <img src="https://raw.githubusercontent.com/charliebanks/nms-base-builder/master/images/logo_large.png" alt="No Mans Sky"  width="75%">
   <br />
   <strong>No Mans Sky: Base Builder</strong>
   <br />
@@ -18,9 +18,7 @@ A plugin for Blender to build bases in No Mans Sky.
   <a href="#examples">Examples</a>
 </p>
 
-<p align="center">
-  <img src="https://raw.githubusercontent.com/charliebanks/nms-base-builder/develop/images/nms_base_builder.jpg" alt="NMS" width="75%">
-</p>
+
 
 <a name="key-features"></a>
 ## Key Features
@@ -35,6 +33,7 @@ A plugin for Blender to build bases in No Mans Sky.
 
 <a name="requirements"></a>
 ## Requirements
+* Latest Base Builder Release (https://github.com/charliebanks/nms-base-builder/releases)
 * No Mans Sky Save Editor (https://nomansskymods.com/mods/no-mans-sky-save-editor/)
 * Blender (https://www.blender.org/)
 <br />
@@ -69,13 +68,17 @@ Feel free to get in touch :)
 <a name="examples"></a>
 ## Examples
 <p align="center">
-  <img src="https://raw.githubusercontent.com/charliebanks/nms-base-builder/develop/images/example_1.jpg" alt="NMS1" width="100%">
+  <img src="https://raw.githubusercontent.com/charliebanks/nms-base-builder/master/images/nms_base_builder.jpg" alt="NMS" width="100%">
 </p>
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/charliebanks/nms-base-builder/develop/images/example_2.jpg" alt="NMS2" width="100%">
+  <img src="https://raw.githubusercontent.com/charliebanks/nms-base-builder/master/images/example_1.jpg" alt="NMS1" width="100%">
 </p>
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/charliebanks/nms-base-builder/develop/images/example_3.png" alt="NMS3" width="100%">
+  <img src="https://raw.githubusercontent.com/charliebanks/nms-base-builder/master/images/example_2.jpg" alt="NMS2" width="100%">
+</p>
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/charliebanks/nms-base-builder/master/images/example_3.png" alt="NMS3" width="100%">
 </p>

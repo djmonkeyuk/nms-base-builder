@@ -1,9 +1,7 @@
 # No Mans Sky Base Builder
 
 <p align="center" style="font-size:26px">
-  <img src="https://raw.githubusercontent.com/charliebanks/nms-base-builder/master/images/logo_large.png" alt="No Mans Sky"  width="75%">
-  <br />
-  <strong>No Mans Sky: Base Builder</strong>
+  <img src="https://raw.githubusercontent.com/charliebanks/nms-base-builder/master/images/logo_large.png" alt="No Mans Sky"  width="50%">
   <br />
 A plugin for Blender to build bases in No Mans Sky.
 </p>
@@ -69,7 +67,7 @@ Feel free to get in touch :)
 ## Examples
 <p align="center">
   <img src="https://raw.githubusercontent.com/charliebanks/nms-base-builder/master/images/nms_base_builder.jpg" alt="NMS" width="100%">
-</p>
+</p>f
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/charliebanks/nms-base-builder/master/images/example_1.jpg" alt="NMS1" width="100%">

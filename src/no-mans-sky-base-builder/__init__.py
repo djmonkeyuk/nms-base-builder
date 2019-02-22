@@ -85,6 +85,21 @@ def import_obj(part):
     obj_object = bpy.context.selected_objects[0] 
     return obj_object
 
+def assign_transparent_material(item):
+    transparent_name = "transparent_material"
+    transparent_material = None
+    for material in bpy.data.materials:
+        if transparent_name == material.name:
+            transparent_material = material
+
+    # Ensure we have a transparent shader.
+    if not transparent_material:
+        transparent_material = bpy.data.materials.new(name=transparent_name) #set new material to variable
+        transparent_material.alpha = 0.07
+    # Assign Material
+    item.data.materials.append(transparent_material) #add the material to the object
+    
+    return transparent_material
 
 def build_item(
         part,
@@ -117,6 +132,9 @@ def build_item(
         item = bpy.ops.mesh.primitive_cube_add()
         item = bpy.context.object
         item.name = part
+
+    # Assign Material
+    material = assign_transparent_material(item)
 
     # Lock Scale
     item.lock_scale[0] = True
@@ -171,6 +189,7 @@ def get_direction_vector(matrix, direction_matrix = None):
 
 # Settings Class ---
 class NMSSettings(PropertyGroup):
+
 
     string_base = StringProperty(
         name="Base Name",
@@ -248,6 +267,11 @@ class NMSSettings(PropertyGroup):
         name = "Z",
         description = "The Z orientation vector of the base in planet space.",
         default = 0.0,
+    )
+
+    room_vis_switch = IntProperty(
+        name = "room_vis_switch",
+        default = 0
     )
 
 
@@ -454,6 +478,100 @@ class NMSSettings(PropertyGroup):
         bpy.ops.object.delete() 
 
 
+        
+    def toggle_room_visibility(self):
+        # Ensure we are in the CYCLES renderer.
+        bpy.context.scene.render.engine = 'CYCLES'
+        # Increment Room Vis
+        if self.room_vis_switch < 2:
+            self.room_vis_switch += 1
+        else:
+            self.room_vis_switch = 0
+
+        # Select NMS Items
+        invisible_objects = [
+            "CUBEROOM",
+            "CUBEROOMCURVED",
+            "CURVEDCUBEROOF",
+            "CUBEGLASS",
+            "CUBEFRAME",
+            "CUBEWINDOW",
+
+            "BUILDLANDINGPAD",
+
+            "CORRIDORC",
+            "CORRIDOR",
+            "GLASSCORRIDOR",
+            "MAINROOM",
+            "MAINROOMCUBE",
+            
+            "VIEWSPHERE",
+            "BIOROOM",
+
+            "W_WALL",
+            "W_WALL_H",
+            "W_WALL_Q",
+            "W_WALL_Q_H",
+            "W_ROOF_M",
+            "W_RAMP",
+            "W_FLOOR",
+            "W_GFLOOR",
+            "W_FLOOR_Q",
+            "W_ARCH",
+            "W_WALLDIAGONAL",
+            "W_WALLWINDOW",
+            "W_RAMP_H",
+            "W_WALL_WINDOW",
+
+            "C_WALL",
+            "C_WALL_H",
+            "C_WALL_Q",
+            "C_WALL_Q_H",
+            "C_ROOF_M",
+            "C_RAMP",
+            "C_FLOOR",
+            "C_GFLOOR",
+            "C_FLOOR_Q",
+            "C_ARCH",
+            "C_WALLDIAGONAL",
+            "C_WALLWINDOW",
+            "C_RAMP_H",
+            "C_WALL_WINDOW",
+            
+            "M_WALL",
+            "M_WALL_H",
+            "M_WALL_Q",
+            "M_WALL_Q_H",
+            "M_ROOF_M",
+            "M_RAMP",
+            "M_FLOOR",
+            "M_GFLOOR",
+            "M_FLOOR_Q",
+            "M_ARCH",
+            "M_WALLDIAGONAL",
+            "M_WALLWINDOW",
+            "M_RAMP_H",
+            "M_WALL_WINDOW",
+        ]
+        for ob in bpy.data.objects:
+            if "objectID" in ob:
+                if ob["objectID"] in invisible_objects:
+                    if self.room_vis_switch == 0:
+                        ob.hide = False
+                        ob.hide_select = False    
+                        ob.show_transparent = False
+                    if self.room_vis_switch == 1:
+                        ob.hide = False
+                        ob.hide_select = True
+                        ob.show_transparent = True
+                    if self.room_vis_switch == 2:
+                        ob.hide = True
+                    ob.select = False
+
+        
+        
+
+
 
 # ------------------------------------------------------------------------
 #    my tool in objectmode
@@ -494,6 +612,10 @@ class OBJECT_PT_my_panel(Panel):
         properties_box.prop(nms_tool, "string_uid")
         properties_box.prop(nms_tool, "string_lid")
         properties_box.prop(nms_tool, "string_ts")
+
+        layout.label("Tools")
+        tools_box = layout.box()
+        tools_box.operator("nms.toggle_room_visibility")
 
         layout.label("Parts")
         layout.template_list(
@@ -575,6 +697,17 @@ class NewFile(bpy.types.Operator):
 
     def invoke(self, context, event):
         return context.window_manager.invoke_confirm(self, event)
+
+class NewFile(bpy.types.Operator):
+    bl_idname = "nms.toggle_room_visibility"
+    bl_label = "Toggle Room Visibility"
+
+    def execute(self, context):
+        scene = context.scene
+        nms_tool = scene.nms_base_tool
+        nms_tool.toggle_room_visibility()
+        return {'FINISHED'}
+
 
 class SaveData(bpy.types.Operator):
     bl_idname = "nms.save_data"

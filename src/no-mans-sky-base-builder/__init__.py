@@ -473,9 +473,12 @@ class NMSSettings(PropertyGroup):
         # Select NMS Items
         for ob in bpy.data.objects:
             if "objectID" in ob:
+                ob.hide_select = False
                 ob.select = True
         # Remove
         bpy.ops.object.delete() 
+        # Reset room vis
+        self.room_vis_switch = 0
 
 
         
@@ -698,7 +701,7 @@ class NewFile(bpy.types.Operator):
     def invoke(self, context, event):
         return context.window_manager.invoke_confirm(self, event)
 
-class NewFile(bpy.types.Operator):
+class ToggleRoom(bpy.types.Operator):
     bl_idname = "nms.toggle_room_visibility"
     bl_label = "Toggle Room Visibility"
 

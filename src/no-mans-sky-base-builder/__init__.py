@@ -28,6 +28,7 @@ from bpy.types import Operator, Panel, PropertyGroup
 # NMS Methods
 file_path = os.path.dirname(os.path.realpath(__file__))
 model_path = os.path.join(file_path, "models")
+preset_path = os.path.join(file_path, "presets")
 
 # Float Handler
 context = getcontext().prec = 20
@@ -62,14 +63,27 @@ def get_obj_path(part):
     obj_path = os.path.join(model_path, category, part+".obj")
     return obj_path
 
+def get_preset_path(preset_id):
+    return_preset_path = os.path.join(preset_path, preset_id+".json")
+    return return_preset_path
+
 def get_categories():
     """Get the list of categories."""
     return os.listdir(model_path)
 
+def get_presets():
+    """Get the list of categories."""
+    return [preset.split(".")[0] for preset in os.listdir(preset_path)]
 
 def generate_part_data():
     """Generate a list of Blender UI friendly data of categories and parts."""
     coll_data = []
+    
+    # Presets
+    coll_data.append(("Presets", ""))
+    for preset in get_presets():
+        coll_data.append(("", preset))
+    # Parts
     for category in get_categories():
         coll_data.append((category, ""))
         parts = get_parts_from_category(category)
@@ -100,6 +114,97 @@ def assign_transparent_material(item):
     item.data.materials.append(transparent_material) #add the material to the object
     
     return transparent_material
+
+def assign_preset_material(item):
+    preset_name = "preset_material"
+    preset_material = None
+    for material in bpy.data.materials:
+        if preset_name == material.name:
+            preset_material = material
+
+    # Ensure we have a transparent shader.
+    if not preset_material:
+        preset_material = bpy.data.materials.new(name=preset_name) #set new material to variable
+        preset_material.alpha = 0.07
+        preset_material.diffuse_color = (0.8, 0.300186, 0.0178301)
+
+    # Assign Material
+    item.data.materials.append(preset_material) #add the material to the object
+    
+    return preset_material
+
+def delete_preset(preset_id):
+    """Remove preset."""
+    preset_path = get_preset_path(preset_id)
+    if os.path.isfile(preset_path):
+        os.remove(preset_path)
+
+def build_preset(preset_id, build_control=False):
+    preset_json = get_preset_path(preset_id)
+    data = {}
+    with open(preset_json, "r") as stream:
+        data = json.load(stream)
+
+    if "Objects" in data:
+        parts = []
+        for part_data in data["Objects"]:
+            part = part_data["ObjectID"]
+            timestamp = part_data["Timestamp"]
+            user_data = part_data["UserData"]
+            position = part_data["Position"]
+            up_vec = part_data["Up"]
+            at_vec = part_data["At"]
+            # Build the item.
+            part = part.replace("^", "")
+            blender_part = build_item(
+                part,
+                timestamp,
+                user_data,
+                position,
+                up_vec,
+                at_vec,
+                is_preset=True
+            )
+            
+            parts.append(blender_part)
+        # Get highest radius value.
+        highest_x = max([part.location[0] for part in parts])
+        lowest_x = min([part.location[0] for part in parts])
+        highest_y = max([part.location[1] for part in parts])
+        lowest_y = min([part.location[1] for part in parts])
+        radius = max([abs(lowest_x), highest_x, abs(lowest_y), highest_y])
+        # Build Nurbs Circle
+        if build_control:
+            preset_controller = bpy.ops.curve.primitive_nurbs_circle_add(
+                radius=radius+4,
+                view_align=False,
+                enter_editmode=False,
+                location=(0, 0, 0),
+                layers=(True, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False),
+            )
+            curve_object = bpy.context.scene.objects.active
+            curve_object.name = preset_id
+            curve_object.show_name = True
+            curve_object["objectID"] = "##preset_object##"
+            curve_object["presetID"] = preset_id
+            me = curve_object.data
+            me.name = preset_id + 'Mesh'
+            for part in parts:
+                bpy.ops.object.select_all(action='DESELECT') 
+                curve_object.select = True
+                part.select = True
+                bpy.context.scene.objects.active = curve_object
+                bpy.ops.object.parent_set()
+                part.hide_select = True
+
+            # Select Control
+            bpy.ops.object.select_all(action='DESELECT')
+            curve_object.select = True
+
+            # Lock Scale
+            curve_object.lock_scale[0] = True
+            curve_object.lock_scale[1] = True
+            curve_object.lock_scale[2] = True
 
 def build_item(
         part,
@@ -134,7 +239,7 @@ def build_item(
         item.name = part
 
     # Assign Material
-    material = assign_transparent_material(item)
+    assign_transparent_material(item)
 
     # Lock Scale
     item.lock_scale[0] = True
@@ -152,6 +257,7 @@ def build_item(
     item["objectID"] = part
     item["UserData"] = userdata
     item["Timestamp"] = timestamp
+    item["is_preset"] = is_preset
     # Position.
     item.location = position
     # Rotation
@@ -179,6 +285,8 @@ def build_item(
     # Place the item in world space.
     item.matrix_world = mat
 
+    return item
+
 def get_direction_vector(matrix, direction_matrix = None):
     """Calculate direction matrices."""
     if direction_matrix == "up":
@@ -190,6 +298,12 @@ def get_direction_vector(matrix, direction_matrix = None):
 # Settings Class ---
 class NMSSettings(PropertyGroup):
 
+    preset_name = StringProperty(
+        name="preset_name",
+        description="The of a preset.",
+        default="",
+        maxlen=1024,
+    )
 
     string_base = StringProperty(
         name="Base Name",
@@ -293,6 +407,45 @@ class NMSSettings(PropertyGroup):
             return {"FAILED"}
         # Start a new file
         self.generate_from_data(nms_import_data)
+    
+    def generate_object_data(self, object):
+        """Given a blender object, generate useful NMS data from it.
+        
+        Args:
+            object(ob): Blender scene object.
+        Returns:
+            dict: Dictionary of information.
+        """
+        objectID = "^"+object["objectID"]
+        timestamp = object["Timestamp"]
+        user_data = object["UserData"]
+        ob_world_matrix = object.matrix_world
+        mat_rot = mathutils.Matrix.Rotation(math.radians(-90.0), 4, 'X')
+        obj_wm_offset = mat_rot * ob_world_matrix
+        pos = obj_wm_offset.decompose()[0]
+        up = get_direction_vector(obj_wm_offset, direction_matrix="up")
+        at = get_direction_vector(obj_wm_offset, direction_matrix="at")
+        sub_dict = OrderedDict()
+        sub_dict["Timestamp"] = int(timestamp)
+        sub_dict["ObjectID"] = objectID
+
+        sub_dict["UserData"] = int(user_data)
+        sub_dict["Position"] = [
+            pos[0],
+            pos[1],
+            pos[2]
+        ]
+        sub_dict["Up"] = [
+            up[0],
+            up[1],
+            up[2]
+        ]
+        sub_dict["At"] = [
+            at[0],
+            at[1],
+            at[2]
+        ]
+        return sub_dict
 
     def generate_from_data(self, nms_data):
         # Start new file
@@ -341,6 +494,28 @@ class NMSSettings(PropertyGroup):
             return item["order"]
         return 0
 
+    def generate_preset_data(self):
+        """Generate dictionary of just objects for a preset."""
+        preset_dict = {}
+        preset_dict["Objects"] = []
+        all_objects = sorted(bpy.data.objects, key=self.by_order)
+        for ob in all_objects:
+            if "objectID" in ob:
+                sub_dict = self.generate_object_data(ob)
+                preset_dict["Objects"].append(sub_dict)
+        return preset_dict
+
+    def save_preset_data(self, preset_name):
+        data = self.generate_preset_data()
+        file_path = os.path.join(preset_path, preset_name)
+        # Add .json if it's not specified.
+        if not file_path.endswith(".json"):
+            file_path += ".json"
+        # Save to file path
+        with open(file_path, "w") as stream:
+            json.dump(data, stream, indent=4)
+
+
     def generate_data(self):
         """Export the data in the blender scene to NMS compatible data.
         
@@ -371,44 +546,11 @@ class NMSSettings(PropertyGroup):
         data["Objects"] = []
         for ob in all_objects:
             if "objectID" in ob:
+                sub_dict = self.generate_object_data(ob)
                 objectID = "^"+ob["objectID"]
-                timestamp = ob["Timestamp"]
-                user_data = ob["UserData"]
-                ob_world_matrix = ob.matrix_world
-                mat_rot = mathutils.Matrix.Rotation(math.radians(-90.0), 4, 'X')
-                obj_wm_offset = mat_rot * ob_world_matrix
-                pos = obj_wm_offset.decompose()[0]
-                up = get_direction_vector(obj_wm_offset, direction_matrix="up")
-                at = get_direction_vector(obj_wm_offset, direction_matrix="at")
-                sub_dict = OrderedDict()
-                sub_dict["Timestamp"] = int(timestamp)
-                sub_dict["ObjectID"] = objectID
-                
-                sub_dict["UserData"] = int(user_data)
-                sub_dict["Position"] = [
-                    pos[0],
-                    pos[1],
-                    pos[2]
-                ]
-                sub_dict["Up"] = [
-                    up[0],
-                    up[1],
-                    up[2]
-                ]
-                sub_dict["At"] = [
-                    at[0],
-                    at[1],
-                    at[2]
-                ]
-
                 data["Objects"].append(sub_dict)
-
-                if objectID == "TELEPORTER":
-                    print (json.dumps(sub_dict, indent=4))
-
         return data
         
-
     def generate_nms_data(self):
         data = self.generate_data()
         bpy.context.window_manager.clipboard = json.dumps(data, indent=4)
@@ -559,21 +701,22 @@ class NMSSettings(PropertyGroup):
         for ob in bpy.data.objects:
             if "objectID" in ob:
                 if ob["objectID"] in invisible_objects:
+                    is_preset = False
+                    if "is_preset" in ob:
+                        is_preset = ob["is_preset"]
                     if self.room_vis_switch == 0:
                         ob.hide = False
-                        ob.hide_select = False    
                         ob.show_transparent = False
+                        if not is_preset:
+                            ob.hide_select = False    
                     if self.room_vis_switch == 1:
                         ob.hide = False
-                        ob.hide_select = True
                         ob.show_transparent = True
+                        if not is_preset:
+                            ob.hide_select = True
                     if self.room_vis_switch == 2:
                         ob.hide = True
                     ob.select = False
-
-        
-        
-
 
 
 # ------------------------------------------------------------------------
@@ -606,6 +749,7 @@ class OBJECT_PT_my_panel(Panel):
         nms_row = layout.row()
         nms_row.operator("nms.import_nms_data")
         nms_row.operator("nms.export_nms_data")
+        
         properties_box = layout.box()
         properties_box.label("Base Properties")
         properties_box.prop(nms_tool, "string_base")
@@ -619,6 +763,7 @@ class OBJECT_PT_my_panel(Panel):
         layout.label("Tools")
         tools_box = layout.box()
         tools_box.operator("nms.toggle_room_visibility")
+        tools_box.operator("nms.save_as_preset")
 
         layout.label("Parts")
         layout.template_list(
@@ -632,16 +777,54 @@ class OBJECT_PT_my_panel(Panel):
         # row.operator("object.simple_operator" , text = "All")
 
 
-class SimpleOperator(bpy.types.Operator):
+class ListActionOperator(bpy.types.Operator):
     """Tooltip"""
-    bl_idname = "object.simple_operator"
+    bl_idname = "object.list_action_operator"
     bl_label = "Simple Object Operator"
     
     part_id = StringProperty()
 
     def execute(self, context):
-        build_item(self.part_id)
+        if self.part_id in get_presets():
+            build_preset(self.part_id, build_control=True)
+        else:
+            build_item(self.part_id)
         return {'FINISHED'}
+
+class ListEditOperator(bpy.types.Operator):
+    """Tooltip"""
+    bl_idname = "object.list_edit_operator"
+    bl_label = "Edit Preset"
+    
+    part_id = StringProperty()
+
+    def execute(self, context):
+        if self.part_id in get_presets():
+            scene = context.scene
+            nms_tool = scene.nms_base_tool
+            nms_tool.new_file()
+            build_preset(self.part_id)
+        return {'FINISHED'}
+
+    def invoke(self, context, event):
+        return context.window_manager.invoke_confirm(self, event)
+
+class ListDeleteOperator(bpy.types.Operator):
+    """Tooltip"""
+    bl_idname = "object.list_delete_operator"
+    bl_label = "Delete"
+    
+    part_id = StringProperty()
+
+    def execute(self, context):
+        if self.part_id in get_presets():
+            scene = context.scene
+            delete_preset(self.part_id)
+            refresh_part_list(scene)
+        return {'FINISHED'}
+
+    def invoke(self, context, event):
+        return context.window_manager.invoke_confirm(self, event)
     
 class Actions_List(bpy.types.UIList):
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname):
@@ -650,15 +833,29 @@ class Actions_List(bpy.types.UIList):
             # this will also make the row easily selectable in the list! The later also enables ctrl-click rename.
             # We use icon_value of label, as our given icon is an integer value, not an enum ID.
             # Note "data" names should never be translated!
-            split = layout.split(0.2)
+            split = layout.split(0.7)
             if item.label:
-                layout.label(item.label)
+                split.label(item.label)
             if item.description:
-                operator = layout.operator(
-                    "object.simple_operator",
+                operator = split.operator(
+                    "object.list_action_operator",
                     text = item.description,
                 )
                 operator.part_id = item.description
+
+                if item.description in get_presets():
+                    sub_split = split.split(0.6)
+                    edit_operator = sub_split.operator(
+                        "object.list_edit_operator",
+                        text = "Edit",
+                    )
+                    edit_operator.part_id = item.description
+
+                    delete_operator = sub_split.operator(
+                        "object.list_delete_operator",
+                        text = "X",
+                    )
+                    delete_operator.part_id = item.description
 
         elif self.layout_type in {'GRID'}:
             pass
@@ -670,7 +867,10 @@ class MyColl(bpy.types.PropertyGroup):
 
 def collhack(scene):
     bpy.app.handlers.scene_update_pre.remove(collhack)
+    refresh_part_list(scene)
+    
 
+def refresh_part_list(scene):
     try:
         scene.col.clear()
     except:
@@ -761,6 +961,24 @@ class ExportData(bpy.types.Operator):
         nms_tool = scene.nms_base_tool
         nms_tool.generate_nms_data()
         return {'FINISHED'}
+
+class SaveAsPreset(bpy.types.Operator):
+    bl_idname = "nms.save_as_preset"
+    bl_label = "Save As Preset"
+    preset_name = bpy.props.StringProperty(name="Preset Name")
+    def execute(self, context):
+        scene = context.scene
+        nms_tool = scene.nms_base_tool
+        nms_tool.save_preset_data(self.preset_name)
+        # Reset string variable.
+        self.preset_name = ""
+        print("Creating New File!")
+        refresh_part_list(scene)
+        return {'FINISHED'}
+
+    def invoke(self, context, event):
+        wm = context.window_manager
+        return wm.invoke_props_dialog(self)
 
 # register and unregister
 def register():

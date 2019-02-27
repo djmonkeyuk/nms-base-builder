@@ -542,13 +542,15 @@ class NMSSettings(PropertyGroup):
         }
         
         all_objects = sorted(bpy.data.objects, key=self.by_order)
-
+        
+        # Capture objects
         data["Objects"] = []
         for ob in all_objects:
             if "objectID" in ob:
-                sub_dict = self.generate_object_data(ob)
-                objectID = "^"+ob["objectID"]
-                data["Objects"].append(sub_dict)
+                if ob["objectID"] not in ["##preset_object##"]:
+                    print ob["objectID"]
+                    sub_dict = self.generate_object_data(ob)
+                    data["Objects"].append(sub_dict)
         return data
         
     def generate_nms_data(self):

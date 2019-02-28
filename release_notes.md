@@ -1,7 +1,7 @@
 release 0.7.0
 -------------
 * Added options for defining and building presets.
-
+* Added large paving, pipe and curved pipe.
 
 release 0.6.0
 -------------

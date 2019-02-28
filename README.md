@@ -23,7 +23,8 @@ A plugin for Blender to build bases in No Mans Sky.
 
 * Build bases for No Mans Sky using proxy representations for building parts.
 * Complete freedome of movement when placing building parts - want something upside down? Up in the air? You can place it that way!
-* Save and Load bases.
+* Define presets to build complex items quickly.
+* Save and Load bases to disk (.json format).
 * Import and Export base data compatable with the No Mans Sky Save Editor.
 
 

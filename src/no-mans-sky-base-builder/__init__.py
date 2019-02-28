@@ -27,8 +27,13 @@ from bpy.types import Operator, Panel, PropertyGroup
 
 # File Paths ---
 file_path = os.path.dirname(os.path.realpath(__file__))
+user_path = os.path.join(os.path.expanduser("~"), "NoMansSkyBaseBuilder")
 model_path = os.path.join(file_path, "models")
-preset_path = os.path.join(file_path, "presets")
+preset_path = os.path.join(user_path, "presets")
+
+for user_data_path in [user_path, preset_path]:
+    if not os.path.exists(user_data_path):
+        os.makedirs(user_data_path)
 
 # Utility Methods ---
 def get_direction_vector(matrix, direction_matrix = None):
@@ -191,7 +196,8 @@ def build_preset(
         build_control=False,
         position=None,
         up=None,
-        at=None):
+        at=None,
+        material="preset"):
     preset_json = get_preset_path(preset_id)
     data = {}
     with open(preset_json, "r") as stream:
@@ -216,7 +222,7 @@ def build_preset(
                 up_vec,
                 at_vec,
                 is_preset=True,
-                material="preset"
+                material=material
             )
             
             parts.append(blender_part)
@@ -554,8 +560,9 @@ class NMSSettings(PropertyGroup):
         all_objects = sorted(bpy.data.objects, key=self.by_order)
         for ob in all_objects:
             if "objectID" in ob:
-                sub_dict = self.generate_object_data(ob)
-                preset_dict["Objects"].append(sub_dict)
+                if ob["objectID"] not in ["BASE_FLAG"]:
+                    sub_dict = self.generate_object_data(ob)
+                    preset_dict["Objects"].append(sub_dict)
         return preset_dict
 
     def save_preset_data(self, preset_name):
@@ -1053,7 +1060,7 @@ class ListEditOperator(bpy.types.Operator):
             scene = context.scene
             nms_tool = scene.nms_base_tool
             nms_tool.new_file()
-            build_preset(self.part_id)
+            build_preset(self.part_id, material="white")
         return {'FINISHED'}
 
     def invoke(self, context, event):

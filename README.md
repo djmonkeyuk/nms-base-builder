@@ -26,6 +26,7 @@ A plugin for Blender to build bases in No Mans Sky.
 * Define presets to build complex items quickly. Share or download presets online.
 * Save and Load bases to disk (.json format).
 * Import and Export base data compatable with the No Mans Sky Save Editor.
+* Snapping features help with placement of parts similar to how No Man's Sky positions parts.
 
 
 <br />
@@ -45,6 +46,7 @@ A plugin for Blender to build bases in No Mans Sky.
 * Installation Video: https://www.youtube.com/watch?v=_zN82oueFTE
 * Simple Use Video: https://www.youtube.com/watch?v=qXcguoROM-A
 * How to use Presets Video: https://www.youtube.com/watch?v=BFIvRH5-S0I&t
+* How to do Snapping Video: https://youtu.be/1I3KDRiSTW8
 
 ### Written Steps
 1. Download the latest release. (https://github.com/charliebanks/nms-base-builder/releases)

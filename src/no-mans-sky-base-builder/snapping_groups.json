@@ -1,0 +1,200 @@
+{
+    "HALF_WALLS": [
+        "W_WALL_H", 
+        "C_WALL_H", 
+        "C_WALL_H", 
+        "M_WALL_H", 
+        "M_WALL_H"
+    ], 
+    "FARM": [
+        "PLANTERMEGA", 
+        "PLANTER"
+    ], 
+    "CORRIDOR_RAMPS": [
+        "BUILDRAMP"
+    ], 
+    "PROPS": [
+        "FLAG1", 
+        "FLAG2", 
+        "FLAG3", 
+        "FLAG4", 
+        "BUILDTABLE", 
+        "BUILDTABLE2", 
+        "BUILDWORKTOP", 
+        "CEILINGLIGHT", 
+        "CURVEDDESK", 
+        "LARGEDESK", 
+        "MONITORDESKsh", 
+        "ROBOTICARM", 
+        "ROOFMONITOR", 
+        "SHELFPANEL", 
+        "STATUE_ATLAS_G", 
+        "STATUE_BLOB_B", 
+        "STATUE_BLOB_G", 
+        "STATUE_BLOB_S", 
+        "STATUE_WALK_G", 
+        "WEAPONRACK", 
+        "BASE_TREE01", 
+        "BASE_TREE02", 
+        "BUILDCHAIR1", 
+        "BUILDCHAIR2", 
+        "BUILDCHAIR3", 
+        "BUILDLOCKER", 
+        "BUILDSIMPLEDESK", 
+        "BUILDSOFA", 
+        "BUILDSOFA2", 
+        "BUILDSOFA2L", 
+        "PLANTPOT", 
+        "PLANTPOT1", 
+        "PLANTPOT2", 
+        "PLANTPOT3", 
+        "BP_ANALYSER", 
+        "BUILD_REFINER1", 
+        "BUILD_REFINER2", 
+        "BUILD_REFINER3", 
+        "BUILDBEACON", 
+        "BUILDLANDINGPAD", 
+        "BUILDSAVE", 
+        "BUILDSIGNAL", 
+        "MESSAGEMODULE", 
+        "TELEPORTER", 
+        "BASE_FLAG", 
+        "BASECAPSULE", 
+        "NPCSCIENCETERM", 
+        "BUILDLCRATE", 
+        "BUILDAMCRATE", 
+        "BUILDLIGHT3", 
+        "BUILDLIGHT1", 
+        "BUILDLIGHT2"
+    ], 
+    "CUBE_SHAPE": [
+        "CUBESHAPE"
+    ], 
+    "DOORS": [
+        "BUILDDOOR", 
+        "DOOR2"
+    ], 
+    "SMALL_FLOORS": [
+        "W_FLOOR_Q", 
+        "C_FLOOR_Q", 
+        "C_FLOOR_Q", 
+        "M_FLOOR_Q", 
+        "M_FLOOR_Q", 
+        "BUILDPAVINGTALL"
+    ], 
+    "CORRIDOR_L": [
+        "CORRIDORL", 
+        "CORRIDORL"
+    ], 
+    "WINDOWS": [
+        "CUBEWINDOW"
+    ], 
+    "RAMPS": [
+        "W_RAMP", 
+        "C_RAMP", 
+        "M_RAMP"
+    ], 
+    "CURVED_PIPES": [
+        "CURVEPIPESHAPE"
+    ], 
+    "CORRIDOR_T": [
+        "CORRIDORT"
+    ], 
+    "SMALL_PAVING": [
+        "BUILDPAVING"
+    ], 
+    "CORRIDOR_X": [
+        "CORRIDORX"
+    ], 
+    "CUBES": [
+        "CUBEROOM", 
+        "CUBESOLID", 
+        "CUBEGLASS", 
+        "CUBEFRAME", 
+        "CONTAINER0", 
+        "CONTAINER1", 
+        "CONTAINER2", 
+        "CONTAINER3", 
+        "CONTAINER4", 
+        "CONTAINER5", 
+        "CONTAINER6", 
+        "CONTAINER8", 
+        "CONTAINER9"
+    ], 
+    "MAIN_WINDOWS": [
+        "BUILDWINDOW"
+    ], 
+    "WEDGE": [
+        "WEDGESHAPE"
+    ], 
+    "PIPES": [
+        "CYLINDERSHAPE", 
+        "PIPESHAPE"
+    ], 
+    "PAVING": [
+        "BUILDPAVING_BIG"
+    ], 
+    "HALF_RAMPS": [
+        "W_RAMP_H", 
+        "M_RAMP_H", 
+        "C_RAMP_H"
+    ], 
+    "CUBE_FLOORS": [
+        "CUBEFLOOR"
+    ], 
+    "CORRIDOR_CORNER": [
+        "CORRIDORC"
+    ], 
+    "CORRIDORS": [
+        "CORRIDOR", 
+        "GLASSCORRIDOR"
+    ], 
+    "VIEW_SPHERE": [
+        "VIEWSPHERE"
+    ], 
+    "MAIN_ROOM": [
+        "MAINROOMCUBE", 
+        "MAINROOM", 
+        "BIOROOM"
+    ], 
+    "DIAGONAL_WALLS": [
+        "W_WALLDIAGONAL", 
+        "C_WALLDIAGONAL", 
+        "M_WALLDIAGONAL"
+    ], 
+    "LADDERS": [
+        "BUILDLADDER"
+    ], 
+    "WALLS": [
+        "W_WALL", 
+        "C_WALL", 
+        "C_WALL", 
+        "M_WALL", 
+        "M_WALL", 
+        "W_ARCH", 
+        "M_ARCH", 
+        "C_ARCH", 
+        "W_WALL_DOOR", 
+        "C_WALL_DOOR", 
+        "C_WALL_DOOR", 
+        "M_WALL_DOOR", 
+        "M_WALL_DOOR", 
+        "W_WALL_WINDOW", 
+        "C_WALL_WINDOW", 
+        "M_WALL_WINDOW"
+    ], 
+    "FLOORS": [
+        "W_FLOOR", 
+        "M_FLOOR", 
+        "C_FLOOR", 
+        "W_GFLOOR", 
+        "W_GFLOOR", 
+        "C_GFLOOR", 
+        "C_GFLOOR", 
+        "M_GFLOOR", 
+        "M_GFLOOR"
+    ], 
+    "CUBE_CURVED": [
+        "CUBEROOMCURVED"
+    ]
+}

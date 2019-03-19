@@ -3,7 +3,7 @@ bl_info = {
     "name": "No Mans Sky Base Builder",
     "description": "A tool to assist with base building in No Mans Sky",
     "author": "Charlie Banks",
-    "version": (0, 5, 0),
+    "version": (0, 8, 0),
     "blender": (2, 70, 0),
     "location": "3D View > Tools",
     "warning": "", # used for warning icon and text in addons panel
@@ -17,6 +17,8 @@ import math
 import os
 from collections import OrderedDict
 from decimal import Decimal, getcontext
+from copy import copy, deepcopy
+from functools import partial
 
 import bpy
 import bpy.utils
@@ -34,6 +36,30 @@ preset_path = os.path.join(user_path, "presets")
 for user_data_path in [user_path, preset_path]:
     if not os.path.exists(user_data_path):
         os.makedirs(user_data_path)
+
+# Load Auto Snap Dictionary ---
+snap_matrix_json = os.path.join(file_path, "snapping_info.json")
+snap_pair_json = os.path.join(file_path, "snapping_pairs.json")
+snap_groups_json = os.path.join(file_path, "snapping_groups.json")
+
+# Keep track of snap keys.
+global per_item_snap_reference
+per_item_snap_reference = {}
+
+# Load in the external dictionaries.
+global snap_matrix_dictionary
+global snap_group_dictionary
+global snap_pair_dictionary
+snap_matrix_dictionary = {}
+snap_group_dictionary = {}
+snap_pair_dictionary = {}
+
+with open(snap_matrix_json, "r") as stream:
+    snap_matrix_dictionary = json.load(stream)
+with open(snap_pair_json, "r") as stream:
+    snap_pair_dictionary = json.load(stream)
+with open(snap_groups_json, "r") as stream:
+    snap_group_dictionary = json.load(stream)
 
 # Utility Methods ---
 def get_direction_vector(matrix, direction_matrix = None):
@@ -103,7 +129,8 @@ def build_item(
         up_vec=[0, 1, 0],
         at_vec=[0, 0, 1],
         is_preset=False,
-        material="white"):
+        material="white",
+        auto_snap=False):
     """Build a part given a set of paremeters.
     
     This is they main function of the program for building.
@@ -117,6 +144,13 @@ def build_item(
         at_vec(vector): The aim vector for the part orientation.
         is_preset(bool): Determine if this part belongs to a preset or standalone.
     """
+    # Get Current Selection
+    current_selection = None
+    current_world_matrix = None
+    if bpy.context.selected_objects:
+        current_selection = bpy.context.selected_objects[0]
+        current_world_matrix = current_selection.matrix_world
+
     # Get the obj path.
     obj_path = get_obj_path(part) or ""
     # If it exists, import the obj.
@@ -178,7 +212,233 @@ def build_item(
     # Place the item in world space.
     item.matrix_world = mat
 
+    # Auto Snap
+    if auto_snap and current_selection:
+        # Set selection to be snap friendly.
+        bpy.ops.object.select_all(action='DESELECT') 
+        current_selection.select = True
+        item.select = True
+        bpy.context.scene.objects.active = item
+
+        snap_state = snap_objects(item, current_selection)
+
+        # If no snap was done, deselect the old item.
+        if not snap_state:
+            current_selection.select= False
+
+
+
     return item
+
+
+# Snap Methods ---
+def get_snap_matrices_from_group(group):
+    global snap_matrix_dictionary
+    if group in snap_matrix_dictionary:
+        return snap_matrix_dictionary[group]
+
+def get_snap_group_from_part(part_id):
+    """Search through the grouping dictionary and return the snap group.
+    
+    Args:
+        part_id (str): The ID of the building part.
+    """
+    global snap_group_dictionary
+    for group, parts in snap_group_dictionary.items():
+        if part_id in parts:
+            return group
+
+def get_snap_pair_options(target_item_id, source_item_id):
+    global snap_pair_dictionary
+    # Get Groups.
+    target_group = get_snap_group_from_part(target_item_id)
+    source_group = get_snap_group_from_part(source_item_id)
+    
+    if not target_group and not source_group:
+        return None
+
+    # Get Pairing.
+    if target_group in snap_pair_dictionary:
+        snapping_dictionary = snap_pair_dictionary[target_group]
+        if source_group in snapping_dictionary:
+            return snapping_dictionary[source_group]
+
+def cycle_keys(data, current, step="next"):
+    # Sort the keys by the order sub-key.
+    keys = data
+    if current in keys:
+        current_index = keys.index(current)
+    else:
+        current_index = 0
+    if step == "next":
+        next_index = current_index + 1
+    elif step == "prev":
+        next_index = current_index - 1
+    
+    if next_index > len(keys) - 1:
+        next_index = 0
+
+    if next_index < 0:
+        next_index = len(keys) - 1
+
+    return keys[next_index]
+
+def snap_objects(
+        source, target,
+        next_source=False,
+        prev_source=False,
+        next_target=False,
+        prev_target=False):
+    """Given a source and a target, snap one to the other."""
+    global per_item_snap_reference
+    
+    # Get Current Selection Object Type.
+    source_key = None
+    target_key = None
+
+    if "objectID" not in target:
+        return False
+
+    if "objectID" not in source:
+        return False
+    
+    # If anything, move the item to the target.
+    source.matrix_world = copy(target.matrix_world)
+    
+    # Get Pairing options.
+    snap_pairing_options = get_snap_pair_options(target["objectID"], source["objectID"])
+    # IF no snap details are avaialbe then don't bother.
+    if not snap_pairing_options:
+        return False
+
+    target_pairing_options = [part.strip() for part in snap_pairing_options[0].split(",")]
+    source_pairing_options = [part.strip() for part in snap_pairing_options[1].split(",")]
+
+    # Get the per item reference.
+    target_item_snap_reference = per_item_snap_reference.get(target.name, {})
+    # Get the target item type.
+    target_id = target["objectID"]
+    # Find corresponding dict in snap reference.
+    target_snap_group = get_snap_group_from_part(target_id)
+    target_local_matrix_datas = get_snap_matrices_from_group(target_snap_group)
+    if target_local_matrix_datas:
+        # Get the default target.
+        default_target_key = target_pairing_options[0]
+        target_key = target_item_snap_reference.get("target", default_target_key)
+
+        # If the previous key is not in the available options, revert to default.
+        if target_key not in target_pairing_options:
+            target_key = default_target_key
+
+        if next_target:
+            target_key = cycle_keys(
+                target_pairing_options,
+                target_key,
+                step="next",
+            )
+
+        if prev_target:
+            target_key = cycle_keys(
+                target_pairing_options,
+                target_key,
+                step="prev",
+            )
+
+    # Get the per item reference.
+    source_item_snap_reference = per_item_snap_reference.get(source.name, {})
+    # Get the source type.
+    source_id = source["objectID"]
+    # Find corresponding dict.
+    source_snap_group = get_snap_group_from_part(source_id)
+    source_local_matrix_datas = get_snap_matrices_from_group(source_snap_group)
+    if source_local_matrix_datas:
+        default_source_key = source_pairing_options[0]
+
+        # If the source and target are the same, the source key can be the opposite of target.
+        if source_id == target_id:
+            default_source_key = target_local_matrix_datas[target_key].get("opposite", default_source_key)
+
+        # Get the source key from the item reference, or use the default.
+        if (source_id == target_id) and (prev_target or next_target):
+            source_key = target_local_matrix_datas[target_key].get("opposite", default_source_key)
+        else:
+            source_key = source_item_snap_reference.get("source", default_source_key)
+
+        # If the previous key is not in the available options, revert to default.
+        if source_key not in source_pairing_options:
+            source_key = default_source_key
+
+        if next_source:
+            source_key = cycle_keys(
+                source_pairing_options,
+                source_key,
+                step="next",
+            )
+
+        if prev_source:
+            source_key = cycle_keys(
+                source_pairing_options,
+                source_key,
+                step="prev",
+            )
+
+    if source_key and target_key:
+        # Snap-point to snap-point matrix maths.
+        # As I've defined X to be always outward facing, we snap the rotated
+        # matrix to the point.
+        # s = source, t = target, o = local snap matrix.
+        # [(s.so)^-1 * (t.to)] * [(s.so) * 180 rot-matrix * (s.so)^-1]
+        
+        # First Create a Flipped Y Matrix based on local offset.
+        start_matrix = copy(source.matrix_world)
+        start_matrix_inv = copy(source.matrix_world)
+        start_matrix_inv.invert()
+        offset_matrix = mathutils.Matrix(source_local_matrix_datas[source_key]["matrix"])
+
+        # Target Matrix
+        target_matrix = copy(target.matrix_world)
+        target_offset_matrix = mathutils.Matrix(target_local_matrix_datas[target_key]["matrix"])
+
+        # Calculate the location of the target matrix.
+        target_snap_matrix = target_matrix * target_offset_matrix
+
+        # Calculate snap position.
+        snap_matrix = start_matrix * offset_matrix
+        snap_matrix_inv = copy(snap_matrix)
+        snap_matrix_inv.invert()
+
+        # Rotate by 180 around Y at the origin.
+        origin_matrix = snap_matrix_inv * snap_matrix
+        rotation_matrix = mathutils.Matrix.Rotation(math.radians(180.0), 4, "Y")
+        origin_flipped_matrix = rotation_matrix * origin_matrix
+        flipped_snap_matrix = snap_matrix * origin_flipped_matrix
+        
+        flipped_local_offset =  start_matrix_inv * flipped_snap_matrix
+
+        # Diff between the two.
+        flipped_local_offset.invert()
+        target_location =  target_snap_matrix * flipped_local_offset
+
+        source.matrix_world = target_location
+
+        # Find the opposite source key and set it.
+        next_source_key = source_key
+        next_target_key = target_key
+        
+        # If we are working with the same objects.
+        next_target_key = source_local_matrix_datas[source_key].get("opposite", None)
+
+        # Update source item refernece.
+        source_item_snap_reference["source"] = source_key
+        source_item_snap_reference["target"] = next_target_key
+
+        # Update target item reference.
+        target_item_snap_reference["target"] = target_key
+        
+        # Update per item reference.
+        per_item_snap_reference[source.name] = source_item_snap_reference
+        per_item_snap_reference[target.name] = target_item_snap_reference
+        return True
 
 # Preset Methods ---
 def get_preset_path(preset_id):
@@ -700,8 +960,6 @@ class NMSSettings(PropertyGroup):
         # Reset room vis
         self.room_vis_switch = 0
 
-
-        
     def toggle_room_visibility(self):
         # Ensure we are in the CYCLES renderer.
         bpy.context.scene.render.engine = 'CYCLES'
@@ -797,12 +1055,62 @@ class NMSSettings(PropertyGroup):
                     ob.select = False
 
 
+    def duplicate(self):
+        """Snaps one object to another based on selection."""
+        selected_objects = bpy.context.selected_objects
+        if not selected_objects:
+            ShowMessageBox(
+                message="Make sure you have an item selected.",
+                title="Duplicate"
+            )
+            return
+
+        source_object = bpy.context.scene.objects.active
+        object_id = source_object["objectID"]
+        build_item(object_id, auto_snap=True)
+
+    def snap(
+        self,
+        next_source=False,
+        prev_source=False,
+        next_target=False,
+        prev_target=False):
+        """Snaps one object to another based on selection."""
+        selected_objects = bpy.context.selected_objects
+        
+        if len(selected_objects) != 2:
+            ShowMessageBox(
+                message="Make sure you have two items selected. Select the item you want to snap to, then the item you want to snap.",
+                title="Snap"
+            )
+            return
+
+        # Perform Snap
+        source_object = bpy.context.scene.objects.active
+        target_object = [obj for obj in selected_objects if obj != source_object][0]
+        snap_objects(
+            source_object,
+            target_object,
+            next_source=next_source,
+            prev_source=prev_source,
+            next_target=next_target,
+            prev_target=prev_target
+        )
+
+
+# Utility Classes ---
+def ShowMessageBox(message = "", title = "Message Box", icon = 'INFO'):
+    def draw(self, context):
+        self.layout.label(message)
+    bpy.context.window_manager.popup_menu(draw, title = title, icon = icon)
+
+
 # ------------------------------------------------------------------------
 #    my tool in objectmode
 # ------------------------------------------------------------------------
 
 class OBJECT_PT_my_panel(Panel):
-    bl_idname = "OBJECT_PT_my_panel"
+    bl_idname = "OBJECT_PT_nms_panel"
     bl_label = "No Mans Sky Base Builder"
     bl_space_type = "VIEW_3D"   
     bl_region_type = "TOOLS"    
@@ -810,8 +1118,8 @@ class OBJECT_PT_my_panel(Panel):
     bl_context = "objectmode"   
 
     @classmethod
-    def poll(self,context):
-        return context.object is not None
+    def poll(self, context):
+        return True
 
     def draw(self, context):
         layout = self.layout
@@ -832,16 +1140,34 @@ class OBJECT_PT_my_panel(Panel):
         properties_box.label("Base Properties")
         properties_box.prop(nms_tool, "string_base")
         properties_box.prop(nms_tool, "string_address")
-        properties_box.label("User Properties")
-        properties_box.prop(nms_tool, "string_usn")
-        properties_box.prop(nms_tool, "string_uid")
-        properties_box.prop(nms_tool, "string_lid")
-        properties_box.prop(nms_tool, "string_ts")
+        # properties_box.label("User Properties")
+        # properties_box.prop(nms_tool, "string_usn")
+        # properties_box.prop(nms_tool, "string_uid")
+        # properties_box.prop(nms_tool, "string_lid")
+        # properties_box.prop(nms_tool, "string_ts")
 
         layout.label("Tools")
         tools_box = layout.box()
-        tools_box.operator("nms.toggle_room_visibility")
-        tools_box.operator("nms.save_as_preset")
+        tools_column = tools_box.column()
+        tools_column.operator("nms.toggle_room_visibility")
+        tools_column.operator("nms.save_as_preset")
+
+        layout.label("Snap")
+        snap_box = layout.box()
+        # splitter = snap_box.split(0.5)
+        snap_column = snap_box.column()
+        snap_column.operator("nms.duplicate")
+        snap_column.operator("nms.snap")
+        target_row = snap_column.row()
+        target_row.label("Target")
+        target_row.operator("nms.snap_target_prev")
+        target_row.operator("nms.snap_target_next")
+        
+        source_row = snap_column.row()
+        source_row.label("Source")
+        source_row.operator("nms.snap_source_prev")
+        source_row.operator("nms.snap_source_next")
+        
 
         layout.label("Parts")
         layout.template_list(
@@ -1044,7 +1370,7 @@ class ListActionOperator(bpy.types.Operator):
         if self.part_id in get_presets():
             build_preset(self.part_id, build_control=True)
         else:
-            build_item(self.part_id)
+            build_item(self.part_id, auto_snap=True)
         return {'FINISHED'}
 
 
@@ -1083,6 +1409,74 @@ class ListDeleteOperator(bpy.types.Operator):
 
     def invoke(self, context, event):
         return context.window_manager.invoke_confirm(self, event)
+
+class Duplicate(bpy.types.Operator):
+    bl_idname = "nms.duplicate"
+    bl_label = "Duplicate"
+    bl_options = {'REGISTER', 'INTERNAL'}
+
+    def execute(self, context):
+        scene = context.scene
+        nms_tool = scene.nms_base_tool
+        nms_tool.duplicate()
+        print("Snapping!")
+        return {'FINISHED'}
+
+class Snap(bpy.types.Operator):
+    bl_idname = "nms.snap"
+    bl_label = "Snap"
+    bl_options = {'REGISTER', 'INTERNAL'}
+
+    def execute(self, context):
+        scene = context.scene
+        nms_tool = scene.nms_base_tool
+        nms_tool.snap()
+        print("Snapping!")
+        return {'FINISHED'}
+
+class SnapSourceNext(bpy.types.Operator):
+    bl_idname = "nms.snap_source_next"
+    bl_label = "Next"
+    bl_options = {'REGISTER', 'INTERNAL'}
+
+    def execute(self, context):
+        scene = context.scene
+        nms_tool = scene.nms_base_tool
+        nms_tool.snap(next_source=True)
+        return {'FINISHED'}
+
+class SnapSourcePrev(bpy.types.Operator):
+    bl_idname = "nms.snap_source_prev"
+    bl_label = "Prev"
+    bl_options = {'REGISTER', 'INTERNAL'}
+
+    def execute(self, context):
+        scene = context.scene
+        nms_tool = scene.nms_base_tool
+        nms_tool.snap(prev_source=True)
+        return {'FINISHED'}
+
+class SnapTargetNext(bpy.types.Operator):
+    bl_idname = "nms.snap_target_next"
+    bl_label = "Next"
+    bl_options = {'REGISTER', 'INTERNAL'}
+
+    def execute(self, context):
+        scene = context.scene
+        nms_tool = scene.nms_base_tool
+        nms_tool.snap(next_target=True)
+        return {'FINISHED'}
+
+class SnapTargetPrev(bpy.types.Operator):
+    bl_idname = "nms.snap_target_prev"
+    bl_label = "Prev"
+    bl_options = {'REGISTER', 'INTERNAL'}
+
+    def execute(self, context):
+        scene = context.scene
+        nms_tool = scene.nms_base_tool
+        nms_tool.snap(prev_target=True)
+        return {'FINISHED'}
 
 
 # Plugin Registeration ---

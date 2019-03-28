@@ -3,7 +3,7 @@ bl_info = {
     "name": "No Mans Sky Base Builder",
     "description": "A tool to assist with base building in No Mans Sky",
     "author": "Charlie Banks",
-    "version": (0, 8, 0),
+    "version": (0, 9, 0),
     "blender": (2, 70, 0),
     "location": "3D View > Tools",
     "warning": "", # used for warning icon and text in addons panel
@@ -19,7 +19,7 @@ from collections import OrderedDict
 from decimal import Decimal, getcontext
 from copy import copy, deepcopy
 from functools import partial
-
+import bpy.utils.previews
 import bpy
 import bpy.utils
 import mathutils
@@ -40,7 +40,8 @@ for user_data_path in [user_path, preset_path]:
 # Load Auto Snap Dictionary ---
 snap_matrix_json = os.path.join(file_path, "snapping_info.json")
 snap_pair_json = os.path.join(file_path, "snapping_pairs.json")
-snap_groups_json = os.path.join(file_path, "snapping_groups.json")
+nice_names_json = os.path.join(file_path, "nice_names.json")
+colours_json = os.path.join(file_path, "colours.json")
 
 # Keep track of snap keys.
 global per_item_snap_reference
@@ -48,18 +49,26 @@ per_item_snap_reference = {}
 
 # Load in the external dictionaries.
 global snap_matrix_dictionary
-global snap_group_dictionary
 global snap_pair_dictionary
 snap_matrix_dictionary = {}
-snap_group_dictionary = {}
 snap_pair_dictionary = {}
 
 with open(snap_matrix_json, "r") as stream:
     snap_matrix_dictionary = json.load(stream)
 with open(snap_pair_json, "r") as stream:
     snap_pair_dictionary = json.load(stream)
-with open(snap_groups_json, "r") as stream:
-    snap_group_dictionary = json.load(stream)
+
+# Colours
+global colours_dictionary
+colours_dictionary = {}
+with open(colours_json, "r") as stream:
+    colours_dictionary = json.load(stream)
+
+# Nice Names
+global nice_names_dictionary
+nice_names_dictionary = {}
+with open(nice_names_json, "r") as stream:
+    nice_names_dictionary = json.load(stream)
 
 # Utility Methods ---
 def get_direction_vector(matrix, direction_matrix = None):
@@ -78,6 +87,14 @@ def get_categories():
 
 
 # Part Methods ---
+def get_nice_name(part_id):
+    remove_tags = ["BUILD", "BUILD_"]
+    nice_name = part_id
+    for tag in remove_tags:
+        nice_name = nice_name.replace(tag, "")
+    nice_name = nice_name.title()
+    return nice_names_dictionary.get(part_id, nice_name)
+
 def get_parts_from_category(category):
     """Get a list of parts belonging to a category."""
     category_path = os.path.join(model_path, category)
@@ -85,7 +102,8 @@ def get_parts_from_category(category):
         raise RuntimeError(category + " does not exist.")
     
     return sorted(
-        [part.split(".obj")[0] for part in os.listdir(category_path) if part.endswith(".obj")]
+        [part.split(".obj")[0] for part in os.listdir(category_path) if part.endswith(".obj")],
+        key=get_nice_name
     )
 
 
@@ -162,12 +180,6 @@ def build_item(
         item = bpy.context.object
         item.name = part
 
-    # Assign Material
-    if material == "white":
-        assign_white_material(item)
-    elif material == "preset":
-        assign_preset_material(item)
-
     # Lock Scale
     item.lock_scale[0] = True
     item.lock_scale[1] = True
@@ -182,9 +194,14 @@ def build_item(
         item.lock_rotation[2] = True
     # Add custom attributes.
     item["objectID"] = part
-    item["UserData"] = userdata
     item["Timestamp"] = timestamp
     item["is_preset"] = is_preset
+    # Apply Colour
+    if is_preset:
+        assign_preset_material(item, userdata)
+    else:
+        assign_material(item, userdata)
+
     # Position.
     item.location = position
     # Rotation
@@ -235,7 +252,9 @@ def build_item(
 def get_snap_matrices_from_group(group):
     global snap_matrix_dictionary
     if group in snap_matrix_dictionary:
-        return snap_matrix_dictionary[group]
+        if "snap_points" in snap_matrix_dictionary[group]:
+            print (snap_matrix_dictionary[group]["snap_points"])
+            return snap_matrix_dictionary[group]["snap_points"]
 
 def get_snap_group_from_part(part_id):
     """Search through the grouping dictionary and return the snap group.
@@ -243,8 +262,9 @@ def get_snap_group_from_part(part_id):
     Args:
         part_id (str): The ID of the building part.
     """
-    global snap_group_dictionary
-    for group, parts in snap_group_dictionary.items():
+    global snap_matrix_dictionary
+    for group, value in snap_matrix_dictionary.items():
+        parts = value["parts"]
         if part_id in parts:
             return group
 
@@ -266,10 +286,9 @@ def get_snap_pair_options(target_item_id, source_item_id):
 def cycle_keys(data, current, step="next"):
     # Sort the keys by the order sub-key.
     keys = data
+    current_index = 0
     if current in keys:
         current_index = keys.index(current)
-    else:
-        current_index = 0
     if step == "next":
         next_index = current_index + 1
     elif step == "prev":
@@ -554,7 +573,11 @@ def build_preset(
             curve_object.lock_scale[2] = True
 
 # Material Methods ---
-def assign_preset_material(item):
+def assign_preset_material(item, colour_index=0, starting_index=0):
+    # Material+Colour
+    colour_index = starting_index + colour_index
+    # Apply Custom Variable.
+    item["UserData"] = colour_index
     preset_name = "preset_material"
     preset_material = None
     for material in bpy.data.materials:
@@ -572,28 +595,67 @@ def assign_preset_material(item):
     
     return preset_material
 
-
-def assign_white_material(item):
-    transparent_name = "transparent_material"
-    transparent_material = None
+def assign_material(item, colour_index=0, starting_index=0):
+    global colours_dictionary
+    # Material+Colour
+    colour_index = starting_index + colour_index
+    # Apply Custom Variable.
+    item["UserData"] = colour_index
+    # Create Material
+    colour_name = "{0}_material".format(colour_index)
+    colour_material = None
     for material in bpy.data.materials:
-        if transparent_name == material.name:
-            transparent_material = material
+        if colour_name == material.name:
+            colour_material = material
 
     # Ensure we have a transparent shader.
-    if not transparent_material:
-        transparent_material = bpy.data.materials.new(name=transparent_name) #set new material to variable
-        transparent_material.alpha = 0.07
+    if not colour_material:
+        colour_material = bpy.data.materials.new(name=colour_name) #set new material to variable
+        colour_material.alpha = 0.07
+        colour_data = colours_dictionary.get(str(colour_index), {})
+        colour_tuple = colour_data.get("colour", [0.8, 0.8,0.8])
+        colour_material.diffuse_color = (colour_tuple[0], colour_tuple[1], colour_tuple[2])
+    
     # Assign Material
-    item.data.materials.append(transparent_material) #add the material to the object
-    return transparent_material
-
-
-
-
+    if not item.data.materials:
+        item.data.materials.append(colour_material) #add the material to the object
+    else:
+        item.data.materials[0] = colour_material
+    return colour_material
 
 # Settings Class ---
+def part_switch(self, context):
+    """Toggle method for switching between parts and presets."""
+    scene = context.scene
+    part_list = "presets" if self.enum_switch == {'PRESETS'} else "parts"
+    refresh_part_list(scene, part_list)
+
 class NMSSettings(PropertyGroup):
+
+    enum_switch = EnumProperty(
+            name = "enum_switch",
+            description = "Toggle to display between parts and presets.",
+            items = [
+                ("PARTS" , "Parts" , "View Base Parts..."),
+                ("PRESETS", "Presets", "View Presets...")
+            ],
+            options = {"ENUM_FLAG"},
+            default= {"PARTS"},
+            update=part_switch
+        )
+
+    material_switch = EnumProperty(
+            name = "material_switch",
+            description = "Decide what type of material to apply",
+            items = [
+                ("CONCRETE" , "Concrete" , "Concrete"),
+                ("RUST", "Rust", "Rust"),
+                ("STONE", "Stone", "Stone"),
+                ("WOOD", "Wood", "Wood")
+            ],
+            options = {"ENUM_FLAG"},
+            default= {"CONCRETE"},
+        )
 
     preset_name = StringProperty(
         name="preset_name",
@@ -685,7 +747,7 @@ class NMSSettings(PropertyGroup):
         default = 0
     )
 
-
+    
     def import_nms_data(self):
         """Import and build a base based on NMS Save Editor data.
         
@@ -744,6 +806,7 @@ class NMSSettings(PropertyGroup):
         # Bake NMS Object Data
         if not is_preset:
             timestamp = object["Timestamp"]
+            print (object.name)
             user_data = object["UserData"]
             sub_dict["Timestamp"] = int(timestamp)
             sub_dict["UserData"] = int(user_data)
@@ -1067,7 +1130,26 @@ class NMSSettings(PropertyGroup):
 
         source_object = bpy.context.scene.objects.active
         object_id = source_object["objectID"]
-        build_item(object_id, auto_snap=True)
+        userdata = source_object["UserData"]
+        build_item(object_id, auto_snap=True, userdata=userdata)
+
+    def apply_colour(self, colour_index=0, starting_index=0):
+        """Snaps one object to another based on selection."""
+        selected_objects = bpy.context.selected_objects
+        if not selected_objects:
+            ShowMessageBox(
+                message="Make sure you have an item selected.",
+                title="Apply Colour"
+            )
+            return
+
+        for obj in selected_objects:
+            # Set Colour Index
+            obj["UserData"] = colour_index
+            # Apply Colour Material.
+            assign_material(obj, colour_index, starting_index)
+
+        bpy.ops.wm.redraw_timer(type='DRAW_WIN_SWAP', iterations=1)
 
     def snap(
         self,
@@ -1105,13 +1187,35 @@ def ShowMessageBox(message = "", title = "Message Box", icon = 'INFO'):
     bpy.context.window_manager.popup_menu(draw, title = title, icon = icon)
 
 
-# ------------------------------------------------------------------------
-#    my tool in objectmode
-# ------------------------------------------------------------------------
+# File Buttons Panel --- 
+class NMSFileButtonsPanel(Panel):
+    bl_idname = "NMSFileButtonsPanel"
+    bl_label = "No Man's Sky Base Builder"
+    bl_space_type = "VIEW_3D"   
+    bl_region_type = "TOOLS"    
+    bl_category = "No Mans Sky"
+    bl_context = "objectmode"   
 
-class OBJECT_PT_my_panel(Panel):
-    bl_idname = "OBJECT_PT_nms_panel"
-    bl_label = "No Mans Sky Base Builder"
+    @classmethod
+    def poll(self, context):
+        return True
+
+    def draw(self, context):
+        layout = self.layout
+        first_column = layout.column(align=True)
+        button_row = first_column.row(align=True)
+        button_row.operator("nms.new_file", icon="NEW")
+        save_load_row = first_column.row(align=True)
+        save_load_row.operator("nms.save_data", icon="FILE_TICK")
+        save_load_row.operator("nms.load_data", icon="FILE_FOLDER")
+        nms_row = first_column.row(align=True)
+        nms_row.operator("nms.import_nms_data", icon="PASTEDOWN")
+        nms_row.operator("nms.export_nms_data", icon="COPYDOWN")
+
+# Base Property Panel ---
+class NMSBasePropPanel(Panel):
+    bl_idname = "NMSBasePropPanel"
+    bl_label = "Base Properties"
     bl_space_type = "VIEW_3D"   
     bl_region_type = "TOOLS"    
     bl_category = "No Mans Sky"
@@ -1125,51 +1229,112 @@ class OBJECT_PT_my_panel(Panel):
         layout = self.layout
         scene = context.scene
         nms_tool = scene.nms_base_tool
-        col = context.scene.col
-        idx = context.scene.col_idx
-
-        button_row = layout.row()
-        button_row.operator("nms.new_file")
-        button_row.operator("nms.save_data")
-        button_row.operator("nms.load_data")
-        nms_row = layout.row()
-        nms_row.operator("nms.import_nms_data")
-        nms_row.operator("nms.export_nms_data")
-        
         properties_box = layout.box()
-        properties_box.label("Base Properties")
-        properties_box.prop(nms_tool, "string_base")
-        properties_box.prop(nms_tool, "string_address")
-        # properties_box.label("User Properties")
-        # properties_box.prop(nms_tool, "string_usn")
-        # properties_box.prop(nms_tool, "string_uid")
-        # properties_box.prop(nms_tool, "string_lid")
-        # properties_box.prop(nms_tool, "string_ts")
+        properties_column = properties_box.column(align=True)
+        properties_column.prop(nms_tool, "string_base")
+        properties_column.prop(nms_tool, "string_address")
 
-        layout.label("Tools")
-        tools_box = layout.box()
-        tools_column = tools_box.column()
-        tools_column.operator("nms.toggle_room_visibility")
-        tools_column.operator("nms.save_as_preset")
 
-        layout.label("Snap")
+# Tools Panel --- 
+class NMSToolsPanel(Panel):
+    bl_idname = "NMSToolsPanel"
+    bl_label = "Tools"
+    bl_space_type = "VIEW_3D"   
+    bl_region_type = "TOOLS"    
+    bl_category = "No Mans Sky"
+    bl_context = "objectmode"   
+
+    @classmethod
+    def poll(self, context):
+        return True
+
+    def draw(self, context):
+        layout = self.layout
+        # tools_box = layout.box()
+        tools_column = layout.column()
+        tools_column.operator("nms.toggle_room_visibility", icon="GHOST_ENABLED")
+        tools_column.operator("nms.save_as_preset", icon="SCENE_DATA")
+
+
+# Snap Panel --- 
+class NMSSnapPanel(Panel):
+    bl_idname = "NMSSnapPanel"
+    bl_label = "Snap"
+    bl_space_type = "VIEW_3D"   
+    bl_region_type = "TOOLS"    
+    bl_category = "No Mans Sky"
+    bl_context = "objectmode"   
+
+    @classmethod
+    def poll(self, context):
+        return True
+
+    def draw(self, context):
+        layout = self.layout
         snap_box = layout.box()
-        # splitter = snap_box.split(0.5)
         snap_column = snap_box.column()
-        snap_column.operator("nms.duplicate")
-        snap_column.operator("nms.snap")
+        snap_column.operator("nms.duplicate", icon="MOD_BOOLEAN")
+        snap_column.operator("nms.snap", icon="SNAP_ON")
         target_row = snap_column.row()
         target_row.label("Target")
-        target_row.operator("nms.snap_target_prev")
-        target_row.operator("nms.snap_target_next")
+        target_row.operator("nms.snap_target_prev", icon="TRIA_LEFT")
+        target_row.operator("nms.snap_target_next", icon="TRIA_RIGHT")
         
         source_row = snap_column.row()
         source_row.label("Source")
-        source_row.operator("nms.snap_source_prev")
-        source_row.operator("nms.snap_source_next")
-        
+        source_row.operator("nms.snap_source_prev", icon="TRIA_LEFT")
+        source_row.operator("nms.snap_source_next", icon="TRIA_RIGHT")
 
-        layout.label("Parts")
+# Colour Panel --- 
+class NMSColourPanel(Panel):
+    bl_idname = "NMSColourPanel"
+    bl_label = "Colour"
+    bl_space_type = "VIEW_3D"   
+    bl_region_type = "TOOLS"    
+    bl_category = "No Mans Sky"
+    bl_context = "objectmode"   
+
+    @classmethod
+    def poll(self, context):
+        return True
+
+    def draw(self, context):
+        layout = self.layout
+        scene = context.scene
+        nms_tool = scene.nms_base_tool
+        pcoll = preview_collections["main"]
+        enum_row = layout.row(align=True)
+        enum_row.prop(nms_tool, "material_switch", expand=True)
+        colour_row_1 = layout.row(align=True)
+        colour_row_1.scale_y = 1.3
+        colour_row_1.scale_x = 1.3
+        for idx in range(16):
+            colour_icon = pcoll["{0}_colour".format(idx)]
+            colour_op = colour_row_1.operator(
+                "nms.apply_colour",
+                text="",
+                icon_value=colour_icon.icon_id,
+            )
+            colour_op.colour_index = idx
+
+# Build Panel ---
+class NMSBuildPanel(Panel):
+    bl_idname = "NMSBuildPanel"
+    bl_label = "Build"
+    bl_space_type = "VIEW_3D"   
+    bl_region_type = "TOOLS"    
+    bl_category = "No Mans Sky"
+    bl_context = "objectmode"   
+
+    @classmethod
+    def poll(self, context):
+        return True
+
+    def draw(self, context):
+        layout = self.layout
+        scene = context.scene
+        nms_tool = scene.nms_base_tool
+        layout.prop(nms_tool, "enum_switch", expand=True)
         layout.template_list(
             "Actions_List",
             "",
@@ -1178,84 +1343,113 @@ class OBJECT_PT_my_panel(Panel):
             context.scene,
             "col_idx"
         )
-        # row.operator("object.simple_operator" , text = "All")
-
-
 
     
 class Actions_List(bpy.types.UIList):
+    previous_layout = None
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname):
         if self.layout_type in {'DEFAULT', 'COMPACT'}:
-            # You should always start your row layout by a label (icon + text), or a non-embossed text field,
-            # this will also make the row easily selectable in the list! The later also enables ctrl-click rename.
-            # We use icon_value of label, as our given icon is an integer value, not an enum ID.
-            # Note "data" names should never be translated!
-            split = layout.split(0.7)
-            if item.label:
-                split.label(item.label)
-            if item.description:
-                operator = split.operator(
-                    "object.list_action_operator",
-                    text = item.description,
-                )
-                operator.part_id = item.description
+            # Add a category item if the title is specified.
+            if item.title:
+                layout.label(item.title)
 
+            # Draw Parts
+            if item.item_type == "parts" and item.description:
+                all_parts = [x for x in item.description.split(",") if x]
+                part_row = layout.column_flow(columns=3)
+                for part in all_parts:
+                    operator = part_row.operator("object.list_action_operator", text=get_nice_name(part))
+                    operator.part_id = part
+            
+            # Draw Presets
+            if item.item_type == "presets":
                 if item.description in get_presets():
-                    sub_split = split.split(0.6)
-                    edit_operator = sub_split.operator(
-                        "object.list_edit_operator",
-                        text = "Edit",
-                    )
+                    # Create Sub layuts
+                    build_area = layout.split(0.7)
+                    operator = build_area.operator("object.list_action_operator", text=item.description)
+                    edit_area = build_area.split(0.6)
+                    edit_operator = edit_area.operator("object.list_edit_operator", text="Edit")
+                    delete_operator = edit_area.operator("object.list_delete_operator", text="X")
+                    operator.part_id = item.description
                     edit_operator.part_id = item.description
-
-                    delete_operator = sub_split.operator(
-                        "object.list_delete_operator",
-                        text = "X",
-                    )
                     delete_operator.part_id = item.description
 
-        elif self.layout_type in {'GRID'}:
-            pass
 
-class MyColl(bpy.types.PropertyGroup):
-    #name = bpy.props.StringProperty()
-    label = bpy.props.StringProperty()
+class PartCollection(bpy.types.PropertyGroup):
+    title = bpy.props.StringProperty()
     description = bpy.props.StringProperty()
+    item_type = bpy.props.StringProperty()
 
-def collhack(scene):
-    bpy.app.handlers.scene_update_pre.remove(collhack)
+def collection_hack(scene):
+    """Remove and refresh part list."""
+    bpy.app.handlers.scene_update_pre.remove(collection_hack)
     refresh_part_list(scene)
     
-def generate_part_data():
-    """Generate a list of Blender UI friendly data of categories and parts."""
-    coll_data = []
-    
-    # Presets
-    coll_data.append(("Presets", ""))
-    for preset in get_presets():
-        coll_data.append(("", preset))
-    # Parts
-    for category in get_categories():
-        coll_data.append((category, ""))
-        parts = get_parts_from_category(category)
-        for part in parts:
-            coll_data.append(("", part))
-    return coll_data
+def create_sublists(input_list, n=3):
+    """Create a list of sub-lists with n elements."""
+    total_list = [input_list[x:x+n] for x in range(0, len(input_list), n)]
+    # Fill in any blanks.
+    last_list = total_list[-1]
+    while len(last_list) < n:
+        last_list.append("")
+    return total_list
 
-def refresh_part_list(scene):
-    """Refresh the UI List."""
+
+def generate_part_data(item_type="parts"):
+    """Generate a list of Blender UI friendly data of categories and parts.
+    
+    When we retrieve presets we just want an item name.
+
+    For parts I am doing a trick where I am grouping sets of 3 parts in order
+    to make a grid in each UIList entry.
+
+    Args:
+        item_type (str): The type of items we want to retrieve
+            options - "presets", "parts".
+    
+    Return:
+        list: tuple (str, str): Label and Description of items for the UIList.
+    """
+    ui_list_data = []
+        # Presets
+    if "presets" in item_type:
+        ui_list_data.append(("Presets", ""))
+        for preset in get_presets():
+            ui_list_data.append(("", preset))
+    # Parts
+    if "parts" in item_type:
+        for category in get_categories():
+            ui_list_data.append((category, ""))
+            parts = get_parts_from_category(category)
+            new_parts = create_sublists(parts)
+            for part in new_parts:
+                joined_list = ",".join(part)
+                ui_list_data.append(("", joined_list))
+    return ui_list_data
+
+
+def refresh_part_list(scene, item_type="parts"):
+    """Refresh the UI List.
+    
+    Args:
+        item_type: The type of items we want to retrieve.
+            options - "presets", "parts".
+    """
+    # Clear the scene col.
     try:
         scene.col.clear()
     except:
         pass
 
-    part_data = generate_part_data()
-    for i, (label, description) in enumerate(part_data, 1):
+    # Get part data based on 
+    ui_list_data = generate_part_data(item_type=item_type)
+    # Create items with labels and descriptions.
+    for i, (label, description) in enumerate(ui_list_data, 1):
         item = scene.col.add()
-        item.label = label.title().replace("_", " ")
+        item.title = label.title().replace("_", " ")
         item.description = description
+        item.item_type = item_type
         item.name = " ".join((str(i), label, description))
-  
 
 # Operators ---
 class NewFile(bpy.types.Operator):
@@ -1268,7 +1462,6 @@ class NewFile(bpy.types.Operator):
         scene = context.scene
         nms_tool = scene.nms_base_tool
         nms_tool.new_file()
-        print("Creating New File!")
         return {'FINISHED'}
 
     def invoke(self, context, event):
@@ -1294,7 +1487,6 @@ class SaveData(bpy.types.Operator):
         scene = context.scene
         nms_tool = scene.nms_base_tool
         nms_tool.generate_save_data(self.filepath)
-        print("Creating New File!")
         return {'FINISHED'}
 
     def invoke(self, context, event):
@@ -1310,7 +1502,6 @@ class LoadData(bpy.types.Operator):
         scene = context.scene
         nms_tool = scene.nms_base_tool
         nms_tool.load_nms_data(self.filepath)
-        print("Creating New File!")
         return {'FINISHED'}
 
     def invoke(self, context, event):
@@ -1350,8 +1541,8 @@ class SaveAsPreset(bpy.types.Operator):
         nms_tool.save_preset_data(self.preset_name)
         # Reset string variable.
         self.preset_name = ""
-        print("Creating New File!")
-        refresh_part_list(scene)
+        if nms_tool.enum_switch == {'PRESETS'}:
+            refresh_part_list(scene, ["presets"])
         return {'FINISHED'}
 
     def invoke(self, context, event):
@@ -1403,8 +1594,10 @@ class ListDeleteOperator(bpy.types.Operator):
     def execute(self, context):
         if self.part_id in get_presets():
             scene = context.scene
+            nms_tool = scene.nms_base_tool
             delete_preset(self.part_id)
-            refresh_part_list(scene)
+            if nms_tool.enum_switch == {'PRESETS'}:
+                refresh_part_list(scene, ["presets"])
         return {'FINISHED'}
 
     def invoke(self, context, event):
@@ -1419,7 +1612,35 @@ class Duplicate(bpy.types.Operator):
         scene = context.scene
         nms_tool = scene.nms_base_tool
         nms_tool.duplicate()
-        print("Snapping!")
+        return {'FINISHED'}
+
+class ApplyColour(bpy.types.Operator):
+    bl_idname = "nms.apply_colour"
+    bl_label = "Apply Colour"
+    bl_options = {'REGISTER', 'INTERNAL'}
+
+    colour_index = IntProperty(default=0)
+
+    @property
+    def set_label(self, label):
+        self.bl_label = label
+
+    def execute(self, context):
+        scene = context.scene
+        nms_tool = scene.nms_base_tool
+        material = nms_tool.material_switch
+        if material == {'CONCRETE'}:
+            starting_index = 0
+        elif material == {'RUST'}:
+            starting_index = 16777216
+        elif material == {'STONE'}:
+            starting_index = 33554432
+        elif material == {'WOOD'}:
+            starting_index = 50331648
+        nms_tool.apply_colour(
+            colour_index=self.colour_index,
+            starting_index=starting_index
+        )
         return {'FINISHED'}
 
 class Snap(bpy.types.Operator):
@@ -1431,7 +1652,6 @@ class Snap(bpy.types.Operator):
         scene = context.scene
         nms_tool = scene.nms_base_tool
         nms_tool.snap()
-        print("Snapping!")
         return {'FINISHED'}
 
 class SnapSourceNext(bpy.types.Operator):
@@ -1478,16 +1698,43 @@ class SnapTargetPrev(bpy.types.Operator):
         nms_tool.snap(prev_target=True)
         return {'FINISHED'}
 
+# We can store multiple preview collections here,
+# however in this example we only store "main"
+preview_collections = {}
 
 # Plugin Registeration ---
 def register():
+    # Load Icons.
+    
+    pcoll = bpy.utils.previews.new()
+    # path to the folder where the icon is
+    # the path is calculated relative to this py file inside the addon folder
+    my_icons_dir = os.path.join(os.path.dirname(__file__), "images")
+
+    # load a preview thumbnail of a file and store in the previews collection
+    # Load Colours
+    for idx in range(16):
+        pcoll.load(
+            "{0}_colour".format(idx),
+            os.path.join(my_icons_dir, "{0}.jpg".format(idx)),
+            'IMAGE'
+        )
+
+    preview_collections["main"] = pcoll
+
+    # Register Plugin
     bpy.utils.register_module(__name__)
     bpy.types.Scene.nms_base_tool = PointerProperty(type=NMSSettings)
-    bpy.types.Scene.col = bpy.props.CollectionProperty(type=MyColl)
+    bpy.types.Scene.col = bpy.props.CollectionProperty(type=PartCollection)
     bpy.types.Scene.col_idx = bpy.props.IntProperty(default=0)
-    bpy.app.handlers.scene_update_pre.append(collhack)
+    bpy.app.handlers.scene_update_pre.append(collection_hack)
+    
 
 def unregister():
+    for pcoll in preview_collections.values():
+        bpy.utils.previews.remove(pcoll)
+    preview_collections.clear()
+
     bpy.utils.unregister_module(__name__)
     del bpy.types.Scene.nms_base_tool
 

@@ -1,0 +1,107 @@
+{
+    "W_FLOOR": "Wood Floor",
+    "C_FLOOR": "Concrete Floor",
+    "M_FLOOR": "Metal Floor",
+
+    "W_GFLOOR": "Wood Glass Floor",
+    "C_GFLOOR": "Concrete Glass  Floor",
+    "M_GFLOOR": "Metal Glass Floor",
+
+    "W_FLOOR_Q": "Wood Floor (Small)",
+    "C_FLOOR_Q": "Concrete Floor (Small)",
+    "M_FLOOR_Q": "Metal Floor (Small)",
+
+
+
+    "W_WALL": "Wood Wall",
+    "C_WALL": "Concrete Wall",
+    "M_WALL": "Metal Wall",
+
+    "W_WALL_H": "Wood Wall (Half)",
+    "C_WALL_H": "Concrete Wall (Half)",
+    "M_WALL_H": "Metal Wall (Half)",
+
+    "W_ARCH": "Wood Arch",
+    "M_ARCH": "Metal Arch",
+    "C_ARCH": "Concrete Arch",
+
+    "W_ARCH_H": "Wood Arch (Half)",
+    "M_ARCH_H": "Metal Arch (Half)",
+    "C_ARCH_H": "Concrete Arch (Half)",
+
+    "W_WALL_Q": "Wood Wall (Short)",
+    "M_WALL_Q": "Metal Wall (Short)",
+    "C_WALL_Q": "Concrete Wall (Short)",
+
+    "W_WALL_Q_H": "Wood Wall (Half+Short)",
+    "M_WALL_Q_H": "Metal Wall (Half+Short)",
+    "C_WALL_Q_H": "Concrete Wall (Half+Short)",
+
+    "W_WALL_WINDOW": "Wood Wall Window",
+    "M_WALL_WINDOW": "Metal Wall Window",
+    "C_WALL_WINDOW": "Concrete Wall Window",
+
+    "W_WALLDIAGONAL": "Wood Diagonal Wall",
+    "M_WALLDIAGONAL": "Metal Diagonal Wall",
+    "C_WALLDIAGONAL": "Concrete Diagonal Wall",
+
+
+
+    "W_RAMP": "Wood Stairs",
+    "M_RAMP": "Metal Stairs",
+    "C_RAMP": "Concrete Stairs",
+
+    "W_RAMP_H": "Wood Stairs (Half)",
+    "M_RAMP_H": "Metal Stairs (Half)",
+    "C_RAMP_H": "Concrete Stairs (Half)",
+
+
+    "W_ROOF": "Wood Roof",
+    "M_ROOF": "Metal Roof",
+    "C_ROOF": "Concrete Roof",
+
+
+    "NPCFARMTERM": "Farm Terminal",
+    "NPCSCIENCETERM": "Science Terminal",
+    "NPCVEHICLETERM": "Vehicle Terminal",
+
+    "BUILDCRATE": "Small Crate",
+    "BUILDAMCRATE": "Large Crate",
+
+    "BUILDPAVING_BIG": "Paving",
+    "BUILDPAVING": "Paving (Small)",
+
+    "CUBEFOUND": "Cube Foundation",
+    "CUBEFOUND4": "Cube Foundationx4",
+
+
+    "CORRIDOR": "Corridor",
+    "GLASSCORRIDOR": "Corridor (Glass)",
+    "CORRIDORC": "Corridor (Corner)",
+    "CORRIDORT": "Corridor (T)",
+    "CORRIDORX": "Corridor (X)",
+    "CORRIDORL": "Corridor (L)",
+
+
+    "MAINROOM": "Main Room (Circlular)",
+    "MAINROOMCUBE": "Main Room (Cube)",
+    "BUILDLADDER": "Main Room Ladder",
+    "BUILDWINDOW": "Main Room Window",
+
+    "BUILDLIGHT1": "Light Post 1",
+    "BUILDLIGHT2": "Light Post 2",
+    "BUILDLIGHT3": "Light Post 3",
+
+    "WALLLIGHTBLUE": "Wall Light (Blue)",
+    "WALLLIGHTZ": "Wall Light (Green)",
+    "WALLLIGHTPINK": "Wall Light (Pink)",
+    "WALLLIGHTRED": "Wall Light (Red)",
+    "WALLLIGHTWHITE": "Wall Light (White)",
+    "WALLLIGHTYELLOW": "Wall Light (Yellow)",
+
+    "CUBESHAPE": "Small Cube",
+    "CYLINDERSHAPE": "Cylinder",
+    "WEDGESHAPE": "Wedge",
+    "PIPESHAPE": "Pipe",
+    "CURVEPIPESHAPE": "Pipe (Curved)"
+}

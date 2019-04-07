@@ -34,9 +34,25 @@ These can be downloaded and shared with other people. You can find a few basic p
 mod page - https://www.nexusmods.com/nomanssky/mods/984?tab=files.
 
 :: Mod Compatibility
-At this time the tool is designed only to work well with the vanilla game.
-Mods that implement additional base items are supported but will only display as basic cubes.
-All other functionality should still work including the import and export to the game.
+The tool is designed towards supporting the vanilla game as much as possible, however
+any additional base parts introduced by mods will display as cubes but will still be able to import/export to the game.
+
+You can introduce your own OBJ's by adding them to your user directory folder. The layout for this should be...
+
+* %USERPROFILE%\NoMansSkyBaseBuilder\
+*** mods
+***** mod_name
+******* models
+********* category
+*********** MOD_WALLA.obj
+*********** MOD_WALLB.obj
+********* category_b
+*********** MOD_FLOORA.obj
+*********** MOD_FLOORB.obj
+
+The names of categories is up to the user.
+
+The obj file name should reflect the name of the part in-game.
 
 :: CREDITS ::
 * Charlie Banks (@charliebanks)

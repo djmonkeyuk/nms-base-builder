@@ -1,3 +1,21 @@
+release 0.9.1
+-------------
+* Added under water parts to the list.
+* Added and improved snap point information and relationships.
+* Improved appearance of L shape hallway pieces.
+* Implemented first phase of mod support. (see readme for more details.)
+* Light objects now create blender lights.
+* Improved room visibility switch to display current mode.
+* Added "Lighted" as an option on room visibility.
+
+
+release 0.9.0
+-------------
+* Added colour options.
+* Improved overall UI. Changed to collapsable areas and added button icons.
+* Changes to snapping information.
+* Added nice name mechanism to base parts.
+
 release 0.8.0
 -------------
 * Improved and added various models.

@@ -38,14 +38,15 @@
     "MAIN_ROOM":
     {
         "CORRIDORS": ["NORTH,EAST,SOUTH,WEST",      "START"],
-        "CORRIDORL": ["NORTH,EAST,SOUTH,WEST",      "START, END"],
-        "CORRIDORT": ["NORTH,EAST,SOUTH,WEST",      "START, MID, END"],
-        "CORRIDORX": ["NORTH,EAST,SOUTH,WEST",      "START"],
+        "CORRIDOR_L": ["NORTH,EAST,SOUTH,WEST",      "START, END"],
+        "CORRIDOR_T": ["NORTH,EAST,SOUTH,WEST",      "START, MID, END"],
+        "CORRIDOR_X": ["NORTH,EAST,SOUTH,WEST",      "START"],
         "VIEW_SPHERE":["NORTH,EAST,SOUTH,WEST",      "END"],
         "DOORS":["NORTH,EAST,SOUTH,WEST",       "CORRIDOR"],
         "MAIN_ROOM":["TOP,BOTTOM", "TOP,BOTTOM"],
         "LADDERS":   ["LADDER_START", "BOTTOM0,BOTTOM90,BOTTOM180,BOTTOM270"],
-        "MAIN_WINDOWS": ["NORTH,NORTHEAST,EAST,SOUTHEAST,SOUTH,SOUTHWEST,WEST,NORTHWEST",      "ATTACH"]
+        "MAIN_WINDOWS": ["NORTH,NORTHEAST,EAST,SOUTHEAST,SOUTH,SOUTHWEST,WEST,NORTHWEST",      "ATTACH"],
+        "CORRIDOR_V": ["TOP,BOTTOM",      "START"]
     },
 
 
@@ -61,7 +62,8 @@
         "DIAGONAL_WALLS": ["TOP,EAST,BOTTOM,WEST, EAST_IN,EAST_OUT, WEST_IN,WEST_OUT",       "BOTTOM, BOTTOM_FLIP, EAST, EAST_FLIP"],
         "SMALL_FLOORS": ["BOTTOM_Q1_IN, BOTTOM_Q2_IN, BOTTOM_Q1_OUT, BOTTOM_Q2_OUT, TOP_Q1_IN, TOP_Q2_IN, TOP_Q1_OUT, TOP_Q2_OUT",        "NORTH,EAST,SOUTH,WEST"],
         "PROPS": ["GENERICA,GENERICB",      "GENERIC0,GENERIC45,GENERIC90,GENERIC135,GENERIC180,GENERIC225,GENERIC270,GENERIC315"],
-        "CORRIDORS": ["MIDDLE_IN,MIDDLE_OUT", "START,END"]
+        "CORRIDORS": ["MIDDLE_IN,MIDDLE_OUT", "START,END"],
+        "DOORS": ["MIDDLE_IN, MIDDLE_OUT",      "CORRIDOR"]
     },
 
     "HALF_WALLS":
@@ -83,14 +85,16 @@
 
     "DOORS":
     {
-        "BUILDRAMP": ["RAMP0, RAMP10, RAMP20, RAMP30, RAMP40",      "START"],
-        "CORRIDORS": ["CORRIDOR",     "START, END"]
+        "CORRIDOR_RAMPS": ["RAMP0, RAMP10, RAMP20, RAMP30, RAMP40",      "START"],
+        "CORRIDORS": ["CORRIDOR",     "START, END"],
+        "WALLS": ["CORRIDOR",           "MIDDLE_DOOR_IN, MIDDLE_DOOR_OUT"],
+        "CUBES": ["CORRIDOR",           "NORTH, EAST, SOUTH, WEST"]
     },
 
-    "BUILDRAMP":
+    "CORRIDOR_RAMPS":
     {
         "DOORS": ["START, END",         "RAMP0, RAMP10, RAMP20, RAMP30, RAMP40"],
-        "BUILDRAMP": ["START, END",         "START, END"]
+        "CORRIDOR_RAMPS": ["START, END",         "START, END"]
     },
 
     "CORRIDOR_CORNER":
@@ -102,7 +106,9 @@
         "VIEW_SPHERE":       ["START, END",          "END"],
         "CORRIDOR_X":       ["START,END",           "START"],
         "CORRIDOR_L":       ["START,END",           "START,END"],
-        "CORRIDOR_T":       ["START,END",           "START,MID,END"]
+        "CORRIDOR_T":       ["START,END",           "START,MID,END"],
+        "CUBES":       ["START,END",                "NORTH"],
+        "MAIN_ROOM":       ["START,END",            "NORTH"]
     },
 
     "CORRIDORS":
@@ -114,7 +120,17 @@
         "VIEW_SPHERE":      ["START, END",        "END"],
         "CORRIDOR_X":      ["START,END",         "START"],
         "CORRIDOR_L":      ["START,END",         "START,END"],
-        "CORRIDOR_T":      ["START,END",         "START,MID,END"]
+        "CORRIDOR_T":      ["START,END",         "START,MID,END"],
+        "CUBES":       ["START,END",                "NORTH"],
+        "MAIN_ROOM":       ["START,END",            "NORTH"]
+    },
+
+    "CORRIDOR_V":
+    {
+        "CORRIDOR_V":       ["START, END",        "START"],
+        "MAIN_ROOM":       ["START,END",            "TOP,BOTTOM"],
+        "CUBES":         ["START,END",            "BOTTOM,TOP"]
+
     },
 
     "CORRIDOR_X":{
@@ -125,7 +141,9 @@
         "CORRIDOR_CORNER": ["END,RIGHT,START,LEFT",         "START, END"],
         "DOORS":       ["END,RIGHT,START,LEFT",         "CORRIDOR"],
         "WALLS":           ["END,RIGHT,START,LEFT",         "MIDDLE_IN,MIDDLE_OUT"],
-        "VIEW_SPHERE":      ["END,RIGHT,START,LEFT",         "END"]
+        "VIEW_SPHERE":      ["END,RIGHT,START,LEFT",         "END"],
+        "CUBES":       ["END,RIGHT,START,LEFT",                "NORTH"],
+        "MAIN_ROOM":       ["END,RIGHT,START,LEFT",            "NORTH"]
     },
 
     "CORRIDOR_L":{
@@ -136,7 +154,9 @@
         "CORRIDOR_CORNER": ["START,END",                "START, END"],
         "DOORS":       ["START,END",                "CORRIDOR"],
         "WALLS":           ["START,END",                "MIDDLE_IN,MIDDLE_OUT"],
-        "VIEW_SPHERE":      ["START,END",                "END"]
+        "VIEW_SPHERE":      ["START,END",                "END"],
+        "CUBES":       ["START,END",                "NORTH"],
+        "MAIN_ROOM":       ["START,END",            "NORTH"]
     },
 
     "CORRIDOR_T":{
@@ -147,7 +167,9 @@
         "CORRIDOR_CORNER":  ["START,MID,END",          "START, END"],
         "DOORS":        ["START,MID,END",          "CORRIDOR"],
         "WALLS":            ["START,MID,END",          "MIDDLE_IN,MIDDLE_OUT"],
-        "VIEW_SPHERE":       ["START,MID,END",          "END"]
+        "VIEW_SPHERE":       ["START,MID,END",          "END"],
+        "CUBES":       ["START,MID,END",                "NORTH"],
+        "MAIN_ROOM":       ["START,MID,END",            "NORTH"]
     },
 
     "VIEW_SPHERE":{
@@ -158,7 +180,9 @@
         "CORRIDORS":        ["END",          "START"],
         "CORRIDOR_CORNER":  ["END",          "START, END"],
         "DOORS":        ["END",          "CORRIDOR"],
-        "WALLS":            ["END",          "MIDDLE_IN,MIDDLE_OUT"]
+        "WALLS":            ["END",          "MIDDLE_IN,MIDDLE_OUT"],
+        "CUBES":       ["END",                "NORTH"],
+        "MAIN_ROOM":       ["END",            "NORTH"]
     },
 
     "CUBES":
@@ -166,7 +190,12 @@
         "CUBES": ["TOP, BOTTOM, NORTH, EAST, SOUTH, WEST",        "TOP, BOTTOM, NORTH, EAST, SOUTH, WEST"],
         "CUBE_CURVED": ["TOP, BOTTOM, NORTH, EAST, SOUTH, WEST",     "SOUTH0,SOUTH90,SOUTH180,SOUTH270, WEST0,WEST90,WEST180,WEST270, TOP0,TOP90,TOP180,TOP270, BOTTOM0,BOTTOM90,BOTTOM180,BOTTOM270"],
         "CUBEWINDOW": ["TOP, BOTTOM, NORTH, EAST, SOUTH, WEST",         "ATTACH"],
-        "CUBE_SHAPE": ["TOP, BOTTOM, NORTH, EAST, SOUTH, WEST",        "TOP, BOTTOM, NORTH, EAST, SOUTH, WEST"]
+        "CUBE_SHAPE": ["TOP, BOTTOM, NORTH, EAST, SOUTH, WEST",        "TOP, BOTTOM, NORTH, EAST, SOUTH, WEST"],
+        "DOORS": ["NORTH, EAST, SOUTH, WEST",         "CORRIDOR"],
+        "CORRIDORS": ["NORTH, EAST, SOUTH, WEST",         "START"],
+        "CORRIDOR_X": ["NORTH, EAST, SOUTH, WEST",         "START"],
+        "CORRIDOR_L": ["NORTH, EAST, SOUTH, WEST",         "START, END"],
+        "CORRIDOR_T": ["NORTH, EAST, SOUTH, WEST",         "START, MID, END"]
     },
 
     "CUBE_FLOORS":{

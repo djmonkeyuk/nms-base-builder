@@ -1,0 +1,96 @@
+{
+    "WALLLIGHTRED": {
+        "A": {
+            "type": "point",
+            "location": [0.0, 0.0, 0.3],
+            "color": [1.0, 0.0, 0.0],
+            "distance": 0.3,
+            "energy": 1
+        }
+    },
+    "WALLLIGHTPINK": {
+        "A": {
+            "type": "point",
+            "location": [0.0, 0.0, 0.3],
+            "color": [1.0, 0.2, 0.2],
+            "distance": 0.3,
+            "energy": 1
+        }
+    },
+    "WALLLIGHTGREEN": {
+        "A": {
+            "type": "point",
+            "location": [0.0, 0.0, 0.3],
+            "color": [0.0, 1.0, 0.0],
+            "distance": 0.3,
+            "energy": 1.5
+        }
+    },
+    "WALLLIGHTYELLOW": {
+        "A": {
+            "type": "point",
+            "location": [0.0, 0.0, 0.3],
+            "color": [1.0, 1.0, 0.0],
+            "distance": 0.3,
+            "energy": 1.5
+        }
+    },
+    "WALLLIGHTBLUE": {
+        "A": {
+            "type": "point",
+            "location": [0.0, 0.0, 0.3],
+            "color": [0.0, 0.5, 1.0],
+            "distance": 0.3,
+            "energy":3
+        }
+    },
+    "WALLLIGHTWHITE": {
+        "A": {
+            "type": "point",
+            "location": [0.0, 0.0, 0.3],
+            "color": [1.0, 1.0, 1.0],
+            "distance": 0.3,
+            "energy": 1
+        }
+    },
+
+    "BUILDLIGHT3": {
+        "A": {
+            "type": "point",
+            "location": [0.0, 0.0, 2.3],
+            "color": [1.0, 1.0, 1.0],
+            "distance": 1.2,
+            "energy": 1.5
+        }
+    },
+
+    "BUILDLIGHT": {
+        "A": {
+            "type": "point",
+            "location": [0.0, 0.2, 2.3],
+            "color": [1.0, 1.0, 1.0],
+            "distance": 1.2,
+            "energy": 1.5
+        }
+    },
+
+    "BUILDLIGHT2": {
+        "A": {
+            "type": "point",
+            "location": [0.0, 0.2, 2.3],
+            "color": [1.0, 1.0, 1.0],
+            "distance": 1.2,
+            "energy": 1.5
+        }
+    },
+
+    "CEILINGLIGHT": {
+        "A": {
+            "type": "point",
+            "location": [0.0, 0.0, 1.0],
+            "color": [1.0, 1.0, 1.0],
+            "distance": 1.2,
+            "energy": 1.5
+        }
+    }
+}

@@ -27,6 +27,10 @@ from bpy.props import (BoolProperty, EnumProperty, FloatProperty, IntProperty,
                        PointerProperty, StringProperty)
 from bpy.types import Operator, Panel, PropertyGroup
 
+import logging
+
+LOGGER = logging.getLogger(__name__)
+
 # File Paths ---
 file_path = os.path.dirname(os.path.realpath(__file__))
 user_path = os.path.join(os.path.expanduser("~"), "NoMansSkyBaseBuilder")
@@ -37,11 +41,17 @@ for user_data_path in [user_path, preset_path]:
     if not os.path.exists(user_data_path):
         os.makedirs(user_data_path)
 
+
+# Get Mod Support Paths ---
+mods_path = os.path.join(user_path, "mods")
+
+
 # Load Auto Snap Dictionary ---
 snap_matrix_json = os.path.join(file_path, "snapping_info.json")
 snap_pair_json = os.path.join(file_path, "snapping_pairs.json")
 nice_names_json = os.path.join(file_path, "nice_names.json")
 colours_json = os.path.join(file_path, "colours.json")
+lights_json = os.path.join(file_path, "lights.json")
 
 # Keep track of snap keys.
 global per_item_snap_reference
@@ -64,6 +74,12 @@ colours_dictionary = {}
 with open(colours_json, "r") as stream:
     colours_dictionary = json.load(stream)
 
+# Lights
+global lights_dictionary
+lights_dictionary = {}
+with open(lights_json, "r") as stream:
+    lights_dictionary = json.load(stream)
+
 # Nice Names
 global nice_names_dictionary
 nice_names_dictionary = {}
@@ -80,10 +96,23 @@ def get_direction_vector(matrix, direction_matrix = None):
     return [0, 0, 0]
     
 
+# Mod Methods ---
+def get_mod_packs():
+    model_packs = []
+    if os.path.exists(mods_path):
+        model_packs.extend(os.listdir(mods_path))
+    return model_packs
+
+def get_mod_model_path(mod_pack):
+    return os.path.join(mods_path, mod_pack, "models")
+
 # Category Methods ---
-def get_categories():
+def get_categories(mod_pack=None):
     """Get the list of categories."""
-    return os.listdir(model_path)
+    if mod_pack:
+        return os.listdir(get_mod_model_path(mod_pack))
+    else:
+        return os.listdir(model_path)
 
 
 # Part Methods ---
@@ -92,12 +121,15 @@ def get_nice_name(part_id):
     nice_name = part_id
     for tag in remove_tags:
         nice_name = nice_name.replace(tag, "")
-    nice_name = nice_name.title()
+    nice_name = nice_name.title().replace("_", " ")
     return nice_names_dictionary.get(part_id, nice_name)
 
-def get_parts_from_category(category):
+def get_parts_from_category(category, mod_pack=None):
     """Get a list of parts belonging to a category."""
-    category_path = os.path.join(model_path, category)
+    if mod_pack:
+        category_path = os.path.join(get_mod_model_path(mod_pack), category)
+    else:
+        category_path = os.path.join(model_path, category)
     if not os.path.exists(category_path):
         raise RuntimeError(category + " does not exist.")
     
@@ -108,19 +140,42 @@ def get_parts_from_category(category):
 
 
 def get_category_from_part(part):
-    """Get the category of a part."""
+    """Get the category of a part.
+    
+    This will also return the mod pack it belongs to. Default is "vanilla".
+    Args:
+        part (str): The object ID.
+        
+    Returns:
+        tuple (str, str): Mod Pack and Category it belongs to.
+    """
     check_categories = get_categories()
     for category in check_categories:
         if part in get_parts_from_category(category):
-            return category
+            return ("vanilla", category)
+
+    # If not found in vanilla, check mods.
+    for mod_pack in get_mod_packs():
+        check_categories = get_categories(mod_pack=mod_pack)
+        for category in check_categories:
+            if part in get_parts_from_category(category, mod_pack=mod_pack):
+                return (mod_pack, category)
+
+    return (None, None)
 
 
 def get_obj_path(part):
     """Get the path to the OBJ file from a part."""
-    category = get_category_from_part(part)
+    
+    mod_pack, category = get_category_from_part(part)
+    print ("Part", part)
     if not category:
         return
-    obj_path = os.path.join(model_path, category, part+".obj")
+
+    if mod_pack == "vanilla":
+        obj_path = os.path.join(model_path, category, part+".obj")
+    else:
+        obj_path = os.path.join(get_mod_model_path(mod_pack), category, part+".obj")
     return obj_path
 
 
@@ -147,7 +202,6 @@ def build_item(
         up_vec=[0, 1, 0],
         at_vec=[0, 0, 1],
         is_preset=False,
-        material="white",
         auto_snap=False):
     """Build a part given a set of paremeters.
     
@@ -202,6 +256,9 @@ def build_item(
     else:
         assign_material(item, userdata)
 
+    # Build Light
+    build_light(item)
+
     # Position.
     item.location = position
     # Rotation
@@ -229,6 +286,7 @@ def build_item(
     # Place the item in world space.
     item.matrix_world = mat
 
+
     # Auto Snap
     if auto_snap and current_selection:
         # Set selection to be snap friendly.
@@ -248,6 +306,54 @@ def build_item(
     return item
 
 
+# Light Methods ---
+def build_light(item):
+    lights_dictionary = {}
+    with open(lights_json, "r") as stream:
+        lights_dictionary = json.load(stream)
+        
+    if "objectID" not in item:
+        return
+    
+    # Get object id from item.
+    object_id = item["objectID"]
+    # Find light data
+    if object_id not in lights_dictionary:
+        return
+
+    # Ensure we are in GSL shading mode
+    bpy.context.scene.game_settings.material_mode = "GLSL"
+
+    # Build Lights
+    for idx, light_values in enumerate(lights_dictionary[object_id].values()):
+        light_type = light_values["type"]
+        light_location = light_values["location"]
+        light = bpy.ops.object.lamp_add(
+            type=light_type.upper(),
+            location=light_location
+        )
+        light = bpy.context.object
+        light["NMS_LIGHT"] = True
+        light.name = "{0}_light{1}".format(item.name, idx)
+        data_copy = deepcopy(light_values)        
+        data_copy.pop("type")
+        data_copy.pop("location")
+        for key, value in data_copy.items():
+            if isinstance(value , list):
+                value = mathutils.Vector(tuple(value))
+            setattr(light.data, key, value)
+        
+        # Parent to object.
+        bpy.ops.object.select_all(action='DESELECT') 
+        item.select = True
+        light.select = True
+        bpy.context.scene.objects.active = item
+        bpy.ops.object.parent_set()
+
+        # Disable Selection.
+        light.hide =  True
+        light.hide_select = True
+            
 # Snap Methods ---
 def get_snap_matrices_from_group(group):
     global snap_matrix_dictionary
@@ -476,8 +582,13 @@ def build_preset(
         position=None,
         up=None,
         at=None,
-        material="preset"):
+        edit_mode=False):
     preset_json = get_preset_path(preset_id)
+
+    if not os.path.isfile(preset_json):
+        LOGGER.warning("Skipping " + preset_id + " as it does not exist.")
+        return
+
     data = {}
     with open(preset_json, "r") as stream:
         data = json.load(stream)
@@ -500,8 +611,7 @@ def build_preset(
                 part_position,
                 up_vec,
                 at_vec,
-                is_preset=True,
-                material=material
+                is_preset=not edit_mode,
             )
             
             parts.append(blender_part)
@@ -628,34 +738,44 @@ def part_switch(self, context):
     """Toggle method for switching between parts and presets."""
     scene = context.scene
     part_list = "presets" if self.enum_switch == {'PRESETS'} else "parts"
-    refresh_part_list(scene, part_list)
+
+    if self.enum_switch not in [{'PRESETS'}, {'PARTS'}]:
+        refresh_part_list(scene, part_list, mod_pack=list(self.enum_switch)[0])
+    else:    
+        refresh_part_list(scene, part_list)
 
 class NMSSettings(PropertyGroup):
 
+    enum_items = []
+    # Add Parts
+    enum_items.append(("PARTS" , "Parts" , "View Base Parts..."))
+    # Add Any Mods.
+    for mod_pack in get_mod_packs():
+        enum_items.append((mod_pack , mod_pack.title() , "View MOD Parts..."))
+    # Add Presets
+    enum_items.append(("PRESETS", "Presets", "View Presets..."))
+
     enum_switch = EnumProperty(
-            name = "enum_switch",
-            description = "Toggle to display between parts and presets.",
-            items = [
-                ("PARTS" , "Parts" , "View Base Parts..."),
-                ("PRESETS", "Presets", "View Presets...")
-            ],
-            options = {"ENUM_FLAG"},
-            default= {"PARTS"},
-            update=part_switch
-        )
+        name = "enum_switch",
+        description = "Toggle to display between parts and presets.",
+        items = enum_items,
+        options = {"ENUM_FLAG"},
+        default= {"PARTS"},
+        update=part_switch
+    )
 
     material_switch = EnumProperty(
-            name = "material_switch",
-            description = "Decide what type of material to apply",
-            items = [
-                ("CONCRETE" , "Concrete" , "Concrete"),
-                ("RUST", "Rust", "Rust"),
-                ("STONE", "Stone", "Stone"),
-                ("WOOD", "Wood", "Wood")
-            ],
-            options = {"ENUM_FLAG"},
-            default= {"CONCRETE"},
-        )
+        name = "material_switch",
+        description = "Decide what type of material to apply",
+        items = [
+            ("CONCRETE" , "Concrete" , "Concrete"),
+            ("RUST", "Rust", "Rust"),
+            ("STONE", "Stone", "Stone"),
+            ("WOOD", "Wood", "Wood")
+        ],
+        options = {"ENUM_FLAG"},
+        default= {"CONCRETE"},
+    )
 
     preset_name = StringProperty(
         name="preset_name",
@@ -1018,22 +1138,39 @@ class NMSSettings(PropertyGroup):
             if "objectID" in ob:
                 ob.hide_select = False
                 ob.select = True
+            if "NMS_LIGHT" in ob:
+                ob.hide = False
+                ob.hide_select = False
+                ob.select = True
         # Remove
         bpy.ops.object.delete() 
         # Reset room vis
         self.room_vis_switch = 0
 
     def toggle_room_visibility(self):
-        # Ensure we are in the CYCLES renderer.
-        bpy.context.scene.render.engine = 'CYCLES'
+        """Cycle through room visibilities.
+        
+        0: Normal
+        1: Ghosted
+        2: Invisible
+        3: Lighted
+        """
         # Increment Room Vis
-        if self.room_vis_switch < 2:
+        if self.room_vis_switch < 3:
             self.room_vis_switch += 1
         else:
             self.room_vis_switch = 0
 
         # Select NMS Items
         invisible_objects = [
+            "MAINROOM_WATER",
+            "MAINROOMCUBE_W",
+            "CORRIDOR_WATER",
+            "CORRIDORL_WATER",
+            "CORRIDORX_WATER",
+            "CORRIDORT_WATER",
+            "CORRIDORV_WATER",
+            
             "CUBEROOM",
             "CUBEROOMCURVED",
             "CURVEDCUBEROOF",
@@ -1043,6 +1180,10 @@ class NMSSettings(PropertyGroup):
 
             "BUILDLANDINGPAD",
 
+            "CORRIDORL",
+            "CORRIDORX",
+            "CORRIDORT",
+            "CORRIDORV",
             "CORRIDORC",
             "CORRIDOR",
             "GLASSCORRIDOR",
@@ -1097,24 +1238,40 @@ class NMSSettings(PropertyGroup):
             "M_RAMP_H",
             "M_WALL_WINDOW",
         ]
+        # Set Shading.
+        if self.room_vis_switch in [0, 1, 2]:
+            bpy.context.space_data.viewport_shade = 'SOLID'
+            bpy.context.scene.render.engine = 'CYCLES'
+        elif self.room_vis_switch in [3]:
+            bpy.context.space_data.viewport_shade = 'TEXTURED'
+            bpy.context.scene.render.engine = 'BLENDER_RENDER'
+
+        # Set Hide
+        hidden = True
+        if self.room_vis_switch in [0, 1, 3]:
+            hidden = False
+
+        # Transparency.
+        show_transparent = False
+        if self.room_vis_switch in [1]:
+            show_transparent = True
+
+        # Hide Select.
+        hide_select = False
+        if self.room_vis_switch in [1]:
+            hide_select = True
+
         for ob in bpy.data.objects:
             if "objectID" in ob:
                 if ob["objectID"] in invisible_objects:
                     is_preset = False
                     if "is_preset" in ob:
                         is_preset = ob["is_preset"]
-                    if self.room_vis_switch == 0:
-                        ob.hide = False
-                        ob.show_transparent = False
-                        if not is_preset:
-                            ob.hide_select = False    
-                    if self.room_vis_switch == 1:
-                        ob.hide = False
-                        ob.show_transparent = True
-                        if not is_preset:
-                            ob.hide_select = True
-                    if self.room_vis_switch == 2:
-                        ob.hide = True
+                    # Normal
+                    ob.hide = hidden
+                    ob.show_transparent = show_transparent
+                    if not is_preset:
+                        ob.hide_select = hide_select    
                     ob.select = False
 
 
@@ -1128,7 +1285,7 @@ class NMSSettings(PropertyGroup):
             )
             return
 
-        source_object = bpy.context.scene.objects.active
+        source_object = selected_objects[0]
         object_id = source_object["objectID"]
         userdata = source_object["UserData"]
         build_item(object_id, auto_snap=True, userdata=userdata)
@@ -1250,10 +1407,26 @@ class NMSToolsPanel(Panel):
 
     def draw(self, context):
         layout = self.layout
-        # tools_box = layout.box()
         tools_column = layout.column()
-        tools_column.operator("nms.toggle_room_visibility", icon="GHOST_ENABLED")
-        tools_column.operator("nms.save_as_preset", icon="SCENE_DATA")
+        scene = context.scene
+        nms_tool = scene.nms_base_tool
+        label = "Room Visibility: Normal"
+        if nms_tool.room_vis_switch == 1:
+            label = "Room Visibility: Ghosted"
+        elif nms_tool.room_vis_switch == 2:
+            label = "Room Visibility: Invisible"
+        elif nms_tool.room_vis_switch == 3:
+            label = "Room Visibility: Lighted"
+
+        tools_column.operator(
+            "nms.toggle_room_visibility",
+            icon="OBJECT_DATA",
+            text=label
+        )
+        tools_column.operator(
+            "nms.save_as_preset",
+            icon="SCENE_DATA"
+        )
 
 
 # Snap Panel --- 
@@ -1395,7 +1568,7 @@ def create_sublists(input_list, n=3):
     return total_list
 
 
-def generate_part_data(item_type="parts"):
+def generate_part_data(item_type="parts", mod_pack=None):
     """Generate a list of Blender UI friendly data of categories and parts.
     
     When we retrieve presets we just want an item name.
@@ -1418,9 +1591,9 @@ def generate_part_data(item_type="parts"):
             ui_list_data.append(("", preset))
     # Parts
     if "parts" in item_type:
-        for category in get_categories():
+        for category in get_categories(mod_pack=mod_pack):
             ui_list_data.append((category, ""))
-            parts = get_parts_from_category(category)
+            parts = get_parts_from_category(category, mod_pack=mod_pack)
             new_parts = create_sublists(parts)
             for part in new_parts:
                 joined_list = ",".join(part)
@@ -1428,7 +1601,7 @@ def generate_part_data(item_type="parts"):
     return ui_list_data
 
 
-def refresh_part_list(scene, item_type="parts"):
+def refresh_part_list(scene, item_type="parts", mod_pack=None):
     """Refresh the UI List.
     
     Args:
@@ -1442,7 +1615,7 @@ def refresh_part_list(scene, item_type="parts"):
         pass
 
     # Get part data based on 
-    ui_list_data = generate_part_data(item_type=item_type)
+    ui_list_data = generate_part_data(item_type=item_type, mod_pack=mod_pack)
     # Create items with labels and descriptions.
     for i, (label, description) in enumerate(ui_list_data, 1):
         item = scene.col.add()
@@ -1470,7 +1643,7 @@ class NewFile(bpy.types.Operator):
 
 class ToggleRoom(bpy.types.Operator):
     bl_idname = "nms.toggle_room_visibility"
-    bl_label = "Toggle Room Visibility"
+    bl_label = "Toggle Room Visibility: Normal"
 
     def execute(self, context):
         scene = context.scene
@@ -1542,7 +1715,7 @@ class SaveAsPreset(bpy.types.Operator):
         # Reset string variable.
         self.preset_name = ""
         if nms_tool.enum_switch == {'PRESETS'}:
-            refresh_part_list(scene, ["presets"])
+            refresh_part_list(scene, "presets")
         return {'FINISHED'}
 
     def invoke(self, context, event):
@@ -1577,7 +1750,7 @@ class ListEditOperator(bpy.types.Operator):
             scene = context.scene
             nms_tool = scene.nms_base_tool
             nms_tool.new_file()
-            build_preset(self.part_id, material="white")
+            build_preset(self.part_id, edit_mode=True)
         return {'FINISHED'}
 
     def invoke(self, context, event):
@@ -1597,7 +1770,7 @@ class ListDeleteOperator(bpy.types.Operator):
             nms_tool = scene.nms_base_tool
             delete_preset(self.part_id)
             if nms_tool.enum_switch == {'PRESETS'}:
-                refresh_part_list(scene, ["presets"])
+                refresh_part_list(scene, "presets")
         return {'FINISHED'}
 
     def invoke(self, context, event):

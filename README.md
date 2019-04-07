@@ -57,16 +57,31 @@ A plugin for Blender to build bases in No Mans Sky.
 
 ## Presets
 
-Presets are stored in your "C:\Users\USERNAME\NoMansSkyBaseBuilder\presets" (or equivalent) directory.
+Presets are stored in your "**%USERPROFILE%\NoMansSkyBaseBuilder\presets**" directory.
 These can be downloaded and shared with other people. You can find a few basic presets I've made on the nexus
 mod page - https://www.nexusmods.com/nomanssky/mods/984?tab=files.
 
 ## Mod Compatibility
 
-At this time the tool is designed only to work well with the vanilla game.
-Mods that implement additional base items are supported but will only display as basic cubes.
-All other functionality should still work including the import and export to the game.
+The tool is designed towards supporting the vanilla game as much as possible, however
+any additional base parts introduced by mods will display as cubes but will still be able to import/export to the game.
 
+You can introduce your own OBJ's by adding them to your user directory folder. The layout for this should be...
+
+* %USERPROFILE%\NoMansSkyBaseBuilder\
+  * mods
+    * mod_name
+      * models
+        * category
+          * MOD_WALLA.obj
+          * MOD_WALLB.obj
+        * category_b
+          * MOD_FLOORA.obj
+          * MOD_FLOORB.obj
+
+The names of categories is up to the user.
+
+The obj file name should reflect the name of the part in-game.
 
 <a name="credits"></a>
 
@@ -82,7 +97,7 @@ Feel free to get in touch :)
 ## Examples
 <p align="center">
   <img src="https://raw.githubusercontent.com/charliebanks/nms-base-builder/master/images/nms_base_builder.jpg" alt="NMS" width="100%">
-</p>f
+</p>
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/charliebanks/nms-base-builder/master/images/example_1.jpg" alt="NMS1" width="100%">

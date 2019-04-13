@@ -1,3 +1,9 @@
+release 0.9.2
+-------------
+* Added some legacy base building parts.
+* New OBJs for Standing Planter, Walls, Floors, Folding Door, Corner Post.
+
+
 release 0.9.1
 -------------
 * Added under water parts to the list.

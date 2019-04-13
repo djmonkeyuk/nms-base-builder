@@ -166,6 +166,15 @@
     "PLANTPOT": "Plant Pot A",
     "PLANTPOT1": "Plant Pot B",
     "PLANTPOT2": "Plant Pot C",
-    "PLANTPOT3": "Plant Pot D"
+    "PLANTPOT3": "Plant Pot D",
+
+    "CARBONPLANTER": "Standing Planter",
+    "CORNERPOST": "Corner Post",
+    "ROOMFLOOR": "Legacy Floor",
+    "WALL": "Legacy Wall (Short)",
+    "WALLCURVED": "Legacy Wall (Curved)",
+    "WALLDOOR": "Legacy Wall Door",
+    "WALLTALL": "Legacy Wall"
+
 
 }

@@ -3,7 +3,7 @@ bl_info = {
     "name": "No Mans Sky Base Builder",
     "description": "A tool to assist with base building in No Mans Sky",
     "author": "Charlie Banks",
-    "version": (0, 9, 0),
+    "version": (0, 9, 3),
     "blender": (2, 70, 0),
     "location": "3D View > Tools",
     "warning": "", # used for warning icon and text in addons panel
@@ -23,10 +23,13 @@ import bpy.utils.previews
 import bpy
 import bpy.utils
 import mathutils
+
 from bpy.props import (BoolProperty, EnumProperty, FloatProperty, IntProperty,
                        PointerProperty, StringProperty)
 from bpy.types import Operator, Panel, PropertyGroup
-
+import importlib
+# from . import city_gen
+# importlib.reload(city_gen)
 import logging
 
 LOGGER = logging.getLogger(__name__)
@@ -56,6 +59,12 @@ lights_json = os.path.join(file_path, "lights.json")
 # Keep track of snap keys.
 global per_item_snap_reference
 per_item_snap_reference = {}
+
+# Keep a catch of items we can duplicate to speed things up.
+global item_cache
+global preset_cache
+item_cache = {}
+preset_cache = {}
 
 # Load in the external dictionaries.
 global snap_matrix_dictionary
@@ -168,7 +177,6 @@ def get_obj_path(part):
     """Get the path to the OBJ file from a part."""
     
     mod_pack, category = get_category_from_part(part)
-    print ("Part", part)
     if not category:
         return
 
@@ -194,6 +202,130 @@ def delete_preset(preset_id):
         os.remove(preset_path)
 
 
+def retrieve_preset(part_name):
+    """Retrieve the preset that represents the part.
+    
+    There are 2 outcomes.
+    - If the object already exists in the scene cache, we can just duplciate it.
+    - If it doesn't exist in the cache, build it from scratch.
+    """
+    # Duplicate
+    global item_cache
+    if part_name in item_cache:
+        item = item_cache[part_name]
+        # If it's in the cache, but deleted by user, we can import again.
+        all_item_names = [item.name for item in bpy.data.objects]
+        if item.name in all_item_names:
+            bpy.ops.object.select_all(action='DESELECT') 
+            item.select = True
+            bpy.ops.object.duplicate()
+            item = bpy.context.selected_objects[0] 
+            return item
+
+    # Obj.
+    obj_path = get_obj_path(part_name) or ""
+    # If it exists, import the obj.
+    if os.path.isfile(obj_path):
+        item = import_obj(part_name)
+    else:
+        # If not then create a blender cube.
+        item = bpy.ops.mesh.primitive_cube_add()
+        item = bpy.context.object
+        item.name = part_name
+
+    return item
+
+def duplicate_preset(preset_name, reset_position=True):
+    global preset_cache
+    if preset_name in preset_cache:
+        item = preset_cache[preset_name]
+        bpy.ops.object.select_all(action='DESELECT') 
+        item.select = True
+        for c in item.children:
+            c.hide_select = False
+            c.select = True
+        
+        # Duplicate all.
+        bpy.ops.object.duplicate()
+        new_item = bpy.context.selected_objects[0] 
+
+        # Reset Position.
+        if reset_position:
+            new_item.location[0] = 0
+            new_item.location[1] = 0
+            new_item.location[2] = 0
+            new_item.rotation_euler[0] = 0
+            new_item.rotation_euler[1] = 0
+            new_item.rotation_euler[2] = 0
+
+        # Lock Children.
+        for each in [item, new_item]:
+            for c in each.children:
+                c.select = False
+                c.hide_select = True
+
+        return new_item
+            
+
+
+def retrieve_part(part_name):
+    """Retrieve the object that represents the part.
+    
+    There are 3 outcomes.
+        - If the object already exists in the scene cache, we can just
+            duplciate it.
+        - If it doesn't exist in the cache, find the obj path.
+        - If the obj path doesn't exist, just createa  cube.
+    """
+    # Duplicate
+    global item_cache
+    if part_name in item_cache:
+        item = item_cache[part_name]
+        # If it's in the cache, but deleted by user, we can import again.
+        all_item_names = [item.name for item in bpy.data.objects]
+        if item.name in all_item_names:
+            # Deselect everything.
+            bpy.ops.object.select_all(action='DESELECT') 
+
+            # Select item.
+            item.select = True
+            # Expose children.
+            for c in item.children:
+                c.hide_select = False
+                c.hide = False
+                c.select = True
+
+            # Duplicate hiearchy.
+            bpy.ops.object.duplicate()
+            new_item = bpy.context.selected_objects[0] 
+
+            # Lock Children.
+            for each in [item, new_item]:
+                for c in each.children:
+                    c.select = False
+                    c.hide_select = True
+                    c.hide = True
+                    
+            return new_item
+
+    # Obj.
+    obj_path = get_obj_path(part_name) or ""
+    # If it exists, import the obj.
+    if os.path.isfile(obj_path):
+        # Create OBJ.
+        item = import_obj(part_name)
+    else:
+        # If not then create a blender cube.
+        item = bpy.ops.mesh.primitive_cube_add()
+        item = bpy.context.object
+        item.name = part_name
+
+    # Build Light
+    item["objectID"] = part_name
+    # Create Light.
+    build_light(item)
+    return item
+        
 def build_item(
         part,
         timestamp=1539023700,
@@ -216,6 +348,7 @@ def build_item(
         at_vec(vector): The aim vector for the part orientation.
         is_preset(bool): Determine if this part belongs to a preset or standalone.
     """
+    global item_cache
     # Get Current Selection
     current_selection = None
     current_world_matrix = None
@@ -224,16 +357,10 @@ def build_item(
         current_world_matrix = current_selection.matrix_world
 
     # Get the obj path.
-    obj_path = get_obj_path(part) or ""
-    # If it exists, import the obj.
-    if os.path.isfile(obj_path):
-        item = import_obj(part)
-    else:
-        # If not then create a blender cube.
-        item = bpy.ops.mesh.primitive_cube_add()
-        item = bpy.context.object
-        item.name = part
-
+    item = retrieve_part(part)
+    if not is_preset:
+        item_cache[part] = item
+    
     # Lock Scale
     item.lock_scale[0] = True
     item.lock_scale[1] = True
@@ -255,9 +382,6 @@ def build_item(
         assign_preset_material(item, userdata)
     else:
         assign_material(item, userdata)
-
-    # Build Light
-    build_light(item)
 
     # Position.
     item.location = position
@@ -286,7 +410,6 @@ def build_item(
     # Place the item in world space.
     item.matrix_world = mat
 
-
     # Auto Snap
     if auto_snap and current_selection:
         # Set selection to be snap friendly.
@@ -301,16 +424,12 @@ def build_item(
         if not snap_state:
             current_selection.select= False
 
-
-
     return item
 
 
 # Light Methods ---
 def build_light(item):
-    lights_dictionary = {}
-    with open(lights_json, "r") as stream:
-        lights_dictionary = json.load(stream)
+    global lights_dictionary
         
     if "objectID" not in item:
         return
@@ -359,7 +478,6 @@ def get_snap_matrices_from_group(group):
     global snap_matrix_dictionary
     if group in snap_matrix_dictionary:
         if "snap_points" in snap_matrix_dictionary[group]:
-            print (snap_matrix_dictionary[group]["snap_points"])
             return snap_matrix_dictionary[group]["snap_points"]
 
 def get_snap_group_from_part(part_id):
@@ -589,98 +707,105 @@ def build_preset(
         LOGGER.warning("Skipping " + preset_id + " as it does not exist.")
         return
 
-    data = {}
-    with open(preset_json, "r") as stream:
-        data = json.load(stream)
+    global preset_cache
+    if preset_id in preset_cache:
+        curve_object = duplicate_preset(preset_id)
+    else:
+        data = {}
+        with open(preset_json, "r") as stream:
+            data = json.load(stream)
 
-    if "Objects" in data:
-        parts = []
-        for part_data in data["Objects"]:
-            part = part_data["ObjectID"]
-            timestamp = part_data["Timestamp"]
-            user_data = part_data["UserData"]
-            part_position = part_data["Position"]
-            up_vec = part_data["Up"]
-            at_vec = part_data["At"]
-            # Build the item.
-            part = part.replace("^", "")
-            blender_part = build_item(
-                part,
-                timestamp,
-                user_data,
-                part_position,
-                up_vec,
-                at_vec,
-                is_preset=not edit_mode,
-            )
-            
-            parts.append(blender_part)
-        # Get highest radius value.
-        highest_x = max([part.location[0] for part in parts])
-        lowest_x = min([part.location[0] for part in parts])
-        highest_y = max([part.location[1] for part in parts])
-        lowest_y = min([part.location[1] for part in parts])
-        radius = max([abs(lowest_x), highest_x, abs(lowest_y), highest_y])
-        # Build Nurbs Circle
-        if build_control:
-            preset_controller = bpy.ops.curve.primitive_nurbs_circle_add(
-                radius=radius+4,
-                view_align=False,
-                enter_editmode=False,
-                location=(0, 0, 0),
-                layers=(True, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False),
-            )
-            curve_object = bpy.context.scene.objects.active
-            curve_object.name = preset_id
-            curve_object.show_name = True
-            curve_object["objectID"] = preset_id
-            curve_object["preset_object"] = True
-            me = curve_object.data
-            me.name = preset_id + 'Mesh'
-            for part in parts:
-                bpy.ops.object.select_all(action='DESELECT') 
-                curve_object.select = True
-                part.select = True
-                bpy.context.scene.objects.active = curve_object
-                bpy.ops.object.parent_set()
-                part.hide_select = True
-
-            # Select Control
-            bpy.ops.object.select_all(action='DESELECT')
-            curve_object.select = True
-
-            # Position.
-            if position and up and at:
-                curve_object.location = position
-                # Rotation
-                preset_up_vec = mathutils.Vector(up)
-                preset_at_vec = mathutils.Vector(at)
-                
-                # Calculate a normal using the up vector
-                right_vector = preset_at_vec.cross(preset_up_vec)
-                new_up_vec = right_vector.cross(preset_at_vec)
-                # Flip the right vector.
-                right_vector *= -1
-                # Construct a world matrix for the item.
-                mat = mathutils.Matrix(
-                    [
-                        [right_vector[0], new_up_vec[0] , preset_at_vec[0],  position[0]],
-                        [right_vector[1], new_up_vec[1] , preset_at_vec[1],  position[1]],
-                        [right_vector[2], new_up_vec[2] , preset_at_vec[2],  position[2]],
-                        [0.0,             0.0,            0.0,        1.0        ]
-                    ]
+        if "Objects" in data:
+            parts = []
+            for part_data in data["Objects"]:
+                part = part_data["ObjectID"]
+                timestamp = part_data["Timestamp"]
+                user_data = part_data["UserData"]
+                part_position = part_data["Position"]
+                up_vec = part_data["Up"]
+                at_vec = part_data["At"]
+                # Build the item.
+                part = part.replace("^", "")
+                blender_part = build_item(
+                    part,
+                    timestamp,
+                    user_data,
+                    part_position,
+                    up_vec,
+                    at_vec,
+                    is_preset=not edit_mode,
                 )
-                # Create a rotation matrix that turns the whole thing 90 degrees at the origin.
-                # This is to compensate blender's Z up axis.
-                mat_rot = mathutils.Matrix.Rotation(math.radians(90.0), 4, 'X')
-                mat = mat_rot * mat
-                # Place the item in world space.
-                curve_object.matrix_world = mat
-            
-            # Lock Scale
-            curve_object.lock_scale[0] = True
-            curve_object.lock_scale[1] = True
-            curve_object.lock_scale[2] = True
+                
+                parts.append(blender_part)
+            # Get highest radius value.
+            highest_x = max([part.location[0] for part in parts])
+            lowest_x = min([part.location[0] for part in parts])
+            highest_y = max([part.location[1] for part in parts])
+            lowest_y = min([part.location[1] for part in parts])
+            radius = max([abs(lowest_x), highest_x, abs(lowest_y), highest_y])
+            # Build Nurbs Circle
+            if build_control:
+                preset_controller = bpy.ops.curve.primitive_nurbs_circle_add(
+                    radius=radius+4,
+                    view_align=False,
+                    enter_editmode=False,
+                    location=(0, 0, 0),
+                    layers=(True, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False),
+                )
+                curve_object = bpy.context.scene.objects.active
+                curve_object.name = preset_id
+                curve_object.show_name = True
+                curve_object["objectID"] = preset_id
+                curve_object["preset_object"] = True
+                me = curve_object.data
+                me.name = preset_id + 'Mesh'
+                for part in parts:
+                    bpy.ops.object.select_all(action='DESELECT') 
+                    curve_object.select = True
+                    part.select = True
+                    bpy.context.scene.objects.active = curve_object
+                    bpy.ops.object.parent_set()
+                    part.hide_select = True
+
+                # Select Control
+                bpy.ops.object.select_all(action='DESELECT')
+                curve_object.select = True
+
+    # Position.
+    if position and up and at:
+        curve_object.location = position
+        # Rotation
+        preset_up_vec = mathutils.Vector(up)
+        preset_at_vec = mathutils.Vector(at)
+        
+        # Calculate a normal using the up vector
+        right_vector = preset_at_vec.cross(preset_up_vec)
+        new_up_vec = right_vector.cross(preset_at_vec)
+        # Flip the right vector.
+        right_vector *= -1
+        # Construct a world matrix for the item.
+        mat = mathutils.Matrix(
+            [
+                [right_vector[0], new_up_vec[0] , preset_at_vec[0],  position[0]],
+                [right_vector[1], new_up_vec[1] , preset_at_vec[1],  position[1]],
+                [right_vector[2], new_up_vec[2] , preset_at_vec[2],  position[2]],
+                [0.0,             0.0,            0.0,        1.0        ]
+            ]
+        )
+        # Create a rotation matrix that turns the whole thing 90 degrees at the origin.
+        # This is to compensate blender's Z up axis.
+        mat_rot = mathutils.Matrix.Rotation(math.radians(90.0), 4, 'X')
+        mat = mat_rot * mat
+        # Place the item in world space.
+        curve_object.matrix_world = mat
+    
+    # Lock Scale
+    if build_control:
+        curve_object.lock_scale[0] = True
+        curve_object.lock_scale[1] = True
+        curve_object.lock_scale[2] = True
+        preset_cache[preset_id] = curve_object
+        return curve_object
 
 # Material Methods ---
 def assign_preset_material(item, colour_index=0, starting_index=0):
@@ -926,7 +1051,6 @@ class NMSSettings(PropertyGroup):
         # Bake NMS Object Data
         if not is_preset:
             timestamp = object["Timestamp"]
-            print (object.name)
             user_data = object["UserData"]
             sub_dict["Timestamp"] = int(timestamp)
             sub_dict["UserData"] = int(user_data)
@@ -1131,6 +1255,11 @@ class NMSSettings(PropertyGroup):
         self.float_ori_z = 0
 
         # Remove all no mans sky items from scene.
+        # Clear Caches
+        global item_cache
+        global preset_cache
+        item_cache = {}
+        preset_cache = {}
         # Deselect all
         bpy.ops.object.select_all(action='DESELECT')
         # Select NMS Items
@@ -1146,6 +1275,19 @@ class NMSSettings(PropertyGroup):
         bpy.ops.object.delete() 
         # Reset room vis
         self.room_vis_switch = 0
+
+    # def generate_city(self):
+    #     blocks = city_gen.generate_city_blocks(
+    #         build_item_method=build_item,
+    #         build_preset_method=build_preset,
+    #         get_presets_method=get_presets
+    #     )
+    #     for block in blocks:
+    #         # Roads
+    #         block.build_roads()
+    #         # Buildings
+    #         area = block.get_build_area_block()
+    #         area.build_buildings()
 
     def toggle_room_visibility(self):
         """Cycle through room visibilities.
@@ -1207,6 +1349,7 @@ class NMSSettings(PropertyGroup):
             "W_WALLWINDOW",
             "W_RAMP_H",
             "W_WALL_WINDOW",
+            "W_DOOR",
 
             "C_WALL",
             "C_WALL_H",
@@ -1222,6 +1365,7 @@ class NMSSettings(PropertyGroup):
             "C_WALLWINDOW",
             "C_RAMP_H",
             "C_WALL_WINDOW",
+            "C_DOOR",
             
             "M_WALL",
             "M_WALL_H",
@@ -1237,6 +1381,7 @@ class NMSSettings(PropertyGroup):
             "M_WALLWINDOW",
             "M_RAMP_H",
             "M_WALL_WINDOW",
+            "M_DOOR"
         ]
         # Set Shading.
         if self.room_vis_switch in [0, 1, 2]:
@@ -1273,7 +1418,6 @@ class NMSSettings(PropertyGroup):
                     if not is_preset:
                         ob.hide_select = hide_select    
                     ob.select = False
-
 
     def duplicate(self):
         """Snaps one object to another based on selection."""
@@ -1423,6 +1567,11 @@ class NMSToolsPanel(Panel):
             icon="OBJECT_DATA",
             text=label
         )
+        # tools_column.operator(
+        #     "nms.generate_city",
+        #     icon="OBJECT_DATA",
+        #     text="Generate City"
+        # )
         tools_column.operator(
             "nms.save_as_preset",
             icon="SCENE_DATA"
@@ -1650,6 +1799,17 @@ class ToggleRoom(bpy.types.Operator):
         nms_tool = scene.nms_base_tool
         nms_tool.toggle_room_visibility()
         return {'FINISHED'}
+
+
+# class GenerateCity(bpy.types.Operator):
+#     bl_idname = "nms.generate_city"
+#     bl_label = "Generate City"
+
+#     def execute(self, context):
+#         scene = context.scene
+#         nms_tool = scene.nms_base_tool
+#         nms_tool.generate_city()
+#         return {'FINISHED'}
 
 
 class SaveData(bpy.types.Operator):

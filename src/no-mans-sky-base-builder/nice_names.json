@@ -3,25 +3,29 @@
     "C_FLOOR": "Concrete Floor",
     "M_FLOOR": "Metal Floor",
 
-    "W_GFLOOR": "Wood Glass Floor",
-    "C_GFLOOR": "Concrete Glass  Floor",
-    "M_GFLOOR": "Metal Glass Floor",
+    "W_GFLOOR": "Wood Floor (Glass)",
+    "C_GFLOOR": "Concrete  Floor (Glass)",
+    "M_GFLOOR": "Metal Floor (Glass)",
 
     "W_FLOOR_Q": "Wood Floor (Small)",
     "C_FLOOR_Q": "Concrete Floor (Small)",
     "M_FLOOR_Q": "Metal Floor (Small)",
 
-    "W_WALL_DOOR": "Wood Wall (Door)",
-    "C_WALL_DOOR": "Concrete Wall (Door)",
-    "M_WALL_DOOR": "Metal Wall (Door)",
-
     "W_WALL": "Wood Wall",
     "C_WALL": "Concrete Wall",
     "M_WALL": "Metal Wall",
 
-    "W_DOOR": "Wood Door",
-    "C_DOOR": "Concrete Door",
-    "M_DOOR": "Metal Door",
+    "W_DOOR": "Wood Wall (Door)",
+    "C_DOOR": "Concrete Wall (Door)",
+    "M_DOOR": "Metal Wall (Door)",
+
+    "W_DOOR_H": "Wood Door (Half)",
+    "C_DOOR_H": "Concrete Door (Half)",
+    "M_DOOR_H": "Metal Door (Half)",
+
+    "W_DOORWINDOW": "Wood Door Window",
+    "C_DOORWINDOW": "Concrete Door Window",
+    "M_DOORWINDOW": "Metal Door Window",
 
     "W_WALL_H": "Wood Wall (Half)",
     "C_WALL_H": "Concrete Wall (Half)",
@@ -66,9 +70,13 @@
     "M_ROOF": "Metal Roof",
     "C_ROOF": "Concrete Roof",
 
-    "W_ROOF_M": "Wood Diagonal Roof",
-    "M_ROOF_M": "Metal Diagonal Roof",
-    "C_ROOF_M": "Concrete Diagonal Roof",
+    "W_ROOF_M": "Wood Roof Ramp",
+    "M_ROOF_M": "Metal Roof Ramp",
+    "C_ROOF_M": "Concrete Roof Ramp",
+
+    "W_ROOF_C": "Wood Roof Corner",
+    "M_ROOF_C": "Metal Roof Corner",
+    "C_ROOF_C": "Concrete Roof Corner",
 
 
     "NPCFARMTERM": "Farm Terminal",
@@ -203,12 +211,16 @@
     "STATUE_ASTRO_B": "Statue Astronaut (Bronze)",
     "STATUE_ASTRO_G": "Statue Astronaut (Gold)",
     "STATUE_ASTRO_S": "Statue Astronaut (Silver)",
+    "STATUE_ATLAS_B": "Statue Atlas (Bronze)",
+    "STATUE_ATLAS_G": "Statue Atlas (Gold)",
+    "STATUE_ATLAS_S": "Statue Atlas (Silver)",
     "STATUE_BLOB_B": "Statue Blob (Bronze)",
     "STATUE_BLOB_G": "Statue Blob (Gold)",
     "STATUE_BLOB_S": "Statue Blob (Silver)",
     "STATUE_WALK_B": "Statue Walker (Bronze)",
     "STATUE_WALK_G": "Statue Walker (Gold)",
     "STATUE_WALK_S": "Statue Walker (Silver)",
+    "BUILDHCABINET": "Wall Cabinet",
 
     "BUILDDOOR": "Door (Mechanical)",
     "DOOR2": "Door (Futuristic)",

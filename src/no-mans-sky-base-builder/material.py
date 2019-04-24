@@ -1,0 +1,63 @@
+import os
+
+import bpy
+
+from . import utils
+
+# Get Colour Information.
+FILE_PATH = os.path.dirname(os.path.realpath(__file__))
+COLOURS_JSON = os.path.join(FILE_PATH, "lights.json")
+COLOUR_REFERENCE = utils.load_dictionary(COLOURS_JSON)
+
+
+def assign_material(item, colour_index=0, starting_index=0, preset=False):
+    """Given a blender object. assign a material and UserData index.
+    
+    Args:
+        item (bpy.ob): A Blender object.
+        colour_index (int): The colour index determined by No Man's Sky.
+        starting_index (int): An index offset, this determines
+            type of material.
+        preset (bool): Toggle to use golden preset material.
+    """
+    # Material+Colour
+    colour_index = starting_index + colour_index
+    # Apply Custom Variable.
+    item["UserData"] = colour_index
+    # Create Material
+    colour_name = "{0}_material".format(colour_index)
+    if preset:
+        colour_name = "preset_material"
+    colour_material = None
+
+    # Retrieve material if it already exists.
+    for material in bpy.data.materials:
+        if colour_name == material.name:
+            colour_material = material
+
+    # Ensure we have a transparent shader.
+    if not colour_material:
+        # Create material
+        colour_material = bpy.data.materials.new(name=colour_name)
+        colour_material.alpha = 0.07
+        # Apply colour.
+        if preset:
+            colour_material.diffuse_color = (0.8, 0.300186, 0.0178301)
+        else:
+            colour_data = COLOUR_REFERENCE.get(str(colour_index), {})
+            colour_tuple = colour_data.get("colour", [0.8, 0.8,0.8])
+            colour_material.diffuse_color = (
+                colour_tuple[0],
+                colour_tuple[1],
+                colour_tuple[2]
+            )
+    
+    # Assign Material
+    if not item.data.materials:
+        # Add the material to the object
+        item.data.materials.append(colour_material) 
+    else:
+        # If a material already exists, swap it.
+        item.data.materials[0] = colour_material
+
+    return colour_material

@@ -60,17 +60,18 @@ def part_switch(self, context):
     scene = context.scene
     part_list = "presets" if self.enum_switch == {"PRESETS"} else "parts"
 
-    if self.enum_switch not in [{"PRESETS"}, {"PARTS"}]:
-        refresh_ui_part_list(scene, part_list, mod_pack=list(self.enum_switch)[0])
+    if self.enum_switch not in [{"PRESETS"}]:
+        refresh_ui_part_list(scene, part_list, pack=list(self.enum_switch)[0])
     else:
         refresh_ui_part_list(scene, part_list)
 
 
 # Core Settings Class
 class NMSSettings(PropertyGroup):
-    # Build Arrau of base part types. (Vanilla - Mods - Presets)
+    # Build Array of base part types. (Vanilla Parts - Mods - Presets)
     enum_items = []
-    enum_items.append(("PARTS", "Parts", "View Base Parts..."))
+    for pack, _ in PART_BUILDER.available_packs:
+        enum_items.append((pack, pack, "View {0}...".format(pack)))
     enum_items.append(("PRESETS", "Presets", "View Presets..."))
 
     # Blender Properties.
@@ -79,7 +80,7 @@ class NMSSettings(PropertyGroup):
         description="Toggle to display between parts and presets.",
         items=enum_items,
         options={"ENUM_FLAG"},
-        default={"PARTS"},
+        default={"Parts"},
         update=part_switch,
     )
 
@@ -727,7 +728,7 @@ def create_sublists(input_list, n=3):
     return total_list
 
 
-def generate_ui_list_data(item_type="parts", mod_pack=None):
+def generate_ui_list_data(item_type="parts", pack=None):
     """Generate a list of Blender UI friendly data of categories and parts.
     
     When we retrieve presets we just want an item name.
@@ -748,11 +749,14 @@ def generate_ui_list_data(item_type="parts", mod_pack=None):
         ui_list_data.append(("Presets", ""))
         for preset in PRESET_BUILDER.get_presets():
             ui_list_data.append(("", preset))
-    # Parts
-    if "parts" in item_type:
-        for category in PART_BUILDER.get_categories():
+    else:
+        # Packs/Parts
+        for category in PART_BUILDER.get_categories(pack=pack):
             ui_list_data.append((category, ""))
-            category_parts = PART_BUILDER.get_parts_from_category(category)
+            category_parts = PART_BUILDER.get_parts_from_category(
+                category,
+                pack=pack
+            )
             new_parts = create_sublists(category_parts)
             for part in new_parts:
                 joined_list = ",".join(part)
@@ -760,7 +764,7 @@ def generate_ui_list_data(item_type="parts", mod_pack=None):
     return ui_list_data
 
 
-def refresh_ui_part_list(scene, item_type="parts", mod_pack=None):
+def refresh_ui_part_list(scene, item_type="parts", pack=None):
     """Refresh the UI List.
     
     Args:
@@ -774,7 +778,7 @@ def refresh_ui_part_list(scene, item_type="parts", mod_pack=None):
         pass
 
     # Get part data based on
-    ui_list_data = generate_ui_list_data(item_type=item_type, mod_pack=mod_pack)
+    ui_list_data = generate_ui_list_data(item_type=item_type, pack=pack)
     # Create items with labels and descriptions.
     for i, (label, description) in enumerate(ui_list_data, 1):
         item = scene.col.add()

@@ -13,10 +13,14 @@ LOGGER = logging.getLogger(__name__)
 
 class PartBuilder(object):
 
+    # Resources.
     FILE_PATH = os.path.dirname(os.path.realpath(__file__))
     MODEL_PATH = os.path.join(FILE_PATH, "models")
     LIGHTS_JSON = os.path.join(FILE_PATH, "resources", "lights.json")
     NICE_JSON = os.path.join(FILE_PATH, "resources", "nice_names.json")
+    # Mods.
+    USER_PATH = os.path.join(os.path.expanduser("~"), "NoMansSkyBaseBuilder")
+    MODS_PATH = os.path.join(USER_PATH, "mods")
 
     def __init__(self):
         """Initialise.
@@ -32,25 +36,72 @@ class PartBuilder(object):
         # Construct part information.
         self.part_cache = {}
         self.part_reference = {}
-        for category in self.get_categories():
-            parts = self.get_objs_from_category(category)
-            for part in parts:
-                # Get Unique ID.
-                unique_id = os.path.splitext(part)[0]
-                # Construct full path.
-                part_path = os.path.join(self.MODEL_PATH, category, part)
-                # Place part information into reference.
-                self.part_reference[unique_id] = {
-                    "category": category,
-                    "full_path": part_path
-                }
 
-    def get_parts_from_category(self, category):
-        """Get all the parts from a specific category."""
+        # Create default part pack.
+        self.available_packs = [("Parts", self.MODEL_PATH)]
+
+        # Find any mods with model packs inside.
+        if os.path.exists(self.MODS_PATH):
+            mod_folders = os.listdir(self.MODS_PATH)
+            for mod_folder in mod_folders:
+                full_mod_path = os.path.join(self.MODS_PATH, mod_folder)
+                if "models" in os.listdir(full_mod_path):
+                    full_model_path = os.path.join(
+                        self.MODS_PATH,
+                        mod_folder,
+                        "models"
+                    )
+                    self.available_packs.append((mod_folder, full_model_path))
+
+        # Find Parts and build a reference dictionary.
+        for (pack_name, pack_folder) in self.available_packs:
+            for category in self.get_categories(pack=pack_name):
+                parts = self.get_objs_from_category(category, pack=pack_name)
+                for part in parts:
+                    # Get Unique ID.
+                    unique_id = os.path.splitext(part)[0]
+                    # Construct full path.
+                    search_path = pack_folder or self.MODEL_PATH
+                    part_path = os.path.join(search_path, category, part)
+                    # Place part information into reference.
+                    self.part_reference[unique_id] = {
+                        "category": category,
+                        "full_path": part_path,
+                        "pack": pack_name
+                    }
+
+    def get_model_path_from_pack(self, pack_request):
+        """Given a pack name, return it's associated path.
+        
+        Args:
+            pack_request (str): The name of the pack
+            
+        Return:
+            str: The model path of the pack.
+        """
+        for pack_name, pack_path in self.available_packs:
+            if pack_name == pack_request:
+                return pack_path
+
+    def get_parts_from_category(self, category, pack=None):
+        """Get all the parts from a specific category.
+        
+        Args:
+            category (str): The category to search.
+            pack (str): The model pack name. Defaults to vanilla 'Parts'.
+        """
+        # Validate pack name.
+        pack = pack or "Parts"
         parts = []
         for item, value in self.part_reference.items():
+            # Get pack and category values.
             part_category = value["category"]
-            if part_category == category:
+            part_pack = value["pack"]
+            # Check both are valid.
+            pack_check = part_pack == pack
+            category_check = part_category == category
+            # Add to parts.
+            if pack_check and category_check:
                 parts.append(item)
         return sorted(parts)
 
@@ -60,7 +111,14 @@ class PartBuilder(object):
 
     @staticmethod
     def by_order(item):
-        """Sorting method to get objects by the order attribute."""
+        """Sorting method to get objects by the order attribute.
+        
+        Args:
+            items (bpy.ob): A blender object.
+
+        Returns:
+            int: The order of which the item is/was built.
+        """
         if "Order" in item:
             return item["Order"]
         return 0
@@ -96,17 +154,34 @@ class PartBuilder(object):
             flat_parts = sorted(flat_parts, key=self.by_order)
             return flat_parts
 
-    def get_categories(self):
-        """Get the list of categories."""
-        return os.listdir(self.MODEL_PATH)
+    def get_categories(self, pack=None):
+        """Get the list of categories.
+        
+        Args:
+            pack (str): The model pack search under for categories.
+                Use this for mod support. Defaults to vanilla 'Parts'.
+        Returns:
+            list: List of folders underneath category path.
+        """
+        # Validate Pack name.
+        pack = pack or "Parts"
+        # Get the associated model path.
+        search_path = self.get_model_path_from_pack(pack)
+        return os.listdir(search_path)
 
-    def get_objs_from_category(self, category):
+    def get_objs_from_category(self, category, pack=None):
         """Get a list of parts belonging to a category.
         
         Args:
             category (str): The name of the category.
+            pack (str): The model pack search under for categories.
+                Use this for mod support. Defaults to vanilla 'Parts'.
         """
-        category_path = os.path.join(self.MODEL_PATH, category)
+        # Validate Pack name.
+        pack = pack or "Parts"
+        # Get the associated model path.
+        search_path = self.get_model_path_from_pack(pack)
+        category_path = os.path.join(search_path, category)
         # Validate category path.
         if not os.path.exists(category_path):
             raise RuntimeError(category + " does not exist.")

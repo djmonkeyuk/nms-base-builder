@@ -6,22 +6,31 @@ from . import utils
 
 # Get Colour Information.
 FILE_PATH = os.path.dirname(os.path.realpath(__file__))
-COLOURS_JSON = os.path.join(FILE_PATH, "lights.json")
+COLOURS_JSON = os.path.join(FILE_PATH, "resources", "colours.json")
 COLOUR_REFERENCE = utils.load_dictionary(COLOURS_JSON)
 
 
-def assign_material(item, colour_index=0, starting_index=0, preset=False):
+def assign_material(item, colour_index=0, material=None, preset=False):
     """Given a blender object. assign a material and UserData index.
     
     Args:
         item (bpy.ob): A Blender object.
         colour_index (int): The colour index determined by No Man's Sky.
-        starting_index (int): An index offset, this determines
-            type of material.
+        material (str): The material type.
         preset (bool): Toggle to use golden preset material.
     """
+
     # Material+Colour
-    colour_index = starting_index + colour_index
+    if material:
+        material_index = 0
+        if material == {"RUST"}:
+            material_index = 16777216
+        elif material == {"STONE"}:
+            material_index = 33554432
+        elif material == {"WOOD"}:
+            material_index = 50331648
+        colour_index = material_index + colour_index
+
     # Apply Custom Variable.
     item["UserData"] = colour_index
     # Create Material

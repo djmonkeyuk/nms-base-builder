@@ -17,8 +17,8 @@ from . import utils
 class Snapper(object):
     # File Paths.
     FILE_PATH = os.path.dirname(os.path.realpath(__file__))
-    SNAP_MATRIX_JSON = os.path.join(FILE_PATH, "snapping_info.json")
-    SNAP_PAIR_JSON = os.path.join(FILE_PATH, "snapping_pairs.json")
+    SNAP_MATRIX_JSON = os.path.join(FILE_PATH, "resources", "snapping_info.json")
+    SNAP_PAIR_JSON = os.path.join(FILE_PATH, "resources", "snapping_pairs.json")
 
     def __init__(self):
         """Initialise."""
@@ -89,23 +89,30 @@ class Snapper(object):
             prev_target (bool) Use the previous target snap point to
                 the current.
         """
+        # For preset targets, just snap them together.
+        if "PresetID" in target:
+            source.matrix_world = copy(target.matrix_world)
+            utils.select([source])
+            return
+
         # Get Current Selection Object Type.
         source_key = None
         target_key = None
 
-        if "objectID" not in target:
+        if "ObjectID" not in target:
             return False
 
-        if "objectID" not in source:
+        if "ObjectID" not in source:
             return False
 
         # If anything, move the item to the target.
         source.matrix_world = copy(target.matrix_world)
-
+        # Ensure selection is set.
+        utils.select([source])
         # Get Pairing options.
         snap_pairing_options = self.get_snap_pair_options(
-            target["objectID"],
-            source["objectID"]
+            target["ObjectID"],
+            source["ObjectID"]
         )
         # If no snap details are avaialbe then don't bother.
         if not snap_pairing_options:
@@ -121,7 +128,7 @@ class Snapper(object):
         # Get the per item reference.
         target_item_snap_reference = self.snap_cache.get(target.name, {})
         # Get the target item type.
-        target_id = target["objectID"]
+        target_id = target["ObjectID"]
         # Find corresponding dict in snap reference.
         target_snap_group = self.get_snap_group_from_part(target_id)
         target_local_matrix_datas = self.get_snap_matrices_from_group(target_snap_group)
@@ -158,7 +165,7 @@ class Snapper(object):
             {}
         )
         # Get the source type.
-        source_id = source["objectID"]
+        source_id = source["ObjectID"]
         # Find corresponding dict.
         source_snap_group = self.get_snap_group_from_part(source_id)
         source_local_matrix_datas = self.get_snap_matrices_from_group(source_snap_group)
@@ -201,7 +208,7 @@ class Snapper(object):
                     source_key,
                     step="prev"
                 )
-
+        
         if source_key and target_key:
             # Snap-point to snap-point matrix maths.
             # As I've defined X to be always outward facing, we snap the rotated
@@ -268,4 +275,7 @@ class Snapper(object):
             # Update per item reference.
             self.snap_cache[source.name] = source_item_snap_reference
             self.snap_cache[target.name] = target_item_snap_reference
+
+            # Ensure selection is set.
+            utils.select([target, source])
             return True

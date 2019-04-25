@@ -15,8 +15,8 @@ class PartBuilder(object):
 
     FILE_PATH = os.path.dirname(os.path.realpath(__file__))
     MODEL_PATH = os.path.join(FILE_PATH, "models")
-    LIGHTS_JSON = os.path.join(FILE_PATH, "lights.json")
-    NICE_JSON = os.path.join(FILE_PATH, "nice_names.json")
+    LIGHTS_JSON = os.path.join(FILE_PATH, "resources", "lights.json")
+    NICE_JSON = os.path.join(FILE_PATH, "resources", "nice_names.json")
 
     def __init__(self):
         """Initialise.
@@ -27,7 +27,8 @@ class PartBuilder(object):
         self.lights_dictionary = utils.load_dictionary(self.LIGHTS_JSON)
         # Load in nice name information.
         self.nice_name_dictionary = utils.load_dictionary(self.NICE_JSON)
-
+        # Set an initial order flag.
+        self.part_order = 0
         # Construct part information.
         self.part_cache = {}
         self.part_reference = {}
@@ -35,7 +36,7 @@ class PartBuilder(object):
             parts = self.get_objs_from_category(category)
             for part in parts:
                 # Get Unique ID.
-                unique_id = os.path.basename(part)
+                unique_id = os.path.splitext(part)[0]
                 # Construct full path.
                 part_path = os.path.join(self.MODEL_PATH, category, part)
                 # Place part information into reference.
@@ -57,7 +58,14 @@ class PartBuilder(object):
         """Clear the part cache."""
         self.part_cache.clear()
 
-    def get_all_nms_objects(self, capture_presets=False):
+    @staticmethod
+    def by_order(item):
+        """Sorting method to get objects by the order attribute."""
+        if "Order" in item:
+            return item["Order"]
+        return 0
+
+    def get_all_nms_objects(self, capture_presets=False, skip_object_type=None):
         """Wrapper to retrieve all blender objects that are made for NMS.
 
         If capture_presets is True, we get a list of all top level parts and
@@ -69,15 +77,24 @@ class PartBuilder(object):
         Args:
             capture_presets (bool): Decide whether or not we want to be aware
                 of presets. If not it will get all individual pieces.
+            skip_object_type (list): Specify item types we want to skip.
+                Use this to skip BASE_FLAG for saving presets.
         """
         if capture_presets:
             # Get all preset and top level parts.
-            presets = [part for part in bpy.data.objects if "presetID" in part]
-            flat_parts = [part for part in bpy.data.objects if part["belongs_to_preset"] is False]
+            presets = [part for part in bpy.data.objects if "PresetID" in part]
+            # Get All top level flat parts.
+            flat_parts = [part for part in bpy.data.objects if "ObjectID" in part]
+            flat_parts = [part for part in flat_parts if part["belongs_to_preset"] == False]
+            flat_parts = [part for part in flat_parts if part["ObjectID"] not in skip_object_type]
+            flat_parts = sorted(flat_parts, key=self.by_order)
             return presets + flat_parts
         else:
             # Get all individual NMS parts.
-            return [part for part in bpy.data.objects if "objectID" in part]
+            flat_parts = [part for part in bpy.data.objects if "ObjectID" in part]
+            flat_parts = [part for part in flat_parts if part["ObjectID"] not in skip_object_type]
+            flat_parts = sorted(flat_parts, key=self.by_order)
+            return flat_parts
 
     def get_categories(self):
         """Get the list of categories."""
@@ -122,26 +139,31 @@ class PartBuilder(object):
         """
         # Duplicate.
         if part_name in self.part_cache:
-            item_object = self.part_cache[part_name]
+            cached_item_name = self.part_cache[part_name]
             # If it's in the cache, but deleted by user, we can import again.
-            all_item_names = [item.name for item in bpy.data.objects]
-            if item_object.name in all_item_names:
-                return utils.duplicate_hierarchy(item)
+            if cached_item_name in bpy.data.objects:
+                cached_item = bpy.data.objects[cached_item_name]
+                new_item = utils.duplicate_hierarchy(cached_item)
+                utils.reset_selection_state(new_item)
+                utils.clear_parent(new_item)
+                utils.zero_transforms(new_item)
+                return new_item
 
         # Obj.
         obj_path = self.get_obj_path(part_name) or ""
         # If it exists, import the obj.
         if os.path.isfile(obj_path):
             bpy.ops.import_scene.obj(filepath=obj_path, split_mode="OFF")
-            item = bpy.context.selected_objects[0]
         else:
             # If not then create a blender cube.
-            item = bpy.ops.mesh.primitive_cube_add()
-            item = bpy.context.object
+            bpy.ops.mesh.primitive_cube_add()
 
-        # Build Light
+        item = bpy.context.selected_objects[0]
+        # Assign name.
         item.name = part_name
-        item["objectID"] = part_name
+        item["ObjectID"] = part_name
+        # Place in cache.
+        self.part_cache[part_name] = item.name
         # Create Light.
         self.build_light(item)
         return item
@@ -151,7 +173,7 @@ class PartBuilder(object):
         
         Args:
             object (bpy.ob): Blender scene object.
-            is_prest (bool): Toggle to ignore data not required for presets.
+            is_preset (bool): Toggle to ignore data not required for presets.
         Returns:
             dict: Dictionary of information.
         """
@@ -167,7 +189,7 @@ class PartBuilder(object):
 
         # Build dictionary.
         data = {
-            "ObjectID": "^{0}".format(object["objectID"]),
+            "ObjectID": "^{0}".format(object["ObjectID"]),
             "Position": [pos[0], pos[1], pos[2]],
             "Up": [up[0], up[1], up[2]],
             "At": [at[0], at[1], at[2]]
@@ -181,6 +203,19 @@ class PartBuilder(object):
             data["UserData"] = int(user_data)
 
         return data
+
+    def get_all_part_data(self, capture_presets=False, skip_object_type=None):
+        """Get a list of data of all No Man's Sky related objects."""
+        skip_object_type = skip_object_type or []
+        datas = []
+        nms_objects = self.get_all_nms_objects(
+            capture_presets=capture_presets,
+            skip_object_type=skip_object_type
+        )
+        for item in nms_objects:
+            if "ObjectID" in item:
+                datas.append(self.get_part_data(item))
+        return datas
 
     def build_item(
         self,
@@ -202,9 +237,6 @@ class PartBuilder(object):
             up_vec(vector): The up vector for the part orientation.
             at_vec(vector): The aim vector for the part orientation.
         """
-        # Get Current Selection
-        current_selection = utils.get_current_selection()
-
         # Get the obj path.
         item = self.retrieve_part(part)
 
@@ -223,9 +255,12 @@ class PartBuilder(object):
             item.lock_rotation[2] = True
         
         # Add custom attributes.
-        item["objectID"] = part
+        item["ObjectID"] = part
         item["Timestamp"] = timestamp
         item["belongs_to_preset"] = False
+        # Add an order flag to retain order when generating data..
+        item["Order"] = self.part_order
+        self.part_order += 1
         # Apply Colour
         material.assign_material(item, userdata)
 
@@ -286,11 +321,11 @@ class PartBuilder(object):
         """If the part is is found to have light information, add them."""
 
         # Validete NMS object.
-        if "objectID" not in item:
+        if "ObjectID" not in item:
             return
 
         # Get object id from item.
-        object_id = item["objectID"]
+        object_id = item["ObjectID"]
         # Find light data
         if object_id not in self.lights_dictionary:
             return
@@ -323,7 +358,7 @@ class PartBuilder(object):
                 setattr(light.data, key, value)
 
             # Parent to object.
-            utils.parent(item, light)
+            utils.parent(light, item)
 
             # Disable Selection.
             light.hide = True

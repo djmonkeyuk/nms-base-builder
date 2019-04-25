@@ -17,13 +17,58 @@ def load_dictionary(json_path):
         dictionary = json.load(stream)
     return dictionary
 
+def zero_transforms(item):
+    item.location[0] = 0.0
+    item.location[1] = 0.0
+    item.location[2] = 0.0
+    item.rotation_euler[0] = 0.0
+    item.rotation_euler[1] = 0.0
+    item.rotation_euler[2] = 0.0
+    item.scale[0] = 1.0
+    item.scale[1] = 1.0
+    item.scale[2] = 1.0
 
 def get_current_selection():
     if bpy.context.selected_objects:
         return bpy.context.selected_objects[0]
-    
 
-def parent(parent, child):
+def get_active_item():
+    return bpy.context.scene.objects.active
+
+def set_active_item(item):
+    bpy.context.scene.objects.active = item
+
+def select(selection, add=False):
+    # Deselect all.
+    if not add:
+        bpy.ops.object.select_all(action='DESELECT')
+        bpy.context.scene.objects.active = None
+    
+    # Ensure List.
+    if not isinstance(selection, list):
+        selection = [selection]
+
+    for item in selection:
+        item.select = True
+
+    # Make the last item the active one.
+    bpy.context.scene.objects.active = selection[-1]
+
+def reset_selection_state(item):
+    """Restore selection and visibility state."""
+    bpy.ops.object.select_all(action='DESELECT')
+    item.select = True
+    bpy.context.object.hide_select = False
+    bpy.context.object.hide = False
+
+def clear_parent(item):
+    """Clear the parent relationship of the item."""
+    bpy.ops.object.select_all(action='DESELECT')
+    item.select = True
+    bpy.context.scene.objects.active = item
+    bpy.ops.object.parent_clear(type='CLEAR_KEEP_TRANSFORM')
+    
+def parent(child, parent):
     """Convenient wrapper to parent things.
     
     Args:
@@ -31,9 +76,9 @@ def parent(parent, child):
         child (bpy.ob): The object to move.
     """
     bpy.ops.object.select_all(action='DESELECT')
-    parent.select = True
     child.select = True
-    bpy.context.scene.objects.active = child
+    parent.select = True
+    bpy.context.scene.objects.active = parent
     bpy.ops.object.parent_set()
     return child
 
@@ -89,6 +134,10 @@ def duplicate_hierarchy(item):
     bpy.ops.object.select_all(action='DESELECT')
 
     # Select item.
+    item["hide_select_state"] = item.hide_select
+    item["hide_state"] = item.hide
+    item.hide_select = False
+    item.hide = False
     item.select = True
     # Expose children and capture their states.
     for c in item.children:
@@ -104,11 +153,15 @@ def duplicate_hierarchy(item):
 
     # Restore child state.
     for each in [item, new_item]:
+        each.hide_select = each["hide_select_state"]
+        each.hide = each["hide_state"]
         for c in each.children:
             c.select = False
             c.hide_select = c["hide_select_state"]
             c.hide = c["hide_state"]
 
+    # Select the new item.
+    select(new_item)
     return new_item
 
 
@@ -121,7 +174,7 @@ def get_direction_vector(matrix, direction_matrix=None):
     return [0, 0, 0]
 
 
-def get_adjacent_dict_key(self, data, current, step="next"):
+def get_adjacent_dict_key(data, current, step="next"):
     """Get the next key in the dictionary
     
     Args:

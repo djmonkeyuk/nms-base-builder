@@ -88,6 +88,9 @@
     "BUILDLCRATE": "Crate (Cube)",
     "BUILDAMCRATE": "Crate (Large)",
 
+    "CRATELCYLINDER": "Crate (Cylinder)",
+    "CRATELRARE": "Crate (Rare)",
+
     "BUILDPAVING_BIG": "Paving",
     "BUILDPAVING": "Paving (Small)",
     "BUILDPAVINGTALL": "Paving Tall",
@@ -95,7 +98,7 @@
     "CUBEFOUND": "Cube Foundation",
     "CUBEFOUND4": "Cube Foundation x4",
 
-
+    "BUILDDOOR_WATER": "Underwater Door",
     "CORRIDORT_WATER": "Corridor Water (T)",
     "CORRIDORX_WATER": "Corridor Water (X)",
     "CORRIDORL_WATER": "Corridor Water (L)",
@@ -167,6 +170,9 @@
     "BASE_FLAG": "Base Terminal",
     "BASECAPSULE": "Base Storage",
     "BUILDSIGNAL": "Signal Booster",
+    "BUILDBEACON": "Beacon",
+    "HEALTHSTATION": "Health Station",
+    "SHIELDSTATION": "Shield Station",
     "MESSAGEMODULE": "Message Module",
 
     "WEAPONRACK": "Weapon Rack",

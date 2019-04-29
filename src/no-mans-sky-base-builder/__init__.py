@@ -855,7 +855,7 @@ class ExportData(bpy.types.Operator):
     def execute(self, context):
         scene = context.scene
         nms_tool = scene.nms_base_tool
-        nms_tool.generate_nms_data()
+        nms_tool.export_nms_data()
         return {"FINISHED"}
 
 

@@ -231,28 +231,28 @@ class Snapper(object):
             )
 
             # Calculate the location of the target matrix.
-            target_snap_matrix = target_matrix * target_offset_matrix
+            target_snap_matrix = target_matrix @ target_offset_matrix
 
             # Calculate snap position.
-            snap_matrix = start_matrix * offset_matrix
+            snap_matrix = start_matrix @ offset_matrix
             snap_matrix_inv = copy(snap_matrix)
             snap_matrix_inv.invert()
 
             # Rotate by 180 around Y at the origin.
-            origin_matrix = snap_matrix_inv * snap_matrix
+            origin_matrix = snap_matrix_inv @ snap_matrix
             rotation_matrix = mathutils.Matrix.Rotation(
                 math.radians(180.0),
                 4,
                 "Y"
             )
-            origin_flipped_matrix = rotation_matrix * origin_matrix
-            flipped_snap_matrix = snap_matrix * origin_flipped_matrix
+            origin_flipped_matrix = rotation_matrix @ origin_matrix
+            flipped_snap_matrix = snap_matrix @ origin_flipped_matrix
 
-            flipped_local_offset = start_matrix_inv * flipped_snap_matrix
+            flipped_local_offset = start_matrix_inv @ flipped_snap_matrix
 
             # Diff between the two.
             flipped_local_offset.invert()
-            target_location = target_snap_matrix * flipped_local_offset
+            target_location = target_snap_matrix @ flipped_local_offset
 
             source.matrix_world = target_location
 

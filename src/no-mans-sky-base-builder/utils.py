@@ -3,7 +3,9 @@ import math
 
 import bpy
 import mathutils
+import logging
 
+LOG = logging.getLogger(__name__)
 
 def load_dictionary(json_path):
     """Build dictionary from json path.
@@ -30,42 +32,43 @@ def zero_transforms(item):
 
 def get_current_selection():
     if bpy.context.selected_objects:
-        return bpy.context.selected_objects[0]
+        return bpy.context.selected_objects[-1]
 
 def get_active_item():
-    return bpy.context.scene.objects.active
+    return bpy.context.view_layer.objects.active
 
 def set_active_item(item):
-    bpy.context.scene.objects.active = item
+    bpy.context.view_layer.objects.active = item
 
 def select(selection, add=False):
     # Deselect all.
     if not add:
         bpy.ops.object.select_all(action='DESELECT')
-        bpy.context.scene.objects.active = None
+        set_active_item(None)
     
     # Ensure List.
     if not isinstance(selection, list):
         selection = [selection]
 
     for item in selection:
-        item.select = True
+        item.select_set(True)
 
     # Make the last item the active one.
-    bpy.context.scene.objects.active = selection[-1]
+    selection[-1].select_set(True)
+    set_active_item(selection[-1])
 
 def reset_selection_state(item):
     """Restore selection and visibility state."""
     bpy.ops.object.select_all(action='DESELECT')
-    item.select = True
+    item.select_set(True)
     bpy.context.object.hide_select = False
-    bpy.context.object.hide = False
+    bpy.context.object.hide_viewport = False
 
 def clear_parent(item):
     """Clear the parent relationship of the item."""
     bpy.ops.object.select_all(action='DESELECT')
-    item.select = True
-    bpy.context.scene.objects.active = item
+    item.select_set(True)
+    bpy.context.view_layer.objects.active = item
     bpy.ops.object.parent_clear(type='CLEAR_KEEP_TRANSFORM')
     
 def parent(child, parent):
@@ -76,9 +79,9 @@ def parent(child, parent):
         child (bpy.ob): The object to move.
     """
     bpy.ops.object.select_all(action='DESELECT')
-    child.select = True
-    parent.select = True
-    bpy.context.scene.objects.active = parent
+    child.select_set(True)
+    parent.select_set(True)
+    bpy.context.view_layer.objects.active = parent
     bpy.ops.object.parent_set()
     return child
 
@@ -119,10 +122,12 @@ def move_to(item, position=None, up=None, at=None):
         # Create a rotation matrix that turns the whole thing 90 degrees at the origin.
         # This is to compensate blender's Z up axis.
         mat_rot = mathutils.Matrix.Rotation(math.radians(90.0), 4, 'X')
-        mat = mat_rot * mat
+        mat = mat_rot @ mat
         # Place the item in world space.
         item.matrix_world = mat
 
+def get_item_by_name(item_name):
+    return bpy.data.objects[item_name]
 
 def duplicate_hierarchy(item):
     """Wrapper for duplicating a hiearchy in Blender.
@@ -132,33 +137,36 @@ def duplicate_hierarchy(item):
     """
     # Deselect everything.
     bpy.ops.object.select_all(action='DESELECT')
-
+    
     # Select item.
     item["hide_select_state"] = item.hide_select
-    item["hide_state"] = item.hide
+    item["hide_state"] = item.hide_viewport
     item.hide_select = False
-    item.hide = False
-    item.select = True
+    item.hide_viewport = False
+    select(item)
+
     # Expose children and capture their states.
     for c in item.children:
         c["hide_select_state"] = c.hide_select
-        c["hide_state"] = c.hide
+        c["hide_state"] = c.hide_viewport
         c.hide_select = False
-        c.hide = False
-        c.select = True
-
+        c.hide_viewport = False
+        select(c, add=True)
+    
     # Duplicate hiearchy.
     bpy.ops.object.duplicate()
-    new_item = bpy.context.selected_objects[0]
+
+    # Get Old and new item.
+    new_item = get_current_selection()
 
     # Restore child state.
     for each in [item, new_item]:
         each.hide_select = each["hide_select_state"]
-        each.hide = each["hide_state"]
+        each.hide_viewport = each["hide_state"]
         for c in each.children:
-            c.select = False
+            c.select_set(False)
             c.hide_select = c["hide_select_state"]
-            c.hide = c["hide_state"]
+            c.hide_viewport = c["hide_state"]
 
     # Select the new item.
     select(new_item)

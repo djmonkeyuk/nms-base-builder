@@ -19,7 +19,8 @@ def assign_material(item, colour_index=0, material=None, preset=False):
         material (str): The material type.
         preset (bool): Toggle to use golden preset material.
     """
-
+    # Some Defaults
+    alpha_value = 1.0
     # Material+Colour
     if material:
         material_index = 0
@@ -48,19 +49,30 @@ def assign_material(item, colour_index=0, material=None, preset=False):
     if not colour_material:
         # Create material
         colour_material = bpy.data.materials.new(name=colour_name)
-        colour_material.alpha = 0.07
+        colour_material.diffuse_color[3] = alpha_value
         # Apply colour.
         if preset:
-            colour_material.diffuse_color = (0.8, 0.300186, 0.0178301)
+            colour_material.diffuse_color[0] = 0.8
+            colour_material.diffuse_color[1] = 0.300186
+            colour_material.diffuse_color[2] = 0.0178301
+            colour_material.diffuse_color[3] = alpha_value
         else:
             colour_data = COLOUR_REFERENCE.get(str(colour_index), {})
-            colour_tuple = colour_data.get("colour", [0.8, 0.8,0.8])
+            colour_tuple = colour_data.get("colour", [0.8, 0.8,0.8, alpha_value])
+            if len(colour_tuple) < 4:
+                colour_tuple.append(alpha_value)
             colour_material.diffuse_color = (
                 colour_tuple[0],
                 colour_tuple[1],
-                colour_tuple[2]
+                colour_tuple[2],
+                colour_tuple[3],
             )
     
+    
+    # Don't bother if we can't even apply mateiral to object.
+    if not hasattr(item.data, "materials"):
+        return
+
     # Assign Material
     if not item.data.materials:
         # Add the material to the object

@@ -142,17 +142,14 @@ class PresetBuilder(object):
         radius = max([abs(lowest_x), highest_x, abs(lowest_y), highest_y])
         # Create circle.
         bpy.ops.curve.primitive_nurbs_circle_add(
-            radius=radius + 4,
-            view_align=False,
+            radius=radius+4,
             enter_editmode=False,
-            location=(0, 0, 0),
-            layers=(
-                True, False, False, False, False, False, False, False, False,
-                False, False, False, False, False, False, False, False, False,
-                False, False
-            ),
+            align='WORLD',
+            location=(0.0, 0.0, 0.0),
+            rotation=(0.0, 0.0, 0.0)
         )
-        curve_object = bpy.context.scene.objects.active
+
+        curve_object = bpy.context.view_layer.objects.active
         curve_object.name = preset_name
         curve_object.show_name = True
         curve_object["PresetID"] = preset_name
@@ -186,7 +183,7 @@ class PresetBuilder(object):
         ob_world_matrix = object.matrix_world
         # Bring the matrix from Blender Z-Up soace into standard Y-up space.
         mat_rot = mathutils.Matrix.Rotation(math.radians(-90.0), 4, 'X')
-        obj_wm_offset = mat_rot * ob_world_matrix
+        obj_wm_offset = mat_rot @ ob_world_matrix
         # Retrieve Position, Up and At vectors.
         pos = obj_wm_offset.decompose()[0]
         up = utils.get_direction_vector(obj_wm_offset, direction_matrix="up")

@@ -240,7 +240,7 @@ class PartBuilder(object):
         # Place in cache.
         self.part_cache[part_name] = item.name
         # Create Light.
-        self.build_light(item)
+        # self.build_light(item)
         return item
 
     def get_part_data(self, object, is_preset=False):
@@ -256,7 +256,7 @@ class PartBuilder(object):
         ob_world_matrix = object.matrix_world
         # Bring the matrix from Blender Z-Up soace into standard Y-up space.
         mat_rot = mathutils.Matrix.Rotation(math.radians(-90.0), 4, 'X')
-        obj_wm_offset = mat_rot * ob_world_matrix
+        obj_wm_offset = mat_rot @ ob_world_matrix
         # Retrieve Position, Up and At vectors.
         pos = obj_wm_offset.decompose()[0]
         up = utils.get_direction_vector(obj_wm_offset, direction_matrix="up")
@@ -343,7 +343,7 @@ class PartBuilder(object):
         utils.move_to(item, position=position, up=up_vec, at=at_vec)
         
         # Select the new object.
-        item.select = True
+        item.select_set(True)
         return item
 
     def build_parts_from_json(self, json_path):
@@ -413,7 +413,7 @@ class PartBuilder(object):
             light_location = light_values["location"]
 
             # Create light.
-            light = bpy.ops.object.lamp_add(
+            light = bpy.ops.object.light_add(
                 type=light_type.upper(),
                 location=light_location
             )
@@ -436,5 +436,5 @@ class PartBuilder(object):
             utils.parent(light, item)
 
             # Disable Selection.
-            light.hide = True
+            light.hide_viewport = True
             light.hide_select = True

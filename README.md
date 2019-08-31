@@ -3,7 +3,7 @@
 <p align="center" style="font-size:26px">
   <img src="https://raw.githubusercontent.com/charliebanks/nms-base-builder/master/images/logo_large.png" alt="No Mans Sky"  width="50%">
   <br />
-A plugin for Blender to build bases in No Mans Sky.
+A plugin for Blender 2.8 to build bases in No Mans Sky.
 </p>
 
 
@@ -22,11 +22,12 @@ A plugin for Blender to build bases in No Mans Sky.
 ## Key Features
 
 * Build bases for No Mans Sky using proxy representations for building parts.
-* Complete freedome of movement when placing building parts - want something upside down? Up in the air? You can place it that way!
+* Translate, rotate and scale any base part to any position and any size!
 * Define presets to build complex items quickly. Share or download presets online.
 * Save and Load bases to disk (.json format).
 * Import and Export base data compatable with the No Mans Sky Save Editor.
-* Snapping features help with placement of parts similar to how No Man's Sky positions parts.
+* Snapping features help with the placement of base parts. Similar to the snapping features in-game.
+* A Power and Logic UI panel helps manage electricity and switches.
 
 
 <br />
@@ -35,7 +36,7 @@ A plugin for Blender to build bases in No Mans Sky.
 ## Requirements
 * Latest Base Builder Release (https://github.com/charliebanks/nms-base-builder/releases)
 * No Mans Sky Save Editor (https://nomansskymods.com/mods/no-mans-sky-save-editor/)
-* Blender (https://www.blender.org/)
+* Blender 2.8 (https://www.blender.org/)
 <br />
 
 <a name="how-to-use"></a>
@@ -47,6 +48,7 @@ A plugin for Blender to build bases in No Mans Sky.
 * Simple Use Video: https://www.youtube.com/watch?v=qXcguoROM-A
 * How to use Presets Video: https://www.youtube.com/watch?v=BFIvRH5-S0I&t
 * How to do Snapping Video: https://youtu.be/1I3KDRiSTW8
+* How to do Power Video: https://youtu.be/1I3KDRiSTW8
 
 ### Written Steps
 1. Download the latest release. (https://github.com/charliebanks/nms-base-builder/releases)
@@ -96,17 +98,9 @@ Feel free to get in touch :)
 <a name="examples"></a>
 ## Examples
 <p align="center">
-  <img src="https://raw.githubusercontent.com/charliebanks/nms-base-builder/master/images/nms_base_builder.jpg" alt="NMS" width="100%">
+  <img src="https://raw.githubusercontent.com/charliebanks/nms-base-builder/master/images/blender_poster.jpg" alt="NMS" width="100%">
 </p>
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/charliebanks/nms-base-builder/master/images/example_1.jpg" alt="NMS1" width="100%">
-</p>
-
-<p align="center">
-  <img src="https://raw.githubusercontent.com/charliebanks/nms-base-builder/master/images/example_2.jpg" alt="NMS2" width="100%">
-</p>
-
-<p align="center">
-  <img src="https://raw.githubusercontent.com/charliebanks/nms-base-builder/master/images/example_4.jpg" alt="NMS3" width="100%">
+  <img src="https://raw.githubusercontent.com/charliebanks/nms-base-builder/master/images/blender_showcase.jpg" alt="NMS1" width="100%">
 </p>

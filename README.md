@@ -107,5 +107,5 @@ Feel free to get in touch :)
 </p>
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/charliebanks/nms-base-builder/feature/blender2.8/images/blender_showcase.jpg" alt="NMS1" width="100%">
+  <img src="https://raw.githubusercontent.com/charliebanks/nms-base-builder/feature/blender2.8/images/blender_showcase.png" alt="NMS1" width="100%">
 </p>

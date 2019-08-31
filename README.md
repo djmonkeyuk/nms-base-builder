@@ -25,7 +25,7 @@ A plugin for Blender 2.8 to build bases in No Mans Sky.
 * Translate, rotate and scale any base part to any position and any size!
 * Define presets to build complex items quickly. Share or download presets online.
 * Save and Load bases to disk (.json format).
-* Import and Export base data compatable with the No Mans Sky Save Editor.
+* Import and Export back and forth from the game using the No Mans Sky Save Editor.
 * Snapping features help with the placement of base parts. Similar to the snapping features in-game.
 * A Power and Logic UI panel helps manage electricity and switches.
 
@@ -45,19 +45,24 @@ A plugin for Blender 2.8 to build bases in No Mans Sky.
 
 ### Vidoes
 * Installation Video: https://www.youtube.com/watch?v=_zN82oueFTE
-* Simple Use Video: https://www.youtube.com/watch?v=qXcguoROM-A
-* How to use Presets Video: https://www.youtube.com/watch?v=BFIvRH5-S0I&t
-* How to do Snapping Video: https://youtu.be/1I3KDRiSTW8
-* How to do Power Video: https://youtu.be/1I3KDRiSTW8
+* Getting started video: https://www.youtube.com/watch?v=qXcguoROM-A
+* How to use **presets** video: https://www.youtube.com/watch?v=BFIvRH5-S0I&t
+* How to do **snapping** video: https://youtu.be/1I3KDRiSTW8
+* How to manage **power and electricity** video: https://youtu.be/1I3KDRiSTW8
 
-### Written Steps
-1. Download the latest release. (https://github.com/charliebanks/nms-base-builder/releases)
-2. Open "User Preferences" in Blender.
-3. Go to the Add-ons tab.
-4. Click "Install Add-on from File..." at the bottom of the window.
-5. Select the downloaded zip file.
+### Installation Steps
 
-## Presets
+See video above for installation guide, otherwise follow these steps.
+
+2. Download the latest release. (https://github.com/charliebanks/nms-base-builder/releases)
+3. Open "User Preferences" in Blender.
+4. Go to the Add-ons tab.
+5. Click "Install Add-on from File..." at the bottom of the window.
+6. Select the downloaded zip file.
+7. In the right side panel of the viewport, click the "No Man's Sky" tab.
+
+
+## Preset Location
 
 Presets are stored in your "**%USERPROFILE%\NoMansSkyBaseBuilder\presets**" directory.
 These can be downloaded and shared with other people. You can find a few basic presets I've made on the nexus
@@ -98,9 +103,9 @@ Feel free to get in touch :)
 <a name="examples"></a>
 ## Examples
 <p align="center">
-  <img src="https://raw.githubusercontent.com/charliebanks/nms-base-builder/master/images/blender_poster.jpg" alt="NMS" width="100%">
+  <img src="https://raw.githubusercontent.com/charliebanks/nms-base-builder/feature/blender2.8/images/blender_poster.jpg" alt="NMS" width="100%">
 </p>
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/charliebanks/nms-base-builder/master/images/blender_showcase.jpg" alt="NMS1" width="100%">
+  <img src="https://raw.githubusercontent.com/charliebanks/nms-base-builder/feature/blender2.8/images/blender_showcase.jpg" alt="NMS1" width="100%">
 </p>

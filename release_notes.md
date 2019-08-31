@@ -1,3 +1,34 @@
+release 1.0.0-beta
+------------------
+
+* Updated code-base to work for Blender 2.8.
+* Unlocked scale channels on all base parts as scaling is now supported. Works for ALL base parts.
+    * (Use at your own risk, in-game snapping becomes unreliable for base parts not intending to be scaled.)
+* Added power socket details to some base part models that require electricity.
+* Added a set of features for managing power and electricity.
+    * Connect electrical base parts together from the new power UI panel.
+    * Snap and cycle wire ends to base part connection points.
+    * Divide existing wires into two, creating an additional control.
+    * Split existing wires into two, creating a gap with 2 additional controls.
+    * Create arbitrary control points to create more complex wire paths.
+* Added models for...
+    * U_BATTERY_S
+    * U_EXTRACTOR_S
+    * U_GASEXTRACTOR
+    * U_GENERATOR_S
+    * U_MINIPORTAL
+    * CREATURE_FEED
+    * CREATURE_FARM
+    * COOKER
+    * BUILDANTIMATTER
+    * W_GDOOR
+    * M_GDOOR
+    * C_GDOOR
+    * U_BIOGENERATOR
+    * BUILDTABLE3
+    * NOISEBOX
+    * LIGHTBOX
+
 release 0.9.3
 -------------
 * Refactored module and code structure.

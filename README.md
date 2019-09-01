@@ -115,15 +115,16 @@ Feel free to get in touch :)
 
 **/u/ashfacta**
 <p style="float: left;">
-  <img float="left" src="https://raw.githubusercontent.com/charliebanks/nms-base-builder/feature/blender2.8/images/casino.jpg" alt="NMS" width="25%">
-  <img src="https://raw.githubusercontent.com/charliebanks/nms-base-builder/feature/blender2.8/images/airship.jpg" alt="NMS1" width="25%">
-  <img src="https://raw.githubusercontent.com/charliebanks/nms-base-builder/feature/blender2.8/images/dropship.jpg" alt="NMS1" width="25%">
-  <img src="https://raw.githubusercontent.com/charliebanks/nms-base-builder/feature/blender2.8/images/skygate.jpg" alt="NMS1" width="25%">
+  <img float="left" src="https://raw.githubusercontent.com/charliebanks/nms-base-builder/feature/blender2.8/images/casino.jpg" alt="Casino" width="25%">
+  <img src="https://raw.githubusercontent.com/charliebanks/nms-base-builder/feature/blender2.8/images/airship.jpg" alt="Air Ship" width="25%">
+  <img src="https://raw.githubusercontent.com/charliebanks/nms-base-builder/feature/blender2.8/images/drop_ship.jpg" alt="Drop Ship" width="25%">
+  <img src="https://raw.githubusercontent.com/charliebanks/nms-base-builder/feature/blender2.8/images/skygate.jpg" alt="Sky Gate" width="25%">
 </p>
 
 **/u/258100**
 <p style="float: left;">
-  <img float="left" src="https://raw.githubusercontent.com/charliebanks/nms-base-builder/feature/blender2.8/images/blender_poster.jpg" alt="NMS" width="30%">
-
-  <img src="https://raw.githubusercontent.com/charliebanks/nms-base-builder/feature/blender2.8/images/blender_showcase.png" alt="NMS1" width="30%">
+  <img float="left" src="https://raw.githubusercontent.com/charliebanks/nms-base-builder/feature/blender2.8/images/starwars.jpg" alt="Star Wars" width="25%">
+  <img float="left" src="https://raw.githubusercontent.com/charliebanks/nms-base-builder/feature/blender2.8/images/titanic.jpg" alt="Titanic" width="25%">
+  <img float="left" src="https://raw.githubusercontent.com/charliebanks/nms-base-builder/feature/blender2.8/images/notre_dam.jpg" alt="ND" width="25%">
+  <img float="left" src="https://raw.githubusercontent.com/charliebanks/nms-base-builder/feature/blender2.8/images/castle.png" alt="Castle" width="25%">
 </p>

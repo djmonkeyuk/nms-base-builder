@@ -13,7 +13,8 @@ A plugin for Blender 2.8 to build bases in No Mans Sky.
   <a href="#requirements">Requirements</a> •
   <a href="#how-to-use">Installation & How To Use</a> •
   <a href="#credits">Credits & Support</a> •
-  <a href="#examples">Examples</a>
+  <a href="#screenshots">Screenshots</a> •
+  <a href="#community_screenshots">Community Screenshots</a>
 </p>
 
 
@@ -100,8 +101,8 @@ Created and maintained by.
 
 Feel free to get in touch :)
 
-<a name="examples"></a>
-## Examples
+<a name="screenshots"></a>
+## Screenshots
 <p align="center">
   <img src="https://raw.githubusercontent.com/charliebanks/nms-base-builder/feature/blender2.8/images/blender_poster.jpg" alt="NMS" width="100%">
 </p>
@@ -110,21 +111,21 @@ Feel free to get in touch :)
   <img src="https://raw.githubusercontent.com/charliebanks/nms-base-builder/feature/blender2.8/images/blender_showcase.png" alt="NMS1" width="100%">
 </p>
 
-<a name="examples"></a>
+<a name="community_screenshots"></a>
 ## Community Screenshots
 
 **/u/ashfacta**
-<p style="float: left;">
-  <img float="left" src="https://raw.githubusercontent.com/charliebanks/nms-base-builder/feature/blender2.8/images/casino.jpg" alt="Casino" width="25%">
-  <img src="https://raw.githubusercontent.com/charliebanks/nms-base-builder/feature/blender2.8/images/airship.jpg" alt="Air Ship" width="25%">
-  <img src="https://raw.githubusercontent.com/charliebanks/nms-base-builder/feature/blender2.8/images/drop_ship.jpg" alt="Drop Ship" width="25%">
-  <img src="https://raw.githubusercontent.com/charliebanks/nms-base-builder/feature/blender2.8/images/skygate.jpg" alt="Sky Gate" width="25%">
+<p align="center">
+  <img src="https://raw.githubusercontent.com/charliebanks/nms-base-builder/feature/blender2.8/images/casino.jpg" alt="Casino" width="22%">
+  <img src="https://raw.githubusercontent.com/charliebanks/nms-base-builder/feature/blender2.8/images/airship.jpg" alt="Air Ship" width="22%">
+  <img src="https://raw.githubusercontent.com/charliebanks/nms-base-builder/feature/blender2.8/images/drop_ship.jpg" alt="Drop Ship" width="22%">
+  <img src="https://raw.githubusercontent.com/charliebanks/nms-base-builder/feature/blender2.8/images/skygate.jpg" alt="Sky Gate" width="22%">
 </p>
 
 **/u/258100**
-<p style="float: left;">
-  <img float="left" src="https://raw.githubusercontent.com/charliebanks/nms-base-builder/feature/blender2.8/images/starwars.jpg" alt="Star Wars" width="25%">
-  <img float="left" src="https://raw.githubusercontent.com/charliebanks/nms-base-builder/feature/blender2.8/images/titanic.jpg" alt="Titanic" width="25%">
-  <img float="left" src="https://raw.githubusercontent.com/charliebanks/nms-base-builder/feature/blender2.8/images/notre_dam.jpg" alt="ND" width="25%">
-  <img float="left" src="https://raw.githubusercontent.com/charliebanks/nms-base-builder/feature/blender2.8/images/castle.png" alt="Castle" width="25%">
+<p align="center">
+  <img src="https://raw.githubusercontent.com/charliebanks/nms-base-builder/feature/blender2.8/images/starwars.jpg" alt="Star Wars" width="22%">
+  <img src="https://raw.githubusercontent.com/charliebanks/nms-base-builder/feature/blender2.8/images/titanic.jpg" alt="Titanic" width="22%">
+  <img src="https://raw.githubusercontent.com/charliebanks/nms-base-builder/feature/blender2.8/images/notre_dam.png" alt="ND" width="22%">
+  <img src="https://raw.githubusercontent.com/charliebanks/nms-base-builder/feature/blender2.8/images/castle.png" alt="Castle" width="22%">
 </p>

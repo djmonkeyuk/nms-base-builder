@@ -14,7 +14,7 @@ A plugin for Blender 2.8 to build bases in No Mans Sky.
   <a href="#how-to-use">Installation & How To Use</a> •
   <a href="#credits">Credits & Support</a> •
   <a href="#screenshots">Screenshots</a> •
-  <a href="#community_screenshots">Community Screenshots</a>
+  <a href="#community_screenshots">Community Showcase</a>
 </p>
 
 
@@ -112,7 +112,7 @@ Feel free to get in touch :)
 </p>
 
 <a name="community_screenshots"></a>
-## Community Screenshots
+## Community Showcase
 
 **/u/ashfacta**
 <p align="center">

@@ -44,8 +44,8 @@ A plugin for Blender 2.8 to build bases in No Mans Sky.
 ## Installation and How To Use
 
 ### Vidoes
-* Installation Video: https://www.youtube.com/watch?v=_zN82oueFTE
-* Getting started video: https://www.youtube.com/watch?v=qXcguoROM-A
+* **Installation** Video: https://www.youtube.com/watch?v=_zN82oueFTE
+* **Getting started** video: https://www.youtube.com/watch?v=qXcguoROM-A
 * How to use **presets** video: https://www.youtube.com/watch?v=BFIvRH5-S0I&t
 * How to do **snapping** video: https://youtu.be/1I3KDRiSTW8
 * How to manage **power and electricity** video: https://youtu.be/1I3KDRiSTW8
@@ -108,4 +108,22 @@ Feel free to get in touch :)
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/charliebanks/nms-base-builder/feature/blender2.8/images/blender_showcase.png" alt="NMS1" width="100%">
+</p>
+
+<a name="examples"></a>
+## Community Screenshots
+
+**/u/ashfacta**
+<p style="float: left;">
+  <img float="left" src="https://raw.githubusercontent.com/charliebanks/nms-base-builder/feature/blender2.8/images/casino.jpg" alt="NMS" width="25%">
+  <img src="https://raw.githubusercontent.com/charliebanks/nms-base-builder/feature/blender2.8/images/airship.jpg" alt="NMS1" width="25%">
+  <img src="https://raw.githubusercontent.com/charliebanks/nms-base-builder/feature/blender2.8/images/dropship.jpg" alt="NMS1" width="25%">
+  <img src="https://raw.githubusercontent.com/charliebanks/nms-base-builder/feature/blender2.8/images/skygate.jpg" alt="NMS1" width="25%">
+</p>
+
+**/u/258100**
+<p style="float: left;">
+  <img float="left" src="https://raw.githubusercontent.com/charliebanks/nms-base-builder/feature/blender2.8/images/blender_poster.jpg" alt="NMS" width="30%">
+
+  <img src="https://raw.githubusercontent.com/charliebanks/nms-base-builder/feature/blender2.8/images/blender_showcase.png" alt="NMS1" width="30%">
 </p>

@@ -11,7 +11,16 @@ release 1.0.0-beta
     * Divide existing wires into two, creating an additional control.
     * Split existing wires into two, creating a gap with 2 additional controls.
     * Create arbitrary control points to create more complex wire paths.
+    * Quickly create logic gates and switches in the logic UI area.
+* Fixed a minor matrix offset on wall snap points.
+* MAINROOMCUBE and BUILDLANDINGPAD model improvements.
 * Added models for...
+    * W_GDOOR
+    * M_GDOOR
+    * C_GDOOR
+    * W_ROOF_IC
+    * M_ROOF_IC
+    * C_ROOF_IC
     * U_BATTERY_S
     * U_EXTRACTOR_S
     * U_GASEXTRACTOR
@@ -21,13 +30,14 @@ release 1.0.0-beta
     * CREATURE_FARM
     * COOKER
     * BUILDANTIMATTER
-    * W_GDOOR
-    * M_GDOOR
-    * C_GDOOR
     * U_BIOGENERATOR
     * BUILDTABLE3
     * NOISEBOX
     * LIGHTBOX
+    * U_POWERLINE
+    * U_PORTALLINE
+    * U_PIPELINE
+    
 
 release 0.9.3
 -------------

@@ -1,3 +1,46 @@
+release 1.0.0-beta
+------------------
+
+* Updated code-base to work for Blender 2.8.
+* Interal base version updated to 4. Additional save data keys added to export.
+* Unlocked scale channels on all base parts as scaling is now supported. Works for ALL base parts.
+    * (Use at your own risk, in-game snapping behaviour becomes unreliable for base parts not intending to be scaled.)
+* Added power socket details to some base part models that require electricity.
+* Added a set of features for managing power and electricity.
+    * Connect electrical base parts together from the new power UI panel.
+    * Snap and cycle wire ends to base part connection points.
+    * Divide existing wires into two, creating an additional control.
+    * Split existing wires into two, creating a gap with 2 additional controls.
+    * Create arbitrary control points to create more complex wire paths.
+    * Quickly create logic gates and switches in the logic UI area.
+* Fixed a minor matrix offset on wall snap points.
+* MAINROOMCUBE and BUILDLANDINGPAD model improvements.
+* Fixed and adjusted "nice name" table.
+* Added models for...
+    * W_GDOOR
+    * M_GDOOR
+    * C_GDOOR
+    * W_ROOF_IC
+    * M_ROOF_IC
+    * C_ROOF_IC
+    * U_BATTERY_S
+    * U_EXTRACTOR_S
+    * U_GASEXTRACTOR
+    * U_GENERATOR_S
+    * U_MINIPORTAL
+    * CREATURE_FEED
+    * CREATURE_FARM
+    * COOKER
+    * BUILDANTIMATTER
+    * U_BIOGENERATOR
+    * BUILDTABLE3
+    * NOISEBOX
+    * LIGHTBOX
+    * U_POWERLINE
+    * U_PORTALLINE
+    * U_PIPELINE
+    
+
 release 0.9.3
 -------------
 * Refactored module and code structure.

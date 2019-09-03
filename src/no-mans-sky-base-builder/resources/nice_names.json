@@ -19,6 +19,10 @@
     "C_DOOR": "Concrete Wall (Door)",
     "M_DOOR": "Metal Wall (Door)",
 
+    "W_GDOOR": "Wood Garage Door",
+    "C_GDOOR": "Concrete Garage Door",
+    "M_GDOOR": "Metal Garage Wall",
+
     "W_DOOR_H": "Wood Door (Half)",
     "C_DOOR_H": "Concrete Door (Half)",
     "M_DOOR_H": "Metal Door (Half)",
@@ -77,6 +81,10 @@
     "W_ROOF_C": "Wood Roof Corner",
     "M_ROOF_C": "Metal Roof Corner",
     "C_ROOF_C": "Concrete Roof Corner",
+
+    "W_ROOF_IC": "Wood Roof Inner Corner",
+    "M_ROOF_IC": "Metal Roof Inner Corner",
+    "C_ROOF_IC": "Concrete Roof Inner Corner",
 
 
     "NPCFARMTERM": "Farm Terminal",
@@ -182,6 +190,7 @@
     "BUILDSOFA2L": "Sofa Corner",
     "BUILDTABLE": "Table 1",
     "BUILDTABLE2": "Table 2",
+    "BUILDTABLE3": "Corner Table",
     "CEILINGLIGHT": "Ceiling Light",
     "BASE_TREE01": "Tree 1",
     "BASE_TREE02": "Tree 2",
@@ -228,6 +237,11 @@
     "STATUE_WALK_G": "Statue Walker (Gold)",
     "STATUE_WALK_S": "Statue Walker (Silver)",
     "BUILDHCABINET": "Wall Cabinet",
+    "BUILDCHAIR1": "Chair 1",
+    "BUILDCHAIR2": "Chair 2",
+    "BUILDCHAIR3": "Chair 3",
+    "BUILDFLATPANEL": "Flat Panel",
+    "BUILDWORKTOP": "Work Top",
 
     "BUILDDOOR": "Door (Mechanical)",
     "DOOR2": "Door (Futuristic)",
@@ -252,5 +266,27 @@
 
     "GARAGE_B": "Garage (Bike)",
     "GARAGE_M": "Garage (Buggy)",
-    "GARAGE_SUB": "Garage (Submarine)"
+    "GARAGE_SUB": "Garage (Submarine)",
+
+    "U_GASEXTRACTOR": "Gas Extractor",
+    "U_EXTRACTOR_S": "Small Extractor",
+
+    "U_MINIPORTAL": "Mini Teleporter",
+    "LIGHTBOX": "Light Box",
+    "NOISEBOX": "Noise Box",
+    "SPAWNER_BALL": "Ball Generator",
+    "U_BATTERY_S": "Battery",
+    "U_BIOGENERATOR": "Bio Generator",
+    "U_GENERATOR_S": "Small Generator",
+    "U_PIPELINE": "Pipe Line",
+    "U_PORTALLINE": "Portal Line",
+    "U_POWERLINE": "Power Line",
+    "U_SOLAR_S": "Solar Power Generator",
+    "U_SWITCHBUTTON": "Switch Button",
+    "U_SWITCHPRESS": "Switch Floor",
+    "U_SWITCHPRESS": "Switch Floor",
+    "U_SWITCHPROX": "Switch Proximity",
+    "U_SWITCHWALL": "Switch Wall",
+    "U_TRANSISTOR1": "Switch Inverse",
+    "U_TRANSISTOR2": "Switch Auto"
 }

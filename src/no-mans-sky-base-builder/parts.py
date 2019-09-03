@@ -6,7 +6,7 @@ from copy import deepcopy
 import bpy
 import mathutils
 
-from . import material, utils
+from . import material, utils, power
 
 LOGGER = logging.getLogger(__name__)
 
@@ -219,7 +219,7 @@ class PartBuilder(object):
             if cached_item_name in bpy.data.objects:
                 cached_item = bpy.data.objects[cached_item_name]
                 new_item = utils.duplicate_hierarchy(cached_item)
-                utils.reset_selection_state(new_item)
+                utils.select(new_item)
                 utils.clear_parent(new_item)
                 utils.zero_transforms(new_item)
                 return new_item
@@ -240,7 +240,7 @@ class PartBuilder(object):
         # Place in cache.
         self.part_cache[part_name] = item.name
         # Create Light.
-        self.build_light(item)
+        # self.build_light(item)
         return item
 
     def get_part_data(self, object, is_preset=False):
@@ -256,7 +256,7 @@ class PartBuilder(object):
         ob_world_matrix = object.matrix_world
         # Bring the matrix from Blender Z-Up soace into standard Y-up space.
         mat_rot = mathutils.Matrix.Rotation(math.radians(-90.0), 4, 'X')
-        obj_wm_offset = mat_rot * ob_world_matrix
+        obj_wm_offset = mat_rot @ ob_world_matrix
         # Retrieve Position, Up and At vectors.
         pos = obj_wm_offset.decompose()[0]
         up = utils.get_direction_vector(obj_wm_offset, direction_matrix="up")
@@ -299,7 +299,8 @@ class PartBuilder(object):
         userdata=0,
         position=[0, 0, 0],
         up_vec=[0, 1, 0],
-        at_vec=[0, 0, 1]):
+        at_vec=[0, 0, 1],
+        skip_power_controls=False):
         """Build a part given a set of paremeters.
         
         This is they main function of the program for building.
@@ -315,38 +316,52 @@ class PartBuilder(object):
         # Get the obj path.
         item = self.retrieve_part(part)
 
-        # Lock Scale
-        item.lock_scale[0] = True
-        item.lock_scale[1] = True
-        item.lock_scale[2] = True
-        # Lock Everything if it's the BASE_FLAG. Things can break if user
-        # moves this around.
-        if part == "BASE_FLAG":
+        # Lock Everything if it's the BASE_FLAG or U_POWERLINE.
+        # BASE_FLAG can break things if user moves it around.
+        # As it acts as the "origin" of the base.
+        locked_parts = ["BASE_FLAG", "U_POWERLINE", "U_PIPELINE", "U_PORTALLINE"]
+        line_parts = ["U_POWERLINE", "U_PIPELINE", "U_PORTALLINE"]
+        if part in locked_parts:
             item.lock_location[0] = True
             item.lock_location[1] = True
             item.lock_location[2] = True
             item.lock_rotation[0] = True
             item.lock_rotation[1] = True
             item.lock_rotation[2] = True
+            item.lock_scale[0] = True
+            item.lock_scale[1] = True
+            item.lock_scale[2] = True
         
         # Add custom attributes.
         item["ObjectID"] = part
+        item["SnapID"] = part
         item["Timestamp"] = timestamp
         item["belongs_to_preset"] = False
         # Add an order flag to retain order when generating data..
         item["Order"] = self.part_order
         self.part_order += 1
         # Apply Colour
-        material.assign_material(item, userdata)
+        is_powerline = part in line_parts
+        is_pipeline = part in ["U_PIPELINE"]
+        material.assign_material(
+            item,
+            userdata,
+            powerline=is_powerline,
+            pipeline=is_pipeline
+        )
 
         # Move
         utils.move_to(item, position=position, up=up_vec, at=at_vec)
-        
+
+        # If the object is a powerline, we should create additional controls
+        # for it.
+        if is_powerline and not skip_power_controls:
+            power.create_power_controls(item)
         # Select the new object.
-        item.select = True
+        item.select_set(True)
         return item
 
-    def build_parts_from_json(self, json_path):
+    def build_parts_from_json(self, json_path, skip_power_controls=False):
         # Validate preset existence.
         if not os.path.isfile(json_path):
             return
@@ -355,14 +370,15 @@ class PartBuilder(object):
         data = utils.load_dictionary(json_path)
 
         if data:
-            return self.build_parts_from_dict(data)
+            return self.build_parts_from_dict(data, skip_power_controls)
 
-    def build_parts_from_dict(self, data):
+    def build_parts_from_dict(self, data, skip_power_controls=False):
         """Given the preset name, generate the items in scene.
         
         Args:
             preset_name (str): The name of the preset.
-            edit_mode (bool): Toggle to build
+            edit_mode (bool): Toggle to build,
+            skip_power_controls (bool): Choose to build power controls.
         """
        
         # Validate Objects information.
@@ -385,7 +401,8 @@ class PartBuilder(object):
                 user_data,
                 part_position,
                 up_vec,
-                at_vec
+                at_vec,
+                skip_power_controls
             )
             parts.append(item)
 
@@ -413,7 +430,7 @@ class PartBuilder(object):
             light_location = light_values["location"]
 
             # Create light.
-            light = bpy.ops.object.lamp_add(
+            light = bpy.ops.object.light_add(
                 type=light_type.upper(),
                 location=light_location
             )
@@ -436,5 +453,5 @@ class PartBuilder(object):
             utils.parent(light, item)
 
             # Disable Selection.
-            light.hide = True
+            light.hide_viewport = True
             light.hide_select = True

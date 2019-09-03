@@ -85,7 +85,10 @@ class PresetBuilder(object):
         """
         # Get Preset JSON file.
         preset_json = self.get_full_path(preset_name)
-        return self.part_builder.build_parts_from_json(preset_json)
+        return self.part_builder.build_parts_from_json(
+            preset_json,
+            skip_power_controls=True
+        )
 
     def build_presets_from_dict(self, data):
         """Given some data, build an array of presets found in the Presets key."""
@@ -142,24 +145,20 @@ class PresetBuilder(object):
         radius = max([abs(lowest_x), highest_x, abs(lowest_y), highest_y])
         # Create circle.
         bpy.ops.curve.primitive_nurbs_circle_add(
-            radius=radius + 4,
-            view_align=False,
+            radius=radius+4,
             enter_editmode=False,
-            location=(0, 0, 0),
-            layers=(
-                True, False, False, False, False, False, False, False, False,
-                False, False, False, False, False, False, False, False, False,
-                False, False
-            ),
+            align='WORLD',
+            location=(0.0, 0.0, 0.0),
+            rotation=(0.0, 0.0, 0.0)
         )
-        curve_object = bpy.context.scene.objects.active
+
+        curve_object = bpy.context.view_layer.objects.active
         curve_object.name = preset_name
         curve_object.show_name = True
         curve_object["PresetID"] = preset_name
         me = curve_object.data
         me.name = preset_name + 'Mesh'
         for part in preset_items:
-            # Parent object.
             utils.parent(part, curve_object)
             # Add controler specific preset properties.
             part.hide_select = True
@@ -186,7 +185,7 @@ class PresetBuilder(object):
         ob_world_matrix = object.matrix_world
         # Bring the matrix from Blender Z-Up soace into standard Y-up space.
         mat_rot = mathutils.Matrix.Rotation(math.radians(-90.0), 4, 'X')
-        obj_wm_offset = mat_rot * ob_world_matrix
+        obj_wm_offset = mat_rot @ ob_world_matrix
         # Retrieve Position, Up and At vectors.
         pos = obj_wm_offset.decompose()[0]
         up = utils.get_direction_vector(obj_wm_offset, direction_matrix="up")

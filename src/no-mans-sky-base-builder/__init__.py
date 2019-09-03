@@ -11,7 +11,6 @@ bl_info = {
     "tracker_url": "",
     "category": "Game Engine",
 }
-import cProfile
 import importlib
 import json
 import os
@@ -226,10 +225,6 @@ class NMSSettings(PropertyGroup):
         if "OriginalBaseVersion" in nms_data:
             self.original_base_version = nms_data["OriginalBaseVersion"]
         
-        _profile = cProfile.Profile(subcalls=False)
-        _profile.enable()
-
-
 
         # Build Objects
         if "Objects" in nms_data:
@@ -240,9 +235,6 @@ class NMSSettings(PropertyGroup):
 
         # Optimise any duplicate power controls.
         power.optimise_control_points()
-
-        _profile.disable()
-        _profile.print_stats(sort="cumtime")
 
     def generate_data(self, capture_presets=False):
         """Export the data in the blender scene to NMS compatible data.
@@ -1436,8 +1428,6 @@ def register():
     bpy.types.Scene.nms_base_tool = PointerProperty(type=NMSSettings)
     bpy.types.Scene.col = bpy.props.CollectionProperty(type=PartCollection)
     bpy.types.Scene.col_idx = bpy.props.IntProperty(default=0)
-
-    refresh_ui_part_list()
 
 def unregister():
     for pcoll in preview_collections.values():

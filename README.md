@@ -49,7 +49,7 @@ A plugin for Blender 2.8 to build bases in No Mans Sky.
 * **Getting started** video: https://www.youtube.com/watch?v=qXcguoROM-A
 * How to use **presets** video: https://www.youtube.com/watch?v=BFIvRH5-S0I&t
 * How to do **snapping** video: https://youtu.be/1I3KDRiSTW8
-* How to manage **power and electricity** video: https://youtu.be/1I3KDRiSTW8
+* How to manage **power and electricity** video: https://www.youtube.com/watch?v=jDascUR4NPA
 
 ### Installation Steps
 

@@ -47,7 +47,23 @@
         "MAIN_ROOM":["TOP,BOTTOM", "TOP,BOTTOM"],
         "LADDERS":   ["LADDER_START", "BOTTOM0,BOTTOM90,BOTTOM180,BOTTOM270"],
         "MAIN_WINDOWS": ["NORTH,NORTHEAST,EAST,SOUTHEAST,SOUTH,SOUTHWEST,WEST,NORTHWEST",      "ATTACH"],
-        "CORRIDOR_V": ["TOP,BOTTOM",      "START"]
+        "CORRIDOR_V": ["TOP,BOTTOM",      "START"],
+        "POWER_POINTS": ["POWER_A, POWER_B, POWER_C, POWER_D", "POWER"]
+    },
+
+    "MAIN_ROOM_CUBE":
+    {
+        "CORRIDORS": ["NORTH,EAST,SOUTH,WEST",      "START"],
+        "CORRIDOR_L": ["NORTH,EAST,SOUTH,WEST",      "START, END"],
+        "CORRIDOR_T": ["NORTH,EAST,SOUTH,WEST",      "START, MID, END"],
+        "CORRIDOR_X": ["NORTH,EAST,SOUTH,WEST",      "START"],
+        "VIEW_SPHERE":["NORTH,EAST,SOUTH,WEST",      "END"],
+        "DOORS":["NORTH,EAST,SOUTH,WEST",       "CORRIDOR"],
+        "MAIN_ROOM":["TOP,BOTTOM", "TOP,BOTTOM"],
+        "LADDERS":   ["LADDER_START", "BOTTOM0,BOTTOM90,BOTTOM180,BOTTOM270"],
+        "MAIN_WINDOWS": ["NORTH,NORTHEAST,EAST,SOUTHEAST,SOUTH,SOUTHWEST,WEST,NORTHWEST",      "ATTACH"],
+        "CORRIDOR_V": ["TOP,BOTTOM",      "START"],
+        "POWER_POINTS": ["POWER_A, POWER_B, POWER_C, POWER_D", "POWER"]
     },
 
 
@@ -99,7 +115,8 @@
         "CORRIDOR_RAMPS": ["RAMP0, RAMP10, RAMP20, RAMP30, RAMP40",      "START"],
         "CORRIDORS": ["CORRIDOR",     "START, END"],
         "WALLS": ["CORRIDOR",           "MIDDLE_DOOR_IN, MIDDLE_DOOR_OUT"],
-        "CUBES": ["CORRIDOR",           "NORTH, EAST, SOUTH, WEST"]
+        "CUBES": ["CORRIDOR",           "NORTH, EAST, SOUTH, WEST"],
+        "POWER_POINTS": ["POWER_A, POWER_B",        "POWER"]
     },
 
     "CORRIDOR_RAMPS":
@@ -206,7 +223,8 @@
         "CORRIDOR_X": ["NORTH, EAST, SOUTH, WEST",         "START"],
         "CORRIDOR_L": ["NORTH, EAST, SOUTH, WEST",         "START, END"],
         "CORRIDOR_T": ["NORTH, EAST, SOUTH, WEST",         "START, MID, END"],
-        "CUBEWINDOWS":  ["NORTH, EAST, SOUTH, WEST",         "ATTACH"]
+        "CUBEWINDOWS":  ["NORTH, EAST, SOUTH, WEST",         "ATTACH"],
+        "POWER_POINTS": ["POWER_A, POWER_B, POWER_C, POWER_D",        "POWER"]
     },
 
     "CUBE_FLOORS":{
@@ -294,6 +312,75 @@
     "EXP_WALLCURVED":
     {
         "EXP_WALLCURVED":  ["START, END",          "START, END"]
+    },
+
+
+
+    "LIGHT_CUBES":
+    {
+        "POWER_CUBES": ["TOP, BOTTOM, NORTH, SOUTH",        "TOP, BOTTOM, NORTH, SOUTH"],
+        "POWER_POINTS": ["POWER_A",        "POWER"]
+    },
+    "NOISE_CUBES":
+    {
+        "POWER_CUBES": ["TOP, BOTTOM, NORTH, SOUTH",        "TOP, BOTTOM, NORTH, SOUTH"],
+        "POWER_POINTS": ["POWER_A",        "POWER"]
+    },
+    "BALL_GENERATOR":
+    {
+        "POWER_POINTS": ["POWER_A",        "POWER"]
+    },
+    "LOGIC2":
+    {
+        "POWER_POINTS": ["POWER_A, POWER_B",        "POWER"]
+    },
+    "LOGIC3":
+    {
+        "POWER_POINTS": ["POWER_A, POWER_B, POWER_C",        "POWER"]
+    },
+    "FLOORLOGIC":
+    {
+        "POWER_POINTS": ["POWER_A, POWER_B",        "POWER"]
+    },
+    "FEEDER":
+    {
+        "POWER_POINTS": ["POWER_A",        "POWER"]
+    },
+    "BIG_FEEDER":
+    {
+        "POWER_POINTS": ["POWER_A",        "POWER"]
+    },
+    "GENERATORS":
+    {
+        "POWER_POINTS": ["POWER_A, POWER_B",        "POWER"]
+    },
+    "TELEPORTALS":
+    {
+        "POWER_POINTS": ["POWER_A",        "POWER"]
+    },
+    "BATTERY":
+    {
+        "POWER_POINTS": ["POWER_A, POWER_B, POWER_C, POWER_D",        "POWER"]
+    },
+    "SOLAR":
+    {
+        "POWER_POINTS": ["POWER_A, POWER_B, POWER_C, POWER_D",        "POWER"]
+    },
+    "ELECTROMAGNETIC":
+    {
+        "POWER_POINTS": ["POWER_A, POWER_B, POWER_C, POWER_D",        "POWER"]
+    },
+    "EXTRACTORS":
+    {
+        "POWER_POINTS": ["POWER_A, POWER_B, POWER_C",        "POWER"]
+    },
+    "PORTALS":
+    {
+        "POWER_POINTS": ["POWER_A",        "POWER"]
+    },
+    "WALLLIGHTS":
+    {
+        "POWER_POINTS": ["POWER_A",        "POWER"]
     }
 }
    

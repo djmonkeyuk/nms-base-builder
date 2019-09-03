@@ -19,6 +19,11 @@ def load_dictionary(json_path):
         dictionary = json.load(stream)
     return dictionary
 
+def zero_scale(item):
+    item.scale[0] = 1.0
+    item.scale[1] = 1.0
+    item.scale[2] = 1.0
+    
 def zero_transforms(item):
     item.location[0] = 0.0
     item.location[1] = 0.0
@@ -57,19 +62,13 @@ def select(selection, add=False):
     selection[-1].select_set(True)
     set_active_item(selection[-1])
 
-def reset_selection_state(item):
-    """Restore selection and visibility state."""
-    bpy.ops.object.select_all(action='DESELECT')
-    item.select_set(True)
-    bpy.context.object.hide_select = False
-    bpy.context.object.hide_viewport = False
-
 def clear_parent(item):
     """Clear the parent relationship of the item."""
-    bpy.ops.object.select_all(action='DESELECT')
-    item.select_set(True)
-    bpy.context.view_layer.objects.active = item
-    bpy.ops.object.parent_clear(type='CLEAR_KEEP_TRANSFORM')
+    # bpy.ops.object.select_all(action='DESELECT')
+    # item.select_set(True)
+    # bpy.context.view_layer.objects.active = item
+    # bpy.ops.object.parent_clear(type='CLEAR_KEEP_TRANSFORM')
+    item.parent = None
     
 def parent(child, parent):
     """Convenient wrapper to parent things.
@@ -102,20 +101,29 @@ def move_to(item, position=None, up=None, at=None):
     
     # Rotation
     if up and at:
+        # Create vectors that will construct the matrix.
         preset_up_vec = mathutils.Vector(up)
         preset_at_vec = mathutils.Vector(at)
-        
-        # Calculate a normal using the up vector
         right_vector = preset_at_vec.cross(preset_up_vec)
-        new_up_vec = right_vector.cross(preset_at_vec)
-        # Flip the right vector.
+        
+        # Make sure the right vector magnitude is an average of the other two.
+        right_vector.normalize()
         right_vector *= -1
+        
+        # If we're not dealing with power lines... figure out an average scale.
+        line_parts = ["U_POWERLINE", "U_PIPELINE", "U_PORTALLINE"]
+        if "ObjectID" in item:
+            if item["ObjectID"] not in line_parts:
+                average = ((preset_up_vec.length + preset_at_vec.length) / 2)
+                right_vector.length = right_vector.length * average
+            
+            
         # Construct a world matrix for the item.
         mat = mathutils.Matrix(
             [
-                [right_vector[0], new_up_vec[0] , preset_at_vec[0],  position[0]],
-                [right_vector[1], new_up_vec[1] , preset_at_vec[1],  position[1]],
-                [right_vector[2], new_up_vec[2] , preset_at_vec[2],  position[2]],
+                [right_vector[0], preset_up_vec[0] , preset_at_vec[0],  position[0]],
+                [right_vector[1], preset_up_vec[1] , preset_at_vec[1],  position[1]],
+                [right_vector[2], preset_up_vec[2] , preset_at_vec[2],  position[2]],
                 [0.0,             0.0,            0.0,        1.0        ]
             ]
         )
@@ -158,6 +166,17 @@ def duplicate_hierarchy(item):
 
     # Get Old and new item.
     new_item = get_current_selection()
+
+    # Remove any constraints from the duplication.
+    for c in new_item.constraints:
+        new_item.constraints.remove(c)
+
+    # Remove any drivers from the duplication.
+    anim_data = new_item.animation_data
+    if anim_data:
+        drivers_data = anim_data.drivers
+        for dr in drivers_data:  
+            new_item.driver_remove(dr.data_path, -1)
 
     # Restore child state.
     for each in [item, new_item]:

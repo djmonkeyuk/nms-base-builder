@@ -85,7 +85,10 @@ class PresetBuilder(object):
         """
         # Get Preset JSON file.
         preset_json = self.get_full_path(preset_name)
-        return self.part_builder.build_parts_from_json(preset_json)
+        return self.part_builder.build_parts_from_json(
+            preset_json,
+            skip_power_controls=True
+        )
 
     def build_presets_from_dict(self, data):
         """Given some data, build an array of presets found in the Presets key."""
@@ -156,7 +159,6 @@ class PresetBuilder(object):
         me = curve_object.data
         me.name = preset_name + 'Mesh'
         for part in preset_items:
-            # Parent object.
             utils.parent(part, curve_object)
             # Add controler specific preset properties.
             part.hide_select = True

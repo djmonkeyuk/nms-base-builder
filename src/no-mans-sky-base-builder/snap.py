@@ -27,11 +27,14 @@ class Snapper(object):
         self.snap_cache = {}
 
     def get_snap_matrices_from_group(self, group):
-        """Retrieve all snap points belonging to the snap group."""
+        """Retrieve all snap points belonging to the snap group.
+        
+        Args:
+            group (str): The top level descriptor for the snap group.
+        """
         if group in self.snap_matrix_dictionary:
             if "snap_points" in self.snap_matrix_dictionary[group]:
                 return self.snap_matrix_dictionary[group]["snap_points"]
-
 
     def get_snap_group_from_part(self, part_id):
         """Search through the grouping dictionary and return the snap group.
@@ -67,16 +70,106 @@ class Snapper(object):
             if source_group in snapping_dictionary:
                 return snapping_dictionary[source_group]
 
+    def get_closest_snap_points(
+            self,
+            source,
+            target,
+            source_filter=None,
+            target_filter=None):
+        """Get the closest snap points of two objects.
+        
+        Args:
+            source (bpy.ob): The source item we are moving.
+            target (bpy.ob): The object we are snapping on to.
+            source_filter (str): A filter for the snap points being used.
+            target_filter (str): A filter for the snap points being used.
+        """
+        source_snap_group = self.get_snap_group_from_part(source["SnapID"])
+        target_snap_group = self.get_snap_group_from_part(target["SnapID"])
+        source_matrices = self.get_snap_matrices_from_group(source_snap_group)
+        target_matrices = self.get_snap_matrices_from_group(target_snap_group)
+        
+        lowest_source_key = None
+        lowest_target_key = None
+        lowest_distance = 9999999
+        for source_key, source_info in source_matrices.items():
+            # Check source filter.
+            if source_filter and source_filter not in source_key:
+                continue
+
+            for target_key, target_info in target_matrices.items():
+                # Check target filter.
+                if target_filter and target_filter not in target_key:
+                    continue
+                
+                # Find the distance and check if its lower then the one
+                # stored.
+                local_source_matrix = mathutils.Matrix(source_info["matrix"])
+                local_target_matrix = mathutils.Matrix(target_info["matrix"])
+
+                source_snap_matrix = source.matrix_world @ local_source_matrix
+                target_snap_matrix = target.matrix_world @ local_target_matrix
+
+                distance = self.get_distance_between(
+                    source_snap_matrix, target_snap_matrix
+                )
+                if distance < lowest_distance:
+                    lowest_distance = distance
+                    lowest_source_key = source_key
+                    lowest_target_key = target_key
+
+        return lowest_source_key, lowest_target_key
+
+    def get_matrix_from_key(self, item, key):
+        """Get the matrix for a given item and the snap key."""
+        # Get relavant snap information from item.
+        snap_group = self.get_snap_group_from_part(item["SnapID"])
+        snap_matrices = self.get_snap_matrices_from_group(snap_group)
+        # Validate key entry.
+        if key not in snap_matrices:
+            return None
+
+        # Return matrix.
+        return snap_matrices[key]["matrix"]
+
+    @staticmethod
+    def get_distance_between(matrix1, matrix2):
+        """Get the distance between two matrices.
+        
+        Args:
+            matrix1: First matrix input.
+            matrix2: Second matrix input.
+
+        Returns:
+            float: The distance between the two.
+        """
+        translate1 = matrix1.decompose()[0]
+        translate2 = matrix2.decompose()[0]
+        return math.sqrt(
+            (translate2.x - translate1.x)**2 + (translate2.y - translate1.y)**2  + (translate2.z - translate1.z)**2
+        )
+
+    @staticmethod
+    def offset_constraint(source, target):
+        """Constrain the position using a location copy constraint.
+        
+        Args:
+            source (bpy.ob): The source item we are moving.
+            target (bpy.ob): The object we are snapping on to.
+        """
+        constraint = source.constraints.new(type='COPY_LOCATION')
+        constraint.target = target
+        constraint.use_offset = True
+
 
     def snap_objects(
-        self,
-        source,
-        target,
-        next_source=False,
-        prev_source=False,
-        next_target=False,
-        prev_target=False,
-    ):
+            self,
+            source,
+            target,
+            next_source=False,
+            prev_source=False,
+            next_target=False,
+            prev_target=False):
         """Given a source and a target, snap one to the other.
         
         Args:
@@ -99,10 +192,13 @@ class Snapper(object):
         source_key = None
         target_key = None
 
-        if "ObjectID" not in target:
+        source_object_id = None
+        target_object_id = None
+        # Check of object IDs
+        if "SnapID" not in source:
             return False
 
-        if "ObjectID" not in source:
+        if "SnapID" not in target:
             return False
 
         # If anything, move the item to the target.
@@ -111,8 +207,8 @@ class Snapper(object):
         utils.select([source])
         # Get Pairing options.
         snap_pairing_options = self.get_snap_pair_options(
-            target["ObjectID"],
-            source["ObjectID"]
+            target["SnapID"],
+            source["SnapID"]
         )
         # If no snap details are avaialbe then don't bother.
         if not snap_pairing_options:
@@ -128,10 +224,12 @@ class Snapper(object):
         # Get the per item reference.
         target_item_snap_reference = self.snap_cache.get(target.name, {})
         # Get the target item type.
-        target_id = target["ObjectID"]
+        target_id = target["SnapID"]
         # Find corresponding dict in snap reference.
         target_snap_group = self.get_snap_group_from_part(target_id)
-        target_local_matrix_datas = self.get_snap_matrices_from_group(target_snap_group)
+        target_local_matrix_datas = self.get_snap_matrices_from_group(
+            target_snap_group
+        )
         if target_local_matrix_datas:
             # Get the default target.
             default_target_key = target_pairing_options[0]
@@ -165,10 +263,12 @@ class Snapper(object):
             {}
         )
         # Get the source type.
-        source_id = source["ObjectID"]
+        source_id = source["SnapID"]
         # Find corresponding dict.
         source_snap_group = self.get_snap_group_from_part(source_id)
-        source_local_matrix_datas = self.get_snap_matrices_from_group(source_snap_group)
+        source_local_matrix_datas = self.get_snap_matrices_from_group(
+            source_snap_group
+        )
         if source_local_matrix_datas:
             default_source_key = source_pairing_options[0]
 
@@ -276,6 +376,14 @@ class Snapper(object):
             self.snap_cache[source.name] = source_item_snap_reference
             self.snap_cache[target.name] = target_item_snap_reference
 
+            # Before we do any snapping, we should first see if it needs
+            # to be live attachment.
+            # If the source is a power control, and the target is not, bind it.
+            # if source["SnapID"] == "POWER_CONTROL" and target["SnapID"] != "POWER_CONTROL":
+                # self.offset_constraint(source, target)
+
             # Ensure selection is set.
             utils.select([target, source])
+
+            
             return True

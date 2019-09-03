@@ -39,6 +39,8 @@
         "W_WALLWINDOW",
         "W_RAMP_H",
         "W_WALL_WINDOW",
+        "W_ROOF_C",
+        "W_ROOF_IC",
         "C_WALL",
         "C_WALL_H",
         "C_WALL_Q",
@@ -53,6 +55,8 @@
         "C_WALLWINDOW",
         "C_RAMP_H",
         "C_WALL_WINDOW",
+        "C_ROOF_C",
+        "C_ROOF_IC",
         "M_WALL",
         "M_WALL_H",
         "M_WALL_Q",
@@ -66,6 +70,8 @@
         "M_WALLDIAGONAL",
         "M_WALLWINDOW",
         "M_RAMP_H",
-        "M_WALL_WINDOW"
+        "M_WALL_WINDOW",
+        "M_ROOF_C",
+        "M_ROOF_IC"
     ]
 }

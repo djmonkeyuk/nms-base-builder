@@ -8,6 +8,9 @@ release 1.1.0
     * Removed the default Blender Cube, Light and Camera when generating bases.
     * Ensured all items fit under the default "Collection" in the Outliner.
     * Fixed the transparent shader being applied to all items instead of just structural items as intended.
+    * Turned off relationship lines by default.
+    * Part and Preset list search bar to always be visible.
+    * Base parts are now listed alphabetically in the UI list.
 * Presets
     * A better control is generated, calculated from the total floor-area of the preset parts.
     * Fixed an issue where presets were not generating properly if more than one instance existed.
@@ -15,12 +18,16 @@ release 1.1.0
     * Snapping an object remembers which object it has previously snapped to.
     * Allows you to use the snap buttons without having to select two items at a time after the initial snap has been done.
     * Updated snap information for BUILDLANDINGPAD.
+    * Swapped the selection order when snapping one object to another.
 * Power
     * When selecting a point then pressing "New Point". This will automatically create a power line between the new point and the previous point.
+    * Added power sockets to farm planter and mega planter.
 * Models improvements for...
     * BUILDLANDINGPAD
     * GARAGE_M
     * GARAGE_SUB
+    * PLANTER
+    * PLANTERMEGA
 * Added models for...
     * GARAGE_L
     * GARAGE_S
@@ -29,6 +36,15 @@ release 1.1.0
     * BASE_TOYCORE
     * BASE_TOYCUBE
     * BASE_TOYSPHERE
+    * U_SILO_S
+    * CUBEROOF
+    * BUILDGASHARVEST
+    * STATUE_GEK_B
+    * STATUE_GEK_S
+    * STATUE_GEK_G
+    * STATUE_SHIP_B
+    * STATUE_SHIP_S
+    * STATUE_SHIP_G
 * Code refactor.
     * Restructured object and class hierarchy to something more manageable.
     * Replaced most bpy.ops methods with bpy.data methods.

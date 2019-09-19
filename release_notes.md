@@ -1,10 +1,65 @@
-release 1.0.0-beta
-------------------
+release 1.1.0
+-------------
+
+* General
+    * Further improvements to Blender 2.8 support.
+    * Vastly improved loading times for base and preset generation.
+    * Added more custom warnings and error messages so the user encounters less Python trace-back errors.
+    * Removed the default Blender Cube, Light and Camera when generating bases.
+    * Ensured all items fit under the default "Collection" in the Outliner.
+    * Fixed the transparent shader being applied to all items instead of just structural items as intended.
+    * Turned off relationship lines by default.
+    * Part and Preset list search bar to always be visible.
+    * Base parts are now listed alphabetically in the UI list.
+* Presets
+    * A better control is generated, calculated from the total floor-area of the preset parts.
+    * Fixed an issue where presets were not generating properly if more than one instance existed.
+* Snapping
+    * Snapping an object remembers which object it has previously snapped to.
+    * Allows you to use the snap buttons without having to select two items at a time after the initial snap has been done.
+    * Updated snap information for BUILDLANDINGPAD.
+    * Swapped the selection order when snapping one object to another.
+* Power
+    * When selecting a point then pressing "New Point". This will automatically create a power line between the new point and the previous point.
+    * Added power sockets to farm planter and mega planter.
+* Models improvements for...
+    * BUILDLANDINGPAD
+    * GARAGE_M
+    * GARAGE_SUB
+    * PLANTER
+    * PLANTERMEGA
+* Added models for...
+    * GARAGE_L
+    * GARAGE_S
+    * SUMMON_GARAGE
+    * RACE_RAMP
+    * BASE_TOYCORE
+    * BASE_TOYCUBE
+    * BASE_TOYSPHERE
+    * U_SILO_S
+    * CUBEROOF
+    * BUILDGASHARVEST
+    * STATUE_GEK_B
+    * STATUE_GEK_S
+    * STATUE_GEK_G
+    * STATUE_SHIP_B
+    * STATUE_SHIP_S
+    * STATUE_SHIP_G
+* Code refactor.
+    * Restructured object and class hierarchy to something more manageable.
+    * Replaced most bpy.ops methods with bpy.data methods.
+    * Enhanced the caching mechanism for base part and preset retrieval.
+    * Added framework to easily allow custom behavior for specific parts.
+    * Categorized utility methods into their own modules.
+
+
+release 1.0.0
+-------------
 
 * Updated code-base to work for Blender 2.8.
-* Interal base version updated to 4. Additional save data keys added to export.
+* Internal base version updated to 4. Additional save data keys added to export.
 * Unlocked scale channels on all base parts as scaling is now supported. Works for ALL base parts.
-    * (Use at your own risk, in-game snapping behaviour becomes unreliable for base parts not intending to be scaled.)
+    * (Use at your own risk, in-game snapping behavior becomes unreliable for base parts not intending to be scaled.)
 * Added power socket details to some base part models that require electricity.
 * Added a set of features for managing power and electricity.
     * Connect electrical base parts together from the new power UI panel.
@@ -46,7 +101,7 @@ release 0.9.3
 * Refactored module and code structure.
 * Faster loading times for bases and presets with OBJ reference cache mechanism (only imports OBJs for first load).
 * Improved models for mainrooms.
-* Added support for a vast ammount of decoraton and technology parts: WATERBUBBLE, SHIELDSTATION, HEALTHSTATION, O2_HARVESTER, DRESSING_TABLE, BUILDTERMINAL, FOUNDATION, CRATELRARE, CRATELCYLINDER, MAINROOMFRAME, SMALLLIGHT, BUILDLABLAMP, GARAGE_B, CUBEWINDOWSMALL, CUBEWINDOWOVAL, WALLSCREEN, WALLSCREENB, WALLSCREENB2, WALLFLAG1, WALLFLAG2, WALLFLAG3, WALLFAN, TECHPANEL, STORAGEPANEL, STATUE_WALK_?, STATUE_ASTRO_?, SERVERSTACK, OCTACABINET, FLOORMAT1, DRAWS, BUILDSIDEPANEL, BUILDLIGHTTABLE, BUILDHCABINET, BUILDFLATPLANEL, BUILDCANRACK, BUILDBED, BLDWALLUNIT, BASE_WPLANT3, BASE_TREE03, BASE_MEDPLANT01, BASE_MEDPLANT02, BASE_MEDPLANT03, BASE_BONEGARDEN, BASE_BARNACLE, ?_DOOR_H, ?_DOORWINDOW, ?_DOOR, ?_ARCH_H, ?_ROOF_M, ?_ROOF_C, BASE_TERRARIUM, BASE_AQUARIUM, NPCWEAPONTERM, NPCBUILDERTERM
+* Added support for a vast amount of decoration and technology parts: WATERBUBBLE, SHIELDSTATION, HEALTHSTATION, O2_HARVESTER, DRESSING_TABLE, BUILDTERMINAL, FOUNDATION, CRATELRARE, CRATELCYLINDER, MAINROOMFRAME, SMALLLIGHT, BUILDLABLAMP, GARAGE_B, CUBEWINDOWSMALL, CUBEWINDOWOVAL, WALLSCREEN, WALLSCREENB, WALLSCREENB2, WALLFLAG1, WALLFLAG2, WALLFLAG3, WALLFAN, TECHPANEL, STORAGEPANEL, STATUE_WALK_?, STATUE_ASTRO_?, SERVERSTACK, OCTACABINET, FLOORMAT1, DRAWS, BUILDSIDEPANEL, BUILDLIGHTTABLE, BUILDHCABINET, BUILDFLATPLANEL, BUILDCANRACK, BUILDBED, BLDWALLUNIT, BASE_WPLANT3, BASE_TREE03, BASE_MEDPLANT01, BASE_MEDPLANT02, BASE_MEDPLANT03, BASE_BONEGARDEN, BASE_BARNACLE, ?_DOOR_H, ?_DOORWINDOW, ?_DOOR, ?_ARCH_H, ?_ROOF_M, ?_ROOF_C, BASE_TERRARIUM, BASE_AQUARIUM, NPCWEAPONTERM, NPCBUILDERTERM
 
 
 release 0.9.2
@@ -69,7 +124,7 @@ release 0.9.1
 release 0.9.0
 -------------
 * Added colour options.
-* Improved overall UI. Changed to collapsable areas and added button icons.
+* Improved overall UI. Changed to collapsible areas and added button icons.
 * Changes to snapping information.
 * Added nice name mechanism to base parts.
 
@@ -78,7 +133,7 @@ release 0.8.0
 * Improved and added various models.
 * New Snapping area in the tool. With convenient Duplicate button. (Expect some items would not snap yet!)
 * Items with compatible snapping will automatically snap on creation.
-* Fixed a bug where the tool would dissapear when no item was selected.
+* Fixed a bug where the tool would disappear when no item was selected.
 * Re-organised Basic parts into more granular categories (floors, stairs, walls, etc)
 
 

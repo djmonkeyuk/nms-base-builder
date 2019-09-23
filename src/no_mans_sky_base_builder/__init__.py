@@ -31,9 +31,12 @@ from bpy.props import (BoolProperty, EnumProperty, FloatProperty, IntProperty,
                        PointerProperty, StringProperty)
 from bpy.types import Operator, Panel, PropertyGroup
 
-BUILDER = builder.Builder()
-FILE_PATH = os.path.dirname(os.path.realpath(__file__))
 
+FILE_PATH = os.path.dirname(os.path.realpath(__file__))
+USER_PATH = os.path.join(os.path.expanduser("~"), "NoMansSkyBaseBuilder")
+PRESET_PATH = os.path.join(USER_PATH, "presets")
+
+BUILDER = builder.Builder()
 GHOSTED_JSON = os.path.join(FILE_PATH, "resources", "ghosted.json")
 ghosted_reference = python_utils.load_dictionary(GHOSTED_JSON)
 GHOSTED_ITEMS = ghosted_reference["GHOSTED"]
@@ -1444,6 +1447,11 @@ classes = (
 )
 
 def register():
+    # Ensure User data folder structure exists
+    for data_path in [USER_PATH, PRESET_PATH]:
+        if not os.path.exists(data_path):
+            os.makedirs(data_path)
+
     # Load Icons.
     pcoll = bpy.utils.previews.new()
     # path to the folder where the icon is

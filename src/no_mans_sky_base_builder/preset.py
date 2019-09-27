@@ -122,6 +122,14 @@ class Preset(object):
         self.__control.rotation_euler = [0.0, 0.0, 0.0]
         self.__control.scale = [1.0, 1.0, 1.0]
 
+    @staticmethod
+    def delete_preset(preset_id):
+        """Remove preset."""
+        json_file = preset_id+".json"
+        full_path = os.path.join(Preset.PRESET_PATH, json_file)
+        if os.path.isfile(full_path):
+            os.remove(full_path)
+
     def duplicate(self):
         """Duplicate the part and return it."""
         # Copy the item

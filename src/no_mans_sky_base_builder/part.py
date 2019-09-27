@@ -477,6 +477,8 @@ class Part(object):
 
         # First and foremost, just move the source on top of the target.
         self.matrix_world = copy(target.matrix_world)
+        # Set the snapped to property so it remembers it without selection.
+        self.snapped_to = target.name
         self.select()
 
         # Get Pairing options.
@@ -617,10 +619,10 @@ class Part(object):
         flipped_local_offset.invert()
         target_location = target_snap_matrix @ flipped_local_offset
 
+        # Set matrix, and then re-apply radian rotation for better accuracy.
         self.matrix_world = target_location
+        self.rotation = target_location.to_euler()
 
-        # Set some properties to remember.
-        self.snapped_to = target.name
 
         # Find the opposite source key and set it.
         next_target_key = target_key

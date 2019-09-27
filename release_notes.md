@@ -1,3 +1,24 @@
+release 1.1.2
+-------------
+
+* Added a 'Build Counter' to the Base Properties panel to show the total number of NMS objects in your scene.
+* Fixed communication message modules forgetting messages.
+* Fixed the 'X' delete preset button in the preset list.
+* Apply radian rotation values when snapping objects for better accuracy.
+    (which fixes some cases where small offsets were being applied to snap positions)
+* Fixed an issue where objects weren't remembering their snapped partner object when they don't have matching snap points.
+* Added socket model and power connection to CONTAINER objects.
+* Added CONTAINER7.
+* Added Infrastructure Ladder.
+* Added Oscilloscope.
+
+
+release 1.1.1
+-------------
+
+* Fixed preset folder creation for new users.
+
+
 release 1.1.0
 -------------
 

@@ -625,6 +625,10 @@ class NMS_PT_base_prop_panel(Panel):
         properties_column = properties_box.column(align=True)
         properties_column.prop(nms_tool, "string_base")
         properties_column.prop(nms_tool, "string_address")
+        splitter = properties_column.split(factor=0.5)
+        splitter.label(text="Part Count:")
+        part_count = len([obj for obj in bpy.data.objects if "ObjectID" in obj])
+        splitter.label(text="{}".format(part_count))
 
 # Snap Panel ---
 class NMS_PT_snap_panel(Panel):
@@ -1091,7 +1095,7 @@ class ListDeleteOperator(bpy.types.Operator):
         scene = context.scene
         nms_tool = context.scene.nms_base_tool
         if self.part_id in preset.Preset.get_presets():
-            PRESET_BUILDER.delete_preset(self.part_id)
+            preset.Preset.delete_preset(self.part_id)
             if nms_tool.enum_switch == {"PRESETS"}:
                 refresh_ui_part_list(scene, "presets")
         return {"FINISHED"}

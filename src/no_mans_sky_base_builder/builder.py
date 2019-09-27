@@ -9,6 +9,7 @@ import bpy
 import no_mans_sky_base_builder.part as part
 import no_mans_sky_base_builder.part_overrides.base_flag as base_flag
 import no_mans_sky_base_builder.part_overrides.line as line
+import no_mans_sky_base_builder.part_overrides.messagemodule as messagemodule
 import no_mans_sky_base_builder.part_overrides.power_control as power_control
 import no_mans_sky_base_builder.part_overrides.u_pipeline as u_pipeline
 import no_mans_sky_base_builder.part_overrides.u_portalline as u_portalline
@@ -36,13 +37,12 @@ class Builder(object):
     MODS_PATH = os.path.join(USER_PATH, "mods")
     PRESET_PATH = os.path.join(USER_PATH, "presets")
 
-    print (MODEL_PATH)
-    
     # Load in nice name information.
     nice_name_dictionary = python_utils.load_dictionary(NICE_JSON)
 
     override_classes  = {
         "BASE_FLAG": base_flag.BASE_FLAG,
+        "MESSAGEMODULE": messagemodule.MESSAGEMODULE,
         "U_POWERLINE": u_powerline.U_POWERLINE,
         "U_PIPELINE": u_pipeline.U_PIPELINE,
         "U_PORTALLINE": u_portalline.U_PORTALLINE,

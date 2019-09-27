@@ -127,6 +127,7 @@
     "MAINROOMCUBE": "Main Room (Cube)",
     "MAINROOMFRAME": "Main Room (Frame)",
     "BUILDLADDER": "Main Room Ladder",
+    "WALLFLOORLADDER": "Infrastructure Ladder",
     "BUILDWINDOW": "Main Room Window",
 
     "BUILDLIGHT": "Light Post 1",
@@ -185,6 +186,7 @@
     "SHIELDSTATION": "Shield Station",
     "MESSAGEMODULE": "Message Module",
     "BUILDGASHARVEST": "Gas Harvester",
+    "BUILDANTIMATTER": "Anti-Matter Generator",
 
     "WEAPONRACK": "Weapon Rack",
     "BUILDBED": "Bed",

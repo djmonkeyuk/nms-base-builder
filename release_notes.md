@@ -1,3 +1,8 @@
+release 1.1.3
+-------------
+
+* Added a "Get More Presets..." button that opens the directory web-page for community made presets.
+
 release 1.1.2
 -------------
 

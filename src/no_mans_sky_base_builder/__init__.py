@@ -3,7 +3,7 @@ bl_info = {
     "name": "No Mans Sky Base Builder",
     "description": "A tool to assist with base building in No Mans Sky",
     "author": "Charlie Banks",
-    "version": (1, 1, 2),
+    "version": (1, 1, 3),
     "blender": (2, 80, 0),
     "location": "3D View > Tools",
     "warning": "",  # used for warning icon and text in addons panel
@@ -15,6 +15,7 @@ import importlib
 import json
 import os
 import sys
+import webbrowser
 
 import bpy
 import bpy.utils
@@ -30,7 +31,6 @@ import no_mans_sky_base_builder.utils.python as python_utils
 from bpy.props import (BoolProperty, EnumProperty, FloatProperty, IntProperty,
                        PointerProperty, StringProperty)
 from bpy.types import Operator, Panel, PropertyGroup
-
 
 FILE_PATH = os.path.dirname(os.path.realpath(__file__))
 USER_PATH = os.path.join(os.path.expanduser("~"), "NoMansSkyBaseBuilder")
@@ -796,7 +796,9 @@ class NMS_PT_build_panel(Panel):
         scene = context.scene
         nms_tool = scene.nms_base_tool
         layout.prop(nms_tool, "enum_switch", expand=True)
-        layout.operator("nms.save_as_preset", icon="SCENE_DATA")
+        col = layout.column(align=True)
+        col.operator("nms.save_as_preset", icon="SCENE_DATA")
+        col.operator("nms.get_more_presets", icon="SCENE_DATA")
         part_list = layout.template_list(
             "NMS_UL_actions_list",
             "compact",
@@ -1008,6 +1010,7 @@ class ToggleRoom(bpy.types.Operator):
 
 
 class SaveAsPreset(bpy.types.Operator):
+    """Save the current scene contents as a new Preset"""
     bl_idname = "nms.save_as_preset"
     bl_label = "Save As Preset"
     preset_name: bpy.props.StringProperty(name="Preset Name")
@@ -1029,6 +1032,15 @@ class SaveAsPreset(bpy.types.Operator):
         return wm.invoke_props_dialog(self)
 
 
+class GetMorePresets(bpy.types.Operator):
+    """Load the No Man's Sky Presets web page to find more community presets."""
+    bl_idname = "nms.get_more_presets"
+    bl_label = "Get More Presets..."
+
+    def execute(self, context):
+        # Load web page.
+        webbrowser.open_new("https://charliebanks.github.io/nms-base-builder-presets/")
+        return {"FINISHED"}
 
 
 # List Operators ---
@@ -1426,6 +1438,7 @@ classes = (
     DuplicateAlongCurve,
     
     SaveAsPreset,
+    GetMorePresets,
     ToggleRoom,
     
     NewFile, 

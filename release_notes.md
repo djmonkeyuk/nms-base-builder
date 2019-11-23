@@ -1,6 +1,7 @@
 release 1.1.4
 -------------
 
+* Support for Blender 2.81.
 * Added support for Freighter bases.
     * Added simple model parts for Freighter pieces.
     * Restricted movement of FREIGHTER_CORE, AIRLCKCONNECTOR and BRIDGECONNECTOR.

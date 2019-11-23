@@ -1,3 +1,16 @@
+release 1.1.4
+-------------
+
+* Added support for Freighter bases.
+    * Added simple model parts for Freighter pieces.
+    * Restricted movement of FREIGHTER_CORE, AIRLCKCONNECTOR and BRIDGECONNECTOR.
+    * Freighter BaseType key detected on import and kept at export. Planet base key used as default.
+* Improved snapping information for cube parts.
+* Improved snapping information for light/noise boxes.
+* Updated import/export functions with new keys and values from NMS version 2.16.
+* Added a "Open Preset Folder" button that opens explorer window for quick access to preset .json files.
+
+
 release 1.1.3
 -------------
 

@@ -3,8 +3,8 @@ bl_info = {
     "name": "No Mans Sky Base Builder",
     "description": "A tool to assist with base building in No Mans Sky",
     "author": "Charlie Banks",
-    "version": (1, 1, 3),
-    "blender": (2, 80, 0),
+    "version": (1, 1, 4),
+    "blender": (2, 81, 0),
     "location": "3D View > Tools",
     "warning": "",  # used for warning icon and text in addons panel
     "wiki_url": "",
@@ -108,6 +108,13 @@ class NMSSettings(PropertyGroup):
         maxlen=1024,
     )
 
+    string_base_type : StringProperty(
+        name="The base type",
+        description="Planet or Freighter.",
+        default="HomePlanetBase",
+        maxlen=1024,
+    )
+
     string_usn : StringProperty(
         name="USN", description="The username attribute.", default="", maxlen=1024
     )
@@ -168,7 +175,7 @@ class NMSSettings(PropertyGroup):
         default=0.0,
     )
 
-    # Unconverted stamps
+    # Unimportant details...
     LastEditedById : StringProperty(
         name="LastEditedByID",
         description="LastEditedByID.",
@@ -187,6 +194,66 @@ class NMSSettings(PropertyGroup):
         default=3
     )
 
+    screenshot_at_x : FloatProperty(
+        name="SAX",
+        description="The X orientation vector of the screenshot.",
+        default=1.0,
+    )
+
+    screenshot_at_y : FloatProperty(
+        name="SAY",
+        description="The Y orientation vector of the screenshot.",
+        default=0.0,
+    )
+
+    screenshot_at_z : FloatProperty(
+        name="SAZ",
+        description="The Z orientation vector of the screenshot.",
+        default=0.0,
+    )
+
+    screenshot_pos_x : FloatProperty(
+        name="SPX",
+        description="The X pos vector of the screenshot.",
+        default=1.0,
+    )
+
+    screenshot_pos_y : FloatProperty(
+        name="SPY",
+        description="The Y pos vector of the screenshot.",
+        default=1.0,
+    )
+
+    screenshot_pos_z : FloatProperty(
+        name="SUZ",
+        description="The Z pos vector of the screenshot.",
+        default=0.0,
+    )
+
+    game_mode : StringProperty(
+        name="GameMode",
+        description="GameMode.",
+        default="Unspecified"
+    )
+
+    platform_token : StringProperty(
+        name="PlatformToken",
+        description="PlatformToken.",
+        default=""
+    )
+
+    is_reported : BoolProperty(
+        name="IsReported",
+        description="Is Reported.",
+        default=False
+    )
+
+    is_featured : BoolProperty(
+        name="IsFeatured",
+        description="Is Featured.",
+        default=False
+    )
+
     room_vis_switch : IntProperty(name="room_vis_switch", default=0)
 
     def deserialise_from_data(self, nms_data):
@@ -196,6 +263,8 @@ class NMSSettings(PropertyGroup):
         # Start bringing the data in.
         if "GalacticAddress" in nms_data:
             self.string_address = str(nms_data["GalacticAddress"])
+        if "BaseType" in nms_data:
+            self.string_base_type = str(nms_data["BaseType"]["PersistentBaseTypes"])
         if "Position" in nms_data:
             self.float_pos_x = nms_data["Position"][0]
             self.float_pos_y = nms_data["Position"][1]
@@ -215,13 +284,29 @@ class NMSSettings(PropertyGroup):
             self.string_lid = str(Owner_details.get("LID", ""))
             self.string_usn = str(Owner_details.get("USN"))
             self.string_ptk = str(Owner_details.get("PTK"))
-        # Unconverted stamps
+        # Extras/Unimportant
         if "LastEditedById" in nms_data:
             self.LastEditedById = str(nms_data["LastEditedById"])
         if "LastEditedByUsername" in nms_data:
             self.LastEditedByUsername_value = str(nms_data["LastEditedByUsername"])
         if "OriginalBaseVersion" in nms_data:
             self.original_base_version = nms_data["OriginalBaseVersion"]
+        if "ScreenshotAt" in nms_data:
+            self.screenshot_at_x = nms_data["ScreenshotAt"][0]
+            self.screenshot_at_y = nms_data["ScreenshotAt"][1]
+            self.screenshot_at_z = nms_data["ScreenshotAt"][2]
+        if "ScreenshotPos" in nms_data:
+            self.screenshot_pos_x = nms_data["ScreenshotPos"][0]
+            self.screenshot_pos_y = nms_data["ScreenshotPos"][1]
+            self.screenshot_pos_z = nms_data["ScreenshotPos"][2]
+        if "GameMode" in nms_data:
+            self.game_mode = nms_data["GameMode"]["PresetGameMode"]
+        if "PlatformToken" in nms_data:
+            self.platform_token = nms_data["PlatformToken"]
+        if "IsReported" in nms_data:
+            self.is_reported = nms_data["IsReported"]
+        if "IsFeatured" in nms_data:
+            self.is_featured = nms_data["IsFeatured"]
 
     def serialise(self, get_presets=False):
         """Export the data in the blender scene to NMS compatible data.
@@ -255,9 +340,25 @@ class NMSSettings(PropertyGroup):
                 "TS": python_utils.prefer_int(self.string_ts),
             },
             "Name": self.string_base,
-            "BaseType": {"PersistentBaseTypes": "HomePlanetBase"},
+            "BaseType": {"PersistentBaseTypes": self.string_base_type},
             "LastEditedById": self.LastEditedById,
-            "LastEditedByUsername": self.LastEditedByUsername_value
+            "LastEditedByUsername": self.LastEditedByUsername_value,
+            "ScreenshotAt": [
+                self.screenshot_at_x,
+                self.screenshot_at_y,
+                self.screenshot_at_z
+            ],
+            "ScreenshotPos": [
+                self.screenshot_pos_x,
+                self.screenshot_pos_y,
+                self.screenshot_pos_z
+            ],
+            "GameMode":{
+                "PresetGameMode": self.game_mode
+            },
+            "PlatformToken":self.platform_token,
+            "IsReported":self.is_reported,
+            "IsFeatured":self.is_featured
         }
         # Capture Individual Objects
         data.update(BUILDER.serialise(get_presets=get_presets))
@@ -363,6 +464,16 @@ class NMSSettings(PropertyGroup):
         self.LastEditedById = ""
         self.original_base_version = 3
         self.LastEditedByUsername_value = ""
+        self.screenshot_at_x = 1
+        self.screenshot_at_y = 0
+        self.screenshot_at_z = 0
+        self.screenshot_up_x = 0
+        self.screenshot_up_y = 1
+        self.screenshot_up_z = 0
+        self.game_mode = "Unspecified"
+        self.platform_token = ""
+        self.is_reported = False
+        self.is_featured = False
 
         # Remove all no mans sky items from scene.
         # Deselect all
@@ -798,7 +909,9 @@ class NMS_PT_build_panel(Panel):
         layout.prop(nms_tool, "enum_switch", expand=True)
         col = layout.column(align=True)
         col.operator("nms.save_as_preset", icon="SCENE_DATA")
-        col.operator("nms.get_more_presets", icon="SCENE_DATA")
+        row = col.row(align=True)
+        row.operator("nms.get_more_presets", icon="WORLD_DATA")
+        row.operator("nms.open_preset_folder", icon="FILE_FOLDER")
         part_list = layout.template_list(
             "NMS_UL_actions_list",
             "compact",
@@ -1042,6 +1155,15 @@ class GetMorePresets(bpy.types.Operator):
         webbrowser.open_new("https://charliebanks.github.io/nms-base-builder-presets/")
         return {"FINISHED"}
 
+class OpenPresetFolder(bpy.types.Operator):
+    """Open the folder containing your presets."""
+    bl_idname = "nms.open_preset_folder"
+    bl_label = "Open Preset Folder"
+
+    def execute(self, context):
+        # Load web page.
+        os.startfile(PRESET_PATH)
+        return {"FINISHED"}
 
 # List Operators ---
 class ListBuildOperator(bpy.types.Operator):
@@ -1439,6 +1561,7 @@ classes = (
     
     SaveAsPreset,
     GetMorePresets,
+    OpenPresetFolder,
     ToggleRoom,
     
     NewFile, 

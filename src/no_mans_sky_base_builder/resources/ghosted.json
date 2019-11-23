@@ -72,6 +72,15 @@
         "M_RAMP_H",
         "M_WALL_WINDOW",
         "M_ROOF_C",
-        "M_ROOF_IC"
+        "M_ROOF_IC",
+        "FREIGHTER_CORE",
+        "CUBEROOM_SPACE",
+        "CUBEROOMB_SPACE",
+        "CUBEROOMC_SPACE",
+        "CORRIDOR_SPACE",
+        "CORRIDORL_SPACE",
+        "CORRIDORT_SPACE",
+        "CORRIDORX_SPACE",
+        "CORSTAIRS_SPACE"
     ]
 }

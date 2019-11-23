@@ -14,6 +14,9 @@ import no_mans_sky_base_builder.part_overrides.power_control as power_control
 import no_mans_sky_base_builder.part_overrides.u_pipeline as u_pipeline
 import no_mans_sky_base_builder.part_overrides.u_portalline as u_portalline
 import no_mans_sky_base_builder.part_overrides.u_powerline as u_powerline
+import no_mans_sky_base_builder.part_overrides.air_lock_connector as air_lock_connector
+import no_mans_sky_base_builder.part_overrides.bridge_connector as bridge_connector
+import no_mans_sky_base_builder.part_overrides.freighter_core as freighter_core
 import no_mans_sky_base_builder.preset as preset
 import no_mans_sky_base_builder.utils.blend_utils as blend_utils
 import no_mans_sky_base_builder.utils.python as python_utils
@@ -46,7 +49,10 @@ class Builder(object):
         "U_POWERLINE": u_powerline.U_POWERLINE,
         "U_PIPELINE": u_pipeline.U_PIPELINE,
         "U_PORTALLINE": u_portalline.U_PORTALLINE,
-        "POWER_CONTROL": power_control.POWER_CONTROL
+        "POWER_CONTROL": power_control.POWER_CONTROL,
+        "FREIGHTER_CORE": freighter_core.FREIGHTER_CORE,
+        "BRIDGECONNECTOR": bridge_connector.BRIDGECONNECTOR,
+        "AIRLCKCONNECTOR": air_lock_connector.AIRLCKCONNECTOR
     }
 
     def __init__(self):

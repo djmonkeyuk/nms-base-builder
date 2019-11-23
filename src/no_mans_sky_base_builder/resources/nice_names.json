@@ -306,5 +306,18 @@
     "U_SWITCHPROX": "Switch Proximity",
     "U_SWITCHWALL": "Switch Wall",
     "U_TRANSISTOR1": "Switch Inverse",
-    "U_TRANSISTOR2": "Switch Auto"
+    "U_TRANSISTOR2": "Switch Auto",
+    
+    "CUBEROOM_SPACE": "Freighter Room A",
+    "CUBEROOMB_SPACE": "Freighter Room B",
+    "CUBEROOMC_SPACE": "Freighter Room C",
+    "CORRIDOR_SPACE": "Freighter Corridor",
+    "CORRIDORT_SPACE": "Freighter Corridor (T)",
+    "CORRIDORL_SPACE": "Freighter Corridor (L)",
+    "CORRIDORX_SPACE": "Freighter Corridor (X)",
+    "CORSTAIRS_SPACE": "Freighter Stairs",
+    "NPCFRIGTERM": "Frigate Control Room",
+    "AIRLCKCONNECTOR": "Air Lock Connector",
+    "BRIDGECONNECTOR": "Bridge Connector",
+    "FREIGHTER_COR": "Freighter Core"
 }

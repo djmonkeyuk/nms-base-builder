@@ -1,3 +1,8 @@
+release 1.1.5
+-------------
+
+* Added support for triangle pieces.
+
 release 1.1.4
 -------------
 

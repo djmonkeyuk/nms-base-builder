@@ -319,5 +319,13 @@
     "NPCFRIGTERM": "Frigate Control Room",
     "AIRLCKCONNECTOR": "Air Lock Connector",
     "BRIDGECONNECTOR": "Bridge Connector",
-    "FREIGHTER_COR": "Freighter Core"
+    "FREIGHTER_COR": "Freighter Core",
+
+    "W_TRIFLOOR": "Wood Tri Floor",
+    "M_TRIFLOOR": "Metal Tri Floor",
+    "C_TRIFLOOR": "Concrete Tri Floor",
+
+    "W_TRIFLOOR_Q": "Wood Tri Floor (Small)",
+    "M_TRIFLOOR_Q": "Metal Tri Floor (Small)",
+    "C_TRIFLOOR_Q": "Concrete Tri Floor (Small)"
 }

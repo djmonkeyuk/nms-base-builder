@@ -1,3 +1,11 @@
+release 1.1.6
+-------------
+
+* Fixed a rotation accuracy bug when generating presets.
+* Preset files now have a time stamp applied to them to help with date sorting in the Preset Directory.
+* Improved timestamp data on individual base objects.
+
+
 release 1.1.5
 -------------
 

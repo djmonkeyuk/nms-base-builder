@@ -1,5 +1,6 @@
 import math
 import os
+import time
 from copy import copy
 
 import bpy
@@ -9,11 +10,8 @@ import no_mans_sky_base_builder.utils.material as material
 import no_mans_sky_base_builder.utils.python as python_utils
 
 
-
-
 class Part(object):
 
-    DEFAULT_TIMESTAMP = 1539024128
     DEFAULT_USER_DATA = 0
     DEFAULT_BELONGS_TO_PRESET = False
     FILE_PATH = os.path.dirname(os.path.realpath(__file__))
@@ -58,7 +56,7 @@ class Part(object):
             self.__object.hide_select = False
             self.object_id = object_id
             self.parent = None
-            self.time_stamp = str(self.DEFAULT_TIMESTAMP)
+            self.time_stamp = str(int(time.time()))
             self.belongs_to_preset = self.DEFAULT_BELONGS_TO_PRESET
             self.order = len(bpy.data.objects)
             # Assign material.
@@ -356,8 +354,9 @@ class Part(object):
         # Set part position.
         world_matrix = cls.create_matrix_from_vectors(pos, up, at)
         part.matrix_world = world_matrix
+        part.rotation = world_matrix.to_euler()
         # Apply metadata
-        part.time_stamp = data.get("Timestamp", 1539024128)
+        part.time_stamp = str(data.get("Timestamp", int(time.time())))
         part.user_data = data.get("UserData", 0)
         return part
 

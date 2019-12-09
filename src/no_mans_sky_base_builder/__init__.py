@@ -3,7 +3,7 @@ bl_info = {
     "name": "No Mans Sky Base Builder",
     "description": "A tool to assist with base building in No Mans Sky",
     "author": "Charlie Banks",
-    "version": (1, 1, 5),
+    "version": (1, 1, 6),
     "blender": (2, 81, 0),
     "location": "3D View > Tools",
     "warning": "",  # used for warning icon and text in addons panel
@@ -133,7 +133,7 @@ class NMSSettings(PropertyGroup):
 
     string_ts : StringProperty(
         name="TS",
-        description="Timestamp - not sure what this is.",
+        description="Timestamp.",
         default="",
         maxlen=1024,
     )

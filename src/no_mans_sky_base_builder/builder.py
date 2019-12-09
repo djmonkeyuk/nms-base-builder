@@ -3,32 +3,25 @@ import importlib
 import json
 import math
 import os
+import time
 from collections import defaultdict
 
 import bpy
 import no_mans_sky_base_builder.part as part
+import no_mans_sky_base_builder.part_overrides.air_lock_connector as air_lock_connector
 import no_mans_sky_base_builder.part_overrides.base_flag as base_flag
+import no_mans_sky_base_builder.part_overrides.bridge_connector as bridge_connector
+import no_mans_sky_base_builder.part_overrides.freighter_core as freighter_core
 import no_mans_sky_base_builder.part_overrides.line as line
 import no_mans_sky_base_builder.part_overrides.messagemodule as messagemodule
 import no_mans_sky_base_builder.part_overrides.power_control as power_control
 import no_mans_sky_base_builder.part_overrides.u_pipeline as u_pipeline
 import no_mans_sky_base_builder.part_overrides.u_portalline as u_portalline
 import no_mans_sky_base_builder.part_overrides.u_powerline as u_powerline
-import no_mans_sky_base_builder.part_overrides.air_lock_connector as air_lock_connector
-import no_mans_sky_base_builder.part_overrides.bridge_connector as bridge_connector
-import no_mans_sky_base_builder.part_overrides.freighter_core as freighter_core
 import no_mans_sky_base_builder.preset as preset
 import no_mans_sky_base_builder.utils.blend_utils as blend_utils
 import no_mans_sky_base_builder.utils.python as python_utils
 
-importlib.reload(part)
-importlib.reload(preset)
-importlib.reload(base_flag)
-importlib.reload(line)
-importlib.reload(u_powerline)
-importlib.reload(u_pipeline)
-importlib.reload(u_portalline)
-importlib.reload(power_control)
 
 class Builder(object):
 
@@ -203,7 +196,7 @@ class Builder(object):
         return item
  
     # Serialising ---
-    def serialise(self, get_presets=False):
+    def serialise(self, get_presets=False, add_timestamp=False):
         """Return NMS compatible dictionary.
 
         Args:
@@ -223,6 +216,9 @@ class Builder(object):
 
         # Create full dictionary.
         data = {"Objects": object_list}
+
+        if add_timestamp:
+            data["timestamp"] = int(time.time())
 
         # Add preset information if specified.
         if get_presets:
@@ -358,7 +354,7 @@ class Builder(object):
             file_path += ".json"
         # Save to file path
         with open(file_path, "w") as stream:
-            json.dump(self.serialise(), stream, indent=4)
+            json.dump(self.serialise(add_timestamp=True), stream, indent=4)
 
     def optimise_control_points(self):
         """Find all control points that share the same location and combine them."""

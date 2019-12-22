@@ -1,4 +1,5 @@
 """The builder contains all top level scene methods for managing NMS parts."""
+import cProfile
 import importlib
 import json
 import math
@@ -11,10 +12,12 @@ import no_mans_sky_base_builder.part as part
 import no_mans_sky_base_builder.part_overrides.air_lock_connector as air_lock_connector
 import no_mans_sky_base_builder.part_overrides.base_flag as base_flag
 import no_mans_sky_base_builder.part_overrides.bridge_connector as bridge_connector
+import no_mans_sky_base_builder.part_overrides.bytebeat as bytebeat
 import no_mans_sky_base_builder.part_overrides.freighter_core as freighter_core
 import no_mans_sky_base_builder.part_overrides.line as line
 import no_mans_sky_base_builder.part_overrides.messagemodule as messagemodule
 import no_mans_sky_base_builder.part_overrides.power_control as power_control
+import no_mans_sky_base_builder.part_overrides.u_bytebeatline as u_bytebeatline
 import no_mans_sky_base_builder.part_overrides.u_pipeline as u_pipeline
 import no_mans_sky_base_builder.part_overrides.u_portalline as u_portalline
 import no_mans_sky_base_builder.part_overrides.u_powerline as u_powerline
@@ -45,7 +48,9 @@ class Builder(object):
         "POWER_CONTROL": power_control.POWER_CONTROL,
         "FREIGHTER_CORE": freighter_core.FREIGHTER_CORE,
         "BRIDGECONNECTOR": bridge_connector.BRIDGECONNECTOR,
-        "AIRLCKCONNECTOR": air_lock_connector.AIRLCKCONNECTOR
+        "AIRLCKCONNECTOR": air_lock_connector.AIRLCKCONNECTOR,
+        "BYTEBEAT": bytebeat.BYTEBEAT,
+        "U_BYTEBEATLINE": u_bytebeatline.U_BYTEBEATLINE
     }
 
     def __init__(self):
@@ -238,6 +243,9 @@ class Builder(object):
         
         We don't need to create a new class, we can act upon this one.
         """
+        pr = cProfile.Profile()
+        pr.enable()
+
         # Reconstruct objects.
         for part_data in data.get("Objects", []):
             object_id = part_data.get("ObjectID").replace("^", "")
@@ -248,9 +256,12 @@ class Builder(object):
         for preset_data in data.get("Presets", []):
             preset.Preset.deserialise_from_data(preset_data, self)
 
+        # Build Rigs.
+        self.build_rigs()
         # Optimise control points.
         self.optimise_control_points()
-
+        pr.disable()
+        pr.print_stats(sort='time')
 
     @staticmethod
     def by_order(bpy_object):
@@ -356,6 +367,15 @@ class Builder(object):
         with open(file_path, "w") as stream:
             json.dump(self.serialise(add_timestamp=True), stream, indent=4)
 
+    def build_rigs(self):
+        """Get all items that require a rig and build them."""
+        blend_utils.scene_refresh()
+        parts = self.get_all_parts(exclude_presets=True)
+        for part in parts:
+            builder_object = self.get_builder_object_from_bpy_object(part)
+            if hasattr(builder_object, "build_rig"):
+                builder_object.build_rig()
+        
     def optimise_control_points(self):
         """Find all control points that share the same location and combine them."""
         blend_utils.scene_refresh()
@@ -387,12 +407,12 @@ class Builder(object):
                 
                 # Assign new controls.
                 if control == prev_start_control:
-                    power_line_obj.create_power_controls(
+                    power_line_obj.build_rig(
                         unique_control,
                         prev_end_control
                     )
                 else:
-                    power_line_obj.create_power_controls(
+                    power_line_obj.build_rig(
                         prev_start_control,
                         unique_control
                     )

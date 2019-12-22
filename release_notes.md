@@ -1,3 +1,17 @@
+release 1.1.7
+-------------
+
+* Added a specific "Delete" button in the tools area that safely removed Base Parts and Presets from the scene.
+* BYTEBEAT machines and their configurations are now supported.
+    * BYTEBEAT machines and their songs can now be saved as presets and shared with other people.
+    * Example: https://charliebanks.github.io/nms-base-builder-presets/Byte%20Beats
+* Optimized the creation of wiring controls. Bases with lots of wiring should now load faster.
+* Added models for...
+    * BYTEBEAT
+    * BYTEBEATSWITCH
+    * L_FLOOR_Q
+    * U_BYTEBEATLINE
+
 release 1.1.6
 -------------
 

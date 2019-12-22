@@ -64,6 +64,14 @@ def assign_power_material(item):
     material = validate_material("powerline_material", [0.0, 0.5, 1.0, 0.5])
     set_material(item, material)
 
+def assign_bytebeat_material(item):
+    """Assign light purple material to object.
+    
+    Args:
+        item (bpy.Object): The Blender object to assign the material to.
+    """
+    material = validate_material("bytebeat_material", [0.8, 0.0, 0.8, 0.5])
+    set_material(item, material)
 
 def assign_preset_material(item):
     """Assign gold material to object.

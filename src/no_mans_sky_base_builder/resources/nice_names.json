@@ -10,6 +10,7 @@
     "W_FLOOR_Q": "Wood Floor (Small)",
     "C_FLOOR_Q": "Concrete Floor (Small)",
     "M_FLOOR_Q": "Metal Floor (Small)",
+    "L_FLOOR_Q": "Light Floor (Small)",
 
     "W_WALL": "Wood Wall",
     "C_WALL": "Concrete Wall",
@@ -300,6 +301,7 @@
     "U_PIPELINE": "Pipe Line",
     "U_PORTALLINE": "Portal Line",
     "U_POWERLINE": "Power Line",
+    "U_BYTEBEATLINE": "Byte Beat Line",
     "U_SOLAR_S": "Solar Power Generator",
     "U_SWITCHBUTTON": "Switch Button",
     "U_SWITCHPRESS": "Switch Floor",
@@ -307,6 +309,9 @@
     "U_SWITCHWALL": "Switch Wall",
     "U_TRANSISTOR1": "Switch Inverse",
     "U_TRANSISTOR2": "Switch Auto",
+    "BYTEBEATSWITCH": "Switch Byte Beat",
+
+    "BYTEBEAT": "BYTE-BEAT",
     
     "CUBEROOM_SPACE": "Freighter Room A",
     "CUBEROOMB_SPACE": "Freighter Room B",

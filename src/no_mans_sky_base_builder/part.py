@@ -221,7 +221,9 @@ class Part(object):
         new_object = self.__object.copy()
         # Transfer a copy of the mesh and material.
         new_object.data = self.__object.data.copy()
-        new_object.active_material = self.__object.active_material.copy()
+
+        if self.__object.active_material:
+            new_object.active_material = self.__object.active_material.copy()
 
         # Clear Parent
         if new_object.parent:
@@ -229,6 +231,7 @@ class Part(object):
             new_object.matrix_parent_inverse = mathutils.Matrix.Identity(4)
 
         # Convert to Base Builder Object.
+        print ("BUILDER", self.builder)
         new_object = self.builder.get_builder_object_from_bpy_object(
             new_object
         )

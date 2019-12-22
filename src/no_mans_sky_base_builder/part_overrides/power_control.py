@@ -11,10 +11,15 @@ import no_mans_sky_base_builder.part as part
 
 
 class POWER_CONTROL(part.Part):
-    def __init__(self, bpy_object=None, *args, **kwargs):
+    def __init__(self, bpy_object=None, builder_object=None, *args, **kwargs):
         self.object = bpy_object
         self.__object_id = bpy_object["SnapID"]
+        self.__builder_object = builder_object
 
+    @property
+    def builder(self):
+        return self.__builder_object
+        
     @property
     def object_id(self):
         return self.__object_id

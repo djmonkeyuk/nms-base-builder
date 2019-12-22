@@ -3,7 +3,7 @@ bl_info = {
     "name": "No Mans Sky Base Builder",
     "description": "A tool to assist with base building in No Mans Sky",
     "author": "Charlie Banks",
-    "version": (1, 1, 6),
+    "version": (1, 1, 7),
     "blender": (2, 81, 0),
     "location": "3D View > Tools",
     "warning": "",  # used for warning icon and text in addons panel
@@ -544,6 +544,21 @@ class NMSSettings(PropertyGroup):
                         ob.hide_select = hide_select
                     ob.select_set(False)
 
+    def delete(self):
+        """Delete the selected object and everything below."""
+        # Store selection.
+        selected_objects = bpy.context.selected_objects
+        # Validate
+        if not selected_objects:
+            ShowMessageBox(
+                message="Select an item to delete from the scene.",
+                title="Delete"
+            )
+            return
+
+        for item in selected_objects:
+            blend_utils.delete(item)
+
     def duplicate(self):
         """Snaps one object to another based on selection."""
         # Store selection.
@@ -580,7 +595,10 @@ class NMSSettings(PropertyGroup):
             # Build Item.
             new_item = BUILDER.add_preset(preset_id)
             new_item.select()
-        
+
+        # Build Rig if need to.
+        if hasattr(new_item, "build_rig"):
+            new_item.build_rig()
         # Snap.
         target = BUILDER.get_builder_object_from_bpy_object(target)
         new_item.snap_to(target)
@@ -780,6 +798,8 @@ class NMS_PT_snap_panel(Panel):
         dup_along_curve = snap_column.operator(
             "nms.duplicate_along_curve", icon="CURVE_DATA"
         )
+        snap_column.label(text="Delete")
+        snap_column.operator("nms.delete", icon="CANCEL")
         # dup_along_curve.distance_percentage = 0.1
         snap_column.label(text="Snap")
         snap_op = snap_column.operator("nms.snap", icon="SNAP_ON")
@@ -888,6 +908,7 @@ class NMS_PT_logic_panel(Panel):
         logic_row.operator("nms.logic_inv_switch")
         logic_row.operator("nms.logic_auto_switch")
         logic_row.operator("nms.logic_floor_switch")
+        logic_row.operator("nms.logic_beat_switch")
 
 # Build Panel ---
 class NMS_PT_build_panel(Panel):
@@ -1182,6 +1203,8 @@ class ListBuildOperator(bpy.types.Operator):
             new_item = BUILDER.add_preset(self.part_id)
         else:
             new_item = BUILDER.add_part(self.part_id)
+            if hasattr(new_item, "build_rig"):
+                new_item.build_rig()
 
         # Make this item the selected.
         new_item.select()
@@ -1211,6 +1234,7 @@ class ListEditOperator(bpy.types.Operator):
                 apply_shader=False,
                 build_rigs=True
             )
+            BUILDER.build_rigs()
             BUILDER.optimise_control_points()
         return {"FINISHED"}
 
@@ -1247,6 +1271,16 @@ class Duplicate(bpy.types.Operator):
         scene = context.scene
         nms_tool = scene.nms_base_tool
         nms_tool.duplicate()
+        return {"FINISHED"}
+
+class Delete(bpy.types.Operator):
+    bl_idname = "nms.delete"
+    bl_label = "Delete"
+
+    def execute(self, context):
+        scene = context.scene
+        nms_tool = scene.nms_base_tool
+        nms_tool.delete()
         return {"FINISHED"}
 
 class DuplicateAlongCurve(bpy.types.Operator):
@@ -1313,7 +1347,7 @@ class Point(bpy.types.Operator):
         # Get current selection.
         selection = blend_utils.get_current_selection()
         # Create a new point.
-        point = line.Line.create_point("ARBITRARY_POINT")
+        point = line.Line.create_point(BUILDER, name="ARBITRARY_POINT")
         # Move the new point slightly away from current selection.
         if selection:
             point.location = selection.location
@@ -1324,7 +1358,7 @@ class Point(bpy.types.Operator):
                 line_object = selection.get("power_line", "U_POWERLINE").split(".")[0]
                 power_line = BUILDER.add_part(line_object, build_rigs=False)
                 # Create controls.
-                power_line.create_power_controls(
+                power_line.build_rig(
                     start=selection,
                     end=point
                 )
@@ -1354,7 +1388,7 @@ class Connect(bpy.types.Operator):
         start = BUILDER.get_builder_object_from_bpy_object(start)
         end = BUILDER.get_builder_object_from_bpy_object(end)
         # Validate points.
-        start, end = line.Line.generate_control_points(start, end)
+        start, end = line.Line.generate_control_points(start, end, BUILDER)
         if not start and not end:
             message = (
                 "These two items are not compatible to connect."
@@ -1373,7 +1407,7 @@ class Connect(bpy.types.Operator):
             line_object = start["power_line"].split(".")[0]
         power_line = BUILDER.add_part(line_object, build_rigs=False)
         # Create controls.
-        power_line.create_power_controls(
+        power_line.build_rig(
             start=start,
             end=end
         )
@@ -1533,6 +1567,22 @@ class LogicFloorSwitch(bpy.types.Operator):
         button.select()
         return {"FINISHED"}
 
+class LogicBeatSwitch(bpy.types.Operator):
+    bl_idname = "nms.logic_beat_switch"
+    bl_label = "BEAT"
+
+    def execute(self, context):
+        # Get Selected item.
+        selection = blend_utils.get_current_selection()
+        button = BUILDER.add_part("BYTEBEATSWITCH")
+        # Snap to selection.
+        if selection:
+            selection = BUILDER.get_builder_object_from_bpy_object(selection)
+            button.snap_to(selection)
+        # Select new item.
+        button.select()
+        return {"FINISHED"}
+
 # We can store multiple preview collections here,
 # however in this example we only store "main"
 preview_collections = {}
@@ -1554,10 +1604,12 @@ classes = (
     LogicInvSwitch,
     LogicAutoSwitch,
     LogicFloorSwitch,
+    LogicBeatSwitch,
 
     ApplyColour,
     Duplicate,
     DuplicateAlongCurve,
+    Delete,
     
     SaveAsPreset,
     GetMorePresets,

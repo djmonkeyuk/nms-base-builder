@@ -21,8 +21,8 @@ class Line(no_mans_sky_base_builder.part.Part):
 
         # Only create if a bpy object was not specified.
         if not bpy_object:
-            if self.build_rigs:
-                self.create_power_controls()
+            # if self.build_rigs:
+                # self.build_rig()
 
             # Lock all translations and rotations.
             self.object.lock_location = [True, True, True]
@@ -47,7 +47,7 @@ class Line(no_mans_sky_base_builder.part.Part):
     def end_control(self, value):
         self.object["end_control"] = value
 
-    def create_power_controls(self, start=None, end=None):
+    def build_rig(self, start=None, end=None):
         """Given the power line object, create 2 empties to control end points.
 
         Args:
@@ -55,19 +55,23 @@ class Line(no_mans_sky_base_builder.part.Part):
             start (object): Pass a start control, if None a new one is made.
             end (object): Pass an end control, if None a new one is made.
         """
-        # Force refresh of scene so the matrix values are correct.
-        blend_utils.scene_refresh()
 
         # Start creating controls.
         world_pos = copy(self.object.matrix_world)
         world_loc = world_pos.decompose()[0]
         if not start:
-            start = Line.create_point(name="_".join([self.object.name, "START"]))
+            start = Line.create_point(
+                self.builder,
+                name="_".join([self.object.name, "START"])
+            )
             # Snap the start location to the power line.
             start.location = world_loc
 
         if not end:
-            end = Line.create_point(name="_".join([self.object.name, "END"]))
+            end = Line.create_point(
+                builder=self.builder,
+                name="_".join([self.object.name, "END"])
+            )
             # Snap the end location to the end of power line.
             at_vec = mathutils.Vector([world_pos[0][2], world_pos[1][2], world_pos[2][2]])
             end_location = world_loc + at_vec
@@ -89,8 +93,8 @@ class Line(no_mans_sky_base_builder.part.Part):
 
     def split(self):
         # Middle control.
-        middle_control_a = self.create_point("_".join([self.name, "MID_A"]))
-        middle_control_b = self.create_point("_".join([self.name, "MID_B"]))
+        middle_control_a = self.create_point(self.builder, "_".join([self.name, "MID_A"]))
+        middle_control_b = self.create_point(self.builder, "_".join([self.name, "MID_B"]))
         # Snap the middle locations to the middle of power line.
         world_pos = copy(self.matrix_world)
         world_loc = world_pos.decompose()[0]
@@ -126,14 +130,14 @@ class Line(no_mans_sky_base_builder.part.Part):
         # Remove constraints of the original power line.
         self.remove_constraints()
         # Assign new controls to the power lines.
-        self.create_power_controls(prev_start_control, middle_control_a)
-        new_powerline.create_power_controls(middle_control_b, prev_end_control)
+        self.build_rig(prev_start_control, middle_control_a)
+        new_powerline.build_rig(middle_control_b, prev_end_control)
         # Select the middle controller.
         blend_utils.select([middle_control_a, middle_control_b])
 
     def divide(self):
         # Middle control.
-        middle_control = self.create_point("_".join([self.name, "MID"]))
+        middle_control = self.create_point(self.builder, "_".join([self.name, "MID"]))
         # Snap the middle location to the middle of power line.
         world_pos = copy(self.matrix_world)
         world_loc = world_pos.decompose()[0]
@@ -159,8 +163,8 @@ class Line(no_mans_sky_base_builder.part.Part):
         # Remove constraints of the original power line.
         self.remove_constraints()
         # Assign new controls to the power lines.
-        self.create_power_controls(prev_start_control, middle_control)
-        new_powerline.create_power_controls(middle_control, prev_end_control)
+        self.build_rig(prev_start_control, middle_control)
+        new_powerline.build_rig(middle_control, prev_end_control)
         # Select the middle controller.
         blend_utils.select(middle_control)
 
@@ -178,10 +182,10 @@ class Line(no_mans_sky_base_builder.part.Part):
             builder_object=builder_object,
             build_rigs=build_rigs
         )
-        if not build_rigs:
-            part.position_matrix(data, part)
-        else:
-            part.position_controls(data, part)
+        # if not build_rigs:
+        part.position_matrix(data, part)
+        # else:
+            # part.position_controls(data, part)
 
         # Apply metadata
         part.time_stamp = data.get("Timestamp", 1539024128)
@@ -191,7 +195,7 @@ class Line(no_mans_sky_base_builder.part.Part):
     
     # Static Methods ---
     @staticmethod
-    def create_point(name=None):
+    def create_point(builder, name=None):
         """Create a new electric wire point."""
         default_name = "ARBITRARY_POINT"
         name = name or default_name
@@ -201,15 +205,24 @@ class Line(no_mans_sky_base_builder.part.Part):
         # name of object to append or link
         obj_name = "power_control"
 
-        with bpy.data.libraries.load(blend_path, link=False) as (data_from, data_to):
-            data_to.objects = [
-                scene_name for scene_name in data_from.objects if scene_name.startswith(obj_name)
-            ]
+        existing_object = builder.find_object_by_id("POWER_CONTROL")
+        if existing_object:
+            point = existing_object.duplicate()
+            point = point.object
+            point.rotation_euler[0] = 0
+            point.rotation_euler[1] = 0
+            point.rotation_euler[2] = 0
+            blend_utils.add_to_scene(point)
+        else:
+            with bpy.data.libraries.load(blend_path, link=False) as (data_from, data_to):
+                data_to.objects = [
+                    scene_name for scene_name in data_from.objects if scene_name.startswith(obj_name)
+                ]
 
-        for obj in data_to.objects:
-            if obj is not None:
-                point = obj.copy()
-                blend_utils.add_to_scene(point)
+            for obj in data_to.objects:
+                if obj is not None:
+                    point = obj.copy()
+                    blend_utils.add_to_scene(point)
         
 
         point["rig_item"] = True
@@ -220,6 +233,7 @@ class Line(no_mans_sky_base_builder.part.Part):
 
         point.name = name
         point.data.name = name+"_SHAPE"
+        builder.add_to_part_cache("POWER_CONTROL", point)
         
         return bpy.data.objects[point.name]
 
@@ -288,7 +302,7 @@ class Line(no_mans_sky_base_builder.part.Part):
         return mat
     
     @staticmethod
-    def generate_control_points(source, target):
+    def generate_control_points(source, target, builder):
         """Given two inputs, check if we can generate power connections points.
         
         Args:
@@ -313,7 +327,7 @@ class Line(no_mans_sky_base_builder.part.Part):
             else:
                 source_local = mathutils.Matrix(source_local_value)
                 source_snap_matrix = source.matrix_world @ source_local
-                source_control = Line.create_point(source.name + "_START")
+                source_control = Line.create_point(builder, source.name + "_START")
                 source_control.location = source_snap_matrix.decompose()[0]
                 source_control["snapped_to"] = source.name
 
@@ -326,7 +340,7 @@ class Line(no_mans_sky_base_builder.part.Part):
             else:
                 target_local = mathutils.Matrix(target_local_value)
                 target_snap_matrix = target.matrix_world @ target_local
-                target_control = Line.create_point(target.name + "_END")
+                target_control = Line.create_point(builder, target.name + "_END")
                 target_control.location = target_snap_matrix.decompose()[0]
                 target_control["snapped_to"] = target.name
 

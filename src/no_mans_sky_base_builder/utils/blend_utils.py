@@ -57,8 +57,8 @@ def scene_refresh():
     This is sometimes required when adding and removing constraints on 
     certain objects.
     """
-    dg = bpy.context.evaluated_depsgraph_get()
-    dg.update()
+    layer = bpy.context.view_layer
+    layer.update()
 
 
 def set_active_item(item):
@@ -125,3 +125,17 @@ def get_distance_between(matrix1, matrix2):
     return math.sqrt(
         (translate2.x - translate1.x)**2 + (translate2.y - translate1.y)**2  + (translate2.z - translate1.z)**2
     )
+
+
+def delete(bpy_object):
+    """Remove the item and everything below it."""
+    # Deselect all
+    bpy.ops.object.select_all(action='DESELECT')
+    
+    # Parent items to control.
+    for part in bpy_object.children:
+        part.hide_select = False
+        part.select_set(True)
+    
+    bpy_object.select_set(True)
+    bpy.ops.object.delete() 

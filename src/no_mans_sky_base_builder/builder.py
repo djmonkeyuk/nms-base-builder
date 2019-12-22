@@ -1,5 +1,5 @@
 """The builder contains all top level scene methods for managing NMS parts."""
-import cProfile
+# import cProfile
 import importlib
 import json
 import math
@@ -243,8 +243,8 @@ class Builder(object):
         
         We don't need to create a new class, we can act upon this one.
         """
-        pr = cProfile.Profile()
-        pr.enable()
+        # pr = cProfile.Profile()
+        # pr.enable()
 
         # Reconstruct objects.
         for part_data in data.get("Objects", []):
@@ -260,8 +260,8 @@ class Builder(object):
         self.build_rigs()
         # Optimise control points.
         self.optimise_control_points()
-        pr.disable()
-        pr.print_stats(sort='time')
+        # pr.disable()
+        # pr.print_stats(sort='time')
 
     @staticmethod
     def by_order(bpy_object):

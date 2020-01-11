@@ -1,8 +1,15 @@
 """Convenient methods to perform common blender related tasks."""
 import math
 
+import addon_utils
 import bpy
 
+
+def load_plugin(plugin_name):
+    """Load a blender plugin."""
+    is_enabled, _ = addon_utils.check(plugin_name)
+    if not is_enabled:
+        addon_utils.enable(plugin_name)
 
 def add_to_scene(item, collection_name="Collection"):
     """Add an item to the main blender collection.

@@ -3,7 +3,7 @@ bl_info = {
     "name": "No Mans Sky Base Builder",
     "description": "A tool to assist with base building in No Mans Sky",
     "author": "Charlie Banks",
-    "version": (1, 1, 7),
+    "version": (1, 1, 8),
     "blender": (2, 81, 0),
     "location": "3D View > Tools",
     "warning": "",  # used for warning icon and text in addons panel
@@ -754,10 +754,7 @@ class NMS_PT_base_prop_panel(Panel):
         properties_column = properties_box.column(align=True)
         properties_column.prop(nms_tool, "string_base")
         properties_column.prop(nms_tool, "string_address")
-        splitter = properties_column.split(factor=0.5)
-        splitter.label(text="Part Count:")
-        part_count = len([obj for obj in bpy.data.objects if "ObjectID" in obj])
-        splitter.label(text="{}".format(part_count))
+
 
 # Snap Panel ---
 class NMS_PT_snap_panel(Panel):
@@ -777,39 +774,54 @@ class NMS_PT_snap_panel(Panel):
         scene = context.scene
         nms_tool = scene.nms_base_tool
 
-        snap_box = layout.box()
-        snap_column = snap_box.column()
-        snap_column.label(text="Visibility")
-        # Room Vis Button.
-        label = "Exterior Room Visibility: Normal"
-        if nms_tool.room_vis_switch == 1:
-            label = "Exterior Room Visibility: Ghosted"
-        elif nms_tool.room_vis_switch == 2:
-            label = "Exterior Room Visibility: Invisible"
-        elif nms_tool.room_vis_switch == 3:
-            label = "Exterior Room Visibility: Lit"
+        # Split into two columns of equal widths.
+        split = layout.split(factor=0.5)
+        tools_column, snap_column = (
+            split.column(),split.column()
+        )
 
-        snap_column.operator(
+        tools_box = tools_column.box()
+        tools_col = tools_box.column(align=True)
+        
+        tools_col.label(text="Visibility")
+        # Room Vis Button.
+        label = "Normal"
+        if nms_tool.room_vis_switch == 1:
+            label = "Ghosted"
+        elif nms_tool.room_vis_switch == 2:
+            label = "Invisible"
+
+        tools_col.operator(
             "nms.toggle_room_visibility", icon="CUBE", text=label
         )
 
-        snap_column.label(text="Duplicate")
-        snap_column.operator("nms.duplicate", icon="DUPLICATE")
-        dup_along_curve = snap_column.operator(
+        tools_col.label(text="Duplicate")
+        tools_col.operator("nms.duplicate", icon="DUPLICATE")
+        dup_along_curve = tools_col.operator(
             "nms.duplicate_along_curve", icon="CURVE_DATA"
         )
-        snap_column.label(text="Delete")
-        snap_column.operator("nms.delete", icon="CANCEL")
-        # dup_along_curve.distance_percentage = 0.1
-        snap_column.label(text="Snap")
-        snap_op = snap_column.operator("nms.snap", icon="SNAP_ON")
+        tools_col.label(text="Delete")
+        tools_col.operator("nms.delete", icon="CANCEL")
 
-        target_row = snap_column.row()
+        # Create Part Count Box.
+        part_box = snap_column.box()
+        splitter = part_box.split(factor=0.7)
+        splitter.label(text="Part Count:")
+        part_count = len([obj for obj in bpy.data.objects if "ObjectID" in obj])
+        splitter.label(text="{}".format(part_count))
+
+        # Create Snapping box.
+        snap_box = snap_column.box()
+        snap_col = snap_box.column(align=True)
+        snap_col.label(text="Snap")
+        snap_op = snap_col.operator("nms.snap", icon="SNAP_ON")
+
+        target_row = snap_col.row(align=True)
         target_row.label(text="Target")
         snap_target_prev = target_row.operator("nms.snap", icon="TRIA_LEFT", text="Prev")
         snap_target_next = target_row.operator("nms.snap", icon="TRIA_RIGHT", text="Next")
 
-        source_row = snap_column.row()
+        source_row = snap_col.row(align=True)
         source_row.label(text="Source")
         snap_source_prev = source_row.operator("nms.snap", icon="TRIA_LEFT", text="Prev")
         snap_source_next = source_row.operator("nms.snap", icon="TRIA_RIGHT", text="Next")
@@ -859,9 +871,10 @@ class NMS_PT_colour_panel(Panel):
         scene = context.scene
         nms_tool = scene.nms_base_tool
         pcoll = preview_collections["main"]
-        enum_row = layout.row(align=True)
+        colour_area = layout.column(align=True)
+        enum_row = colour_area.row(align=True)
         enum_row.prop(nms_tool, "material_switch", expand=True)
-        colour_row_1 = layout.row(align=True)
+        colour_row_1 = colour_area.row(align=True)
         colour_row_1.scale_y = 1.3
         colour_row_1.scale_x = 1.3
         for idx in range(16):
@@ -892,7 +905,7 @@ class NMS_PT_logic_panel(Panel):
         layout = self.layout
         box = layout.box()
         col = box.column()
-        col.label(text="Electrics")
+        col.label(text="Wiring")
         row = col.row()
         row.operator("nms.point", icon="EMPTY_DATA")
         row.operator("nms.connect", icon="PARTICLES")
@@ -1639,6 +1652,10 @@ classes = (
 )
 
 def register():
+    # Load Dependencies.
+    obj_addon = "io_scene_obj"
+    blend_utils.load_plugin(obj_addon)
+
     # Ensure User data folder structure exists
     for data_path in [USER_PATH, PRESET_PATH]:
         if not os.path.exists(data_path):

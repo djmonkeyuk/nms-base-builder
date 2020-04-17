@@ -21,6 +21,7 @@ import no_mans_sky_base_builder.part_overrides.u_bytebeatline as u_bytebeatline
 import no_mans_sky_base_builder.part_overrides.u_pipeline as u_pipeline
 import no_mans_sky_base_builder.part_overrides.u_portalline as u_portalline
 import no_mans_sky_base_builder.part_overrides.u_powerline as u_powerline
+import no_mans_sky_base_builder.part_overrides.bytebeatswitch as bytebeatswitch
 import no_mans_sky_base_builder.preset as preset
 import no_mans_sky_base_builder.utils.blend_utils as blend_utils
 import no_mans_sky_base_builder.utils.python as python_utils
@@ -50,6 +51,7 @@ class Builder(object):
         "BRIDGECONNECTOR": bridge_connector.BRIDGECONNECTOR,
         "AIRLCKCONNECTOR": air_lock_connector.AIRLCKCONNECTOR,
         "BYTEBEAT": bytebeat.BYTEBEAT,
+        "BYTEBEATSWITCH": bytebeatswitch.BYTEBEATSWITCH,
         "U_BYTEBEATLINE": u_bytebeatline.U_BYTEBEATLINE
     }
 

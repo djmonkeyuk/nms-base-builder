@@ -1,5 +1,31 @@
+release 1.1.9
+-------------
+
+* Updated Add-on information for Blender 2.82
+* Added missing Half Metal Arch object.
+* Added missing power connection to Garage Wall items.
+* Added missing power connections to Light Posts.
+* Added missing power connection to Byte Beat Switch.
+* Enabled message capturing on Byte Beat Switch.
+* Added some snapping information to the short wall pieces.
+* Improved models for...
+    * BUILDLIGHT
+    * BUILDLIGHT2
+    * BUILDLIGHT3
+    * BYTEBEATSWITCH
+    * C_GDOOR
+    * M_GDOOR
+    * W_GDOOR
+    * C_WALL_Q
+    * C_WALL_Q_H
+    * M_WALL_Q
+    * M_WALL_Q_H
+    * W_WALL_Q
+    * W_WALL_Q_H
+
 release 1.1.8
 -------------
+
 * Arranged the Tools panel into a neater and more compact layout.
 * Missing object cube placeholder's are now named after the object ID in the scene.
 * Added OBJ add-on as a plugin dependency.

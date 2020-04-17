@@ -1,3 +1,10 @@
+release 1.1.8
+-------------
+* Arranged the Tools panel into a neater and more compact layout.
+* Missing object cube placeholder's are now named after the object ID in the scene.
+* Added OBJ add-on as a plugin dependency.
+
+
 release 1.1.7
 -------------
 

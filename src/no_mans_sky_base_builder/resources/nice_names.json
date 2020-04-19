@@ -332,5 +332,37 @@
 
     "W_TRIFLOOR_Q": "Wood Tri Floor (Small)",
     "M_TRIFLOOR_Q": "Metal Tri Floor (Small)",
-    "C_TRIFLOOR_Q": "Concrete Tri Floor (Small)"
+    "C_TRIFLOOR_Q": "Concrete Tri Floor (Small)",
+
+
+    "BUILDDECAL": "Decal (Glyph)",
+    "BUILDDECAL2": "Decal (Long Line)",
+    "BUILDDECALNMS": "Decal (Atlas)",
+    "BUILDDECALNUM0": "Decal (0)",
+    "BUILDDECALNUM1": "Decal (1)",
+    "BUILDDECALNUM2": "Decal (2)",
+    "BUILDDECALNUM3": "Decal (3)",
+    "BUILDDECALNUM4": "Decal (4)",
+    "BUILDDECALNUM5": "Decal (5)",
+    "BUILDDECALNUM6": "Decal (6)",
+    "BUILDDECALNUM7": "Decal (7)",
+    "BUILDDECALNUM8": "Decal (8)",
+    "BUILDDECALNUM9": "Decal (9)",
+    "BUILDDECALSIMP1": "Decal (Blue Key)",
+    "BUILDDECALSIMP2": "Decal (Green Arrow)",
+    "BUILDDECALSIMP3": "Decal (Red Glyph)",
+    "BUILDDECALSIMP4": "Decal (Dark Arrow)",
+    "BUILDDECALVIS1": "Decal (Vykeen)",
+    "BUILDDECALVIS2": "Decal (Gek)",
+    "BUILDDECALVIS3": "Decal (Korvax)",
+    "BUILDDECALVIS4": "Decal (Blob)",
+    "BUILDDECALVIS5": "Decal (Teddy)",
+    "SPEC_DECAL01": "Decal (Explorer)",
+    "SPEC_DECAL02": "Decal (Galactic Hub)",
+    "SPEC_DECAL03": "Decal (Hand)",
+    "SPEC_DECAL04": "Decal (Nada)",
+    "SPEC_DECAL05": "Decal (Polo)",
+    "SPEC_DECAL06": "Decal (Apollo)",
+    "SPEC_DECAL07": "Decal (Artemis)",
+    "SPEC_DECAL08": "Decal (Null)"
 }

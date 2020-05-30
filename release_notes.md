@@ -1,3 +1,83 @@
+release 1.2.1
+-------------
+
+* Fixed naming of BUILDCHAIR.
+* Fixed a model positioning issue with NPCFRIGTERM.
+* Added snapping positions for Plants, Platers and Bioroom.
+* Adjusted scaling for gold, silver and bronze statues.
+* Added support for the following models ...(with help from @DevilinPixy)
+    * Main
+        * PANEL_GLASS
+    * Decoration
+        * STATUE_DIP_B
+        * STATUE_DIP_S
+        * STATUE_DIP_G
+    * Exocraft
+        * GARAGE_MECH
+    * Technology
+        * POWERLINE_HIDER
+        * BUILDHARVESTER
+    * Farming
+        * TOXICPLANT
+        * SNOWPLANT
+        * SCORCHEDPLANT
+        * SACVENOMPLANT
+        * RADIOPLANT
+        * POOPPLANT
+        * PEARLPLANT
+        * NIPPLANT
+        * GRAVPLANT
+        * LUSHPLANT
+        * BARRENPLANT
+        * CREATUREPLANT
+    * Freighter
+        * GARAGE_FREIGHT
+        * S_CONTAINER0
+        * S_CONTAINER1
+        * S_CONTAINER2
+        * S_CONTAINER3
+        * S_CONTAINER4
+        * S_CONTAINER5
+        * S_CONTAINER6
+        * S_CONTAINER7
+        * S_CONTAINER8
+        * S_CONTAINER9
+    * Unlockables
+        * BASE_BEAMSTONE
+        * BASE_BUBBLECLUS
+        * BASE_COLDPLANT1
+        * BASE_COLDPLANT2
+        * BASE_COLDPLANT3
+        * BASE_CONTOURPOD
+        * BASE_DUSTPLANT1
+        * BASE_DUSTPLANT2
+        * BASE_DUSTPLANT3
+        * BASE_ENGINEORB
+        * BASE_HOTPLANT1
+        * BASE_HOTPLANT2
+        * BASE_HOTPLANT3
+        * BASE_HYDROPOD
+        * BASE_MEDGEOMETR
+        * BASE_MEDPLANT01
+        * BASE_MEDPLANT02
+        * BASE_MEDPLANT03
+        * BASE_RADPLANT01
+        * BASE_RADPLANT02
+        * BASE_RADPLANT03
+        * BASE_ROBOTOY
+        * BASE_ROCK01
+        * BASE_ROCK02
+        * BASE_ROCK03
+        * BASE_SHARD
+        * BASE_SHELLWHITE
+        * BASE_STARJOINT
+        * BASE_TOXPLANT01
+        * BASE_TOXPLANT02
+        * BASE_TOXPLANT03
+        * BASE_WEIRDCUBE
+        * BASE_WPLANT1
+        * BASE_WPLANT2
+
 release 1.2.0
 -------------
 

@@ -291,6 +291,7 @@ class Part(object):
         # Create cube.
         bpy.ops.mesh.primitive_cube_add()
         item = bpy.data.objects[bpy.context.object.name]
+        item.name = object_id
         blend_utils.add_to_scene(item)
         return item
 

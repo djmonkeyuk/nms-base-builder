@@ -135,10 +135,15 @@ class Builder(object):
             )
 
         # Handle Parts.
+        object_id = None
         if "ObjectID" in bpy_object:
             object_id = bpy_object.get("ObjectID")
         elif "SnapID" in bpy_object:
             object_id = bpy_object.get("SnapID")
+        
+        if not object_id:
+            return None
+
         use_class = self.get_part_class(object_id)
         return use_class.deserialise_from_object(
             bpy_object=bpy_object,

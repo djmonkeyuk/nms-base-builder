@@ -1,3 +1,27 @@
+release 1.3.0
+-------------
+
+* Fixed some Blender error messages when interacting with non-NMS scene items.
+* Missing/Modded parts will be named their ID instead of "cube".
+* New models for C_ROOF, M_ROOF
+* Added support for the following models ...
+    * Freighter
+        * ABAND_BARREL - Industrial Barrel
+        * ABAND_BENCH - Industrial Bench
+        * ABAND_CASE - Secure Briefcase
+        * ABAND_CRATE_L - Storage Unit
+        * ABAND_CRATE_M - Salvage Crate
+        * ABAND_CRATE_XL - Large Storage
+        * ABAND_SHELF - Heavy-Duty Furniture
+        * FOORLIGHT - Emergency Light
+        * FOOTLOCKER - Crew Footlocker
+        * HEATER - Emergency Heater
+        * LOCKER2 - Crew Locker
+        * MEDTUBE - Sample Container
+        * PALLET - Industrial Pallet
+        * PLANTTUBE - Floral Cannister
+
+
 release 1.2.1
 -------------
 

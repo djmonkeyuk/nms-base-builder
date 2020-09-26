@@ -3,11 +3,11 @@ bl_info = {
     "name": "No Mans Sky Base Builder",
     "description": "A tool to assist with base building in No Mans Sky",
     "author": "Charlie Banks",
-    "version": (1, 2, 0),
-    "blender": (2, 82, 0),
+    "version": (1, 3, 0),
+    "blender": (2, 90, 0),
     "location": "3D View > Tools",
     "warning": "",  # used for warning icon and text in addons panel
-    "wiki_url": "",
+    "wiki_url": "https://www.nexusmods.com/nomanssky/mods/984",
     "tracker_url": "",
     "category": "Game Engine",
 }
@@ -697,13 +697,14 @@ class NMSSettings(PropertyGroup):
         # Perform Snap
         source = BUILDER.get_builder_object_from_bpy_object(source)
         target = BUILDER.get_builder_object_from_bpy_object(target)
-        source.snap_to(
-            target,
-            next_source=next_source,
-            prev_source=prev_source,
-            next_target=next_target,
-            prev_target=prev_target,
-        )
+        if source and target:
+            source.snap_to(
+                target,
+                next_source=next_source,
+                prev_source=prev_source,
+                next_target=next_target,
+                prev_target=prev_target,
+            )
 
 
 # UI ---
@@ -1224,8 +1225,11 @@ class ListBuildOperator(bpy.types.Operator):
 
         # If there was a previous selection, snap the new item to it.
         if selection:
-            selection = BUILDER.get_builder_object_from_bpy_object(selection)
-            new_item.snap_to(selection)
+            builder_selection = BUILDER.get_builder_object_from_bpy_object(
+                selection
+            )
+            if builder_selection:
+                new_item.snap_to(builder_selection)
         return {"FINISHED"}
 
 

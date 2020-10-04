@@ -1363,22 +1363,24 @@ class Point(bpy.types.Operator):
     def execute(self, context):
         # Get current selection.
         selection = blend_utils.get_current_selection()
-        # Create a new point.
-        point = line.Line.create_point(BUILDER, name="ARBITRARY_POINT")
-        # Move the new point slightly away from current selection.
-        if selection:
-            point.location = selection.location
-            point.location[0] += 1
-            point.location[1] += 1
 
-            if "rig_item" in selection:
-                line_object = selection.get("power_line", "U_POWERLINE").split(".")[0]
-                power_line = BUILDER.add_part(line_object, build_rigs=False)
-                # Create controls.
-                power_line.build_rig(
-                    start=selection,
-                    end=point
-                )
+        # Don't stack multiple for multiple clicks
+        if context.scene.cursor.location == selection.location:
+            return {"CANCELLED"}
+
+        # Create a new point at the cursor.
+        point = line.Line.create_point(BUILDER, name="ARBITRARY_POINT")
+        point.location = context.scene.cursor.location
+
+        # If another powerline was already selected, connect it
+        if selection and "rig_item" in selection:
+            line_object = selection.get("power_line", "U_POWERLINE").split(".")[0]
+            power_line = BUILDER.add_part(line_object, build_rigs=False)
+            # Create controls.
+            power_line.build_rig(
+                start=selection,
+                end=point
+            )
 
         # Now select the new point.
         blend_utils.select(point)

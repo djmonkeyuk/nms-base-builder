@@ -1365,7 +1365,7 @@ class Point(bpy.types.Operator):
         selection = blend_utils.get_current_selection()
 
         # Don't stack multiple for multiple clicks
-        if context.scene.cursor.location == selection.location:
+        if selection and context.scene.cursor.location == selection.location:
             return {"CANCELLED"}
 
         # Create a new point at the cursor.

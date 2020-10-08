@@ -949,7 +949,7 @@ class NMS_PT_build_panel(Panel):
         row.operator("nms.open_preset_folder", icon="FILE_FOLDER")
         part_list = layout.template_list(
             "NMS_UL_actions_list",
-            "compact",
+            "",
             context.scene,
             "col",
             context.scene,

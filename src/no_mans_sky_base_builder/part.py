@@ -284,6 +284,8 @@ class Part(object):
         if obj_path and os.path.isfile(obj_path):
             bpy.ops.import_scene.obj(filepath=obj_path, split_mode="OFF")
             item = bpy.data.objects[bpy.context.selected_objects[0].name]
+            # for convenience if saving obj/mtl files, delete any imported materials
+            item.data.materials.clear()
             item.select_set(False)
             blend_utils.add_to_scene(item)
             return item

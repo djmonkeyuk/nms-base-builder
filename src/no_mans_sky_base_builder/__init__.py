@@ -1079,7 +1079,7 @@ def refresh_ui_part_list(scene, item_type="parts", pack=None):
 class NewFile(bpy.types.Operator):
     bl_idname = "nms.new_file"
     bl_label = "New"
-    bl_options = {"REGISTER", "INTERNAL"}
+    bl_options = {"REGISTER", "INTERNAL", "UNDO", "UNDO_GROUPED"}
 
     def execute(self, context):
         scene = context.scene
@@ -1110,6 +1110,7 @@ class SaveData(bpy.types.Operator):
 class LoadData(bpy.types.Operator):
     bl_idname = "nms.load_data"
     bl_label = "Load"
+    bl_options = {"UNDO", "REGISTER"}
     filepath: bpy.props.StringProperty(subtype="FILE_PATH")
 
     def execute(self, context):
@@ -1126,6 +1127,7 @@ class LoadData(bpy.types.Operator):
 class ImportData(bpy.types.Operator):
     bl_idname = "nms.import_nms_data"
     bl_label = "Import NMS"
+    bl_options = {"UNDO", "REGISTER"}
 
     def execute(self, context):
         scene = context.scene
@@ -1149,6 +1151,7 @@ class ExportData(bpy.types.Operator):
 class ToggleRoom(bpy.types.Operator):
     bl_idname = "nms.toggle_room_visibility"
     bl_label = "Toggle Room Visibility: Normal"
+    bl_options = {"UNDO", "REGISTER"} # I think this must pass "UNDO" because it changes objects, but it probably doesn't interact correctly with the plugin?
 
     def execute(self, context):
         scene = context.scene
@@ -1206,6 +1209,7 @@ class ListBuildOperator(bpy.types.Operator):
 
     bl_idname = "object.list_build_operator"
     bl_label = "Simple Object Operator"
+    bl_options = {"UNDO", "REGISTER"}
     part_id: StringProperty()
 
     def execute(self, context):
@@ -1238,6 +1242,7 @@ class ListEditOperator(bpy.types.Operator):
 
     bl_idname = "object.list_edit_operator"
     bl_label = "Edit Preset"
+    bl_options = {"UNDO", "REGISTER"}
     part_id: StringProperty()
 
     def execute(self, context):
@@ -1282,7 +1287,7 @@ class ListDeleteOperator(bpy.types.Operator):
 class Duplicate(bpy.types.Operator):
     bl_idname = "nms.duplicate"
     bl_label = "Duplicate"
-    
+    bl_options = {"UNDO", "REGISTER"}
 
     def execute(self, context):
         scene = context.scene
@@ -1293,6 +1298,7 @@ class Duplicate(bpy.types.Operator):
 class Delete(bpy.types.Operator):
     bl_idname = "nms.delete"
     bl_label = "Delete"
+    bl_options = {"UNDO", "REGISTER"}
 
     def execute(self, context):
         scene = context.scene
@@ -1303,6 +1309,7 @@ class Delete(bpy.types.Operator):
 class DuplicateAlongCurve(bpy.types.Operator):
     bl_idname = "nms.duplicate_along_curve"
     bl_label = "Duplicate Along Curve"
+    bl_options = {"UNDO", "REGISTER"}
     distance_percentage: bpy.props.FloatProperty(
         name="Distance Percentage Between Item."
     )
@@ -1322,6 +1329,7 @@ class DuplicateAlongCurve(bpy.types.Operator):
 class ApplyColour(bpy.types.Operator):
     bl_idname = "nms.apply_colour"
     bl_label = "Apply Colour"
+    bl_options = {"UNDO", "REGISTER"}
     colour_index: IntProperty(default=0)
 
     def execute(self, context):
@@ -1337,6 +1345,7 @@ class ApplyColour(bpy.types.Operator):
 class Snap(bpy.types.Operator):
     bl_idname = "nms.snap"
     bl_label = "Snap"
+    bl_options = {"UNDO", "REGISTER"}
 
     next_source : BoolProperty()
     prev_source : BoolProperty()
@@ -1359,6 +1368,7 @@ class Snap(bpy.types.Operator):
 class Point(bpy.types.Operator):
     bl_idname = "nms.point"
     bl_label = "New Point"
+    bl_options = {"UNDO", "REGISTER"}
 
     def execute(self, context):
         # Get current selection.
@@ -1387,6 +1397,7 @@ class Point(bpy.types.Operator):
 class Connect(bpy.types.Operator):
     bl_idname = "nms.connect"
     bl_label = "Connect"
+    bl_options = {"UNDO", "REGISTER"}
 
     def execute(self, context):
         # Validate selection.
@@ -1433,6 +1444,7 @@ class Connect(bpy.types.Operator):
 class Divide(bpy.types.Operator):
     bl_idname = "nms.divide"
     bl_label = "Divide"
+    bl_options = {"UNDO", "REGISTER"}
 
     def execute(self, context):
         # Get Selected item.
@@ -1489,6 +1501,7 @@ class Split(bpy.types.Operator):
 class LogicButton(bpy.types.Operator):
     bl_idname = "nms.logic_button"
     bl_label = "BTN"
+    bl_options = {"UNDO", "REGISTER"}
 
     def execute(self, context):
         # Get Selected item.
@@ -1507,6 +1520,7 @@ class LogicButton(bpy.types.Operator):
 class LogicWallSwitch(bpy.types.Operator):
     bl_idname = "nms.logic_wall_switch"
     bl_label = "SWITCH"
+    bl_options = {"UNDO", "REGISTER"}
 
     def execute(self, context):
         # Get Selected item.
@@ -1523,6 +1537,7 @@ class LogicWallSwitch(bpy.types.Operator):
 class LogicProxSwitch(bpy.types.Operator):
     bl_idname = "nms.logic_prox_switch"
     bl_label = "PROX"
+    bl_options = {"UNDO", "REGISTER"}
 
     def execute(self, context):
         # Get Selected item.
@@ -1539,6 +1554,7 @@ class LogicProxSwitch(bpy.types.Operator):
 class LogicInvSwitch(bpy.types.Operator):
     bl_idname = "nms.logic_inv_switch"
     bl_label = "INV"
+    bl_options = {"UNDO", "REGISTER"}
 
     def execute(self, context):
         # Get Selected item.
@@ -1555,6 +1571,7 @@ class LogicInvSwitch(bpy.types.Operator):
 class LogicAutoSwitch(bpy.types.Operator):
     bl_idname = "nms.logic_auto_switch"
     bl_label = "AUTO"
+    bl_options = {"UNDO", "REGISTER"}
 
     def execute(self, context):
         # Get Selected item.
@@ -1571,6 +1588,7 @@ class LogicAutoSwitch(bpy.types.Operator):
 class LogicFloorSwitch(bpy.types.Operator):
     bl_idname = "nms.logic_floor_switch"
     bl_label = "FLOOR"
+    bl_options = {"UNDO", "REGISTER"}
 
     def execute(self, context):
         # Get Selected item.
@@ -1587,6 +1605,7 @@ class LogicFloorSwitch(bpy.types.Operator):
 class LogicBeatSwitch(bpy.types.Operator):
     bl_idname = "nms.logic_beat_switch"
     bl_label = "BEAT"
+    bl_options = {"UNDO", "REGISTER"}
 
     def execute(self, context):
         # Get Selected item.

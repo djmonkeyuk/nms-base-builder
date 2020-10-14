@@ -1,3 +1,11 @@
+release 1.3.1
+-------------
+
+* Added `bl_options = {"UNDO", "REGISTER"}` everywhere required.
+* Changed material colour of U_PORTALLINE.
+* Added .gitignore file.
+
+
 release 1.3.0
 -------------
 

@@ -64,6 +64,15 @@ def assign_power_material(item):
     material = validate_material("powerline_material", [0.0, 0.5, 1.0, 0.5])
     set_material(item, material)
 
+def assign_portal_material(item):
+    """Assign teal material to object.
+    
+    Args:
+        item (bpy.Object): The Blender object to assign the material to.
+    """
+    material = validate_material("portalline_material", [0.0, 1.0, 1.0, 0.5])
+    set_material(item, material)
+
 def assign_bytebeat_material(item):
     """Assign light purple material to object.
     

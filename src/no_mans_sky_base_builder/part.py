@@ -704,3 +704,13 @@ class Part(object):
             return None
         # Return matrix.
         return snap_matrices[key]["matrix"]
+
+    def has_snap_point(self, filter=None):
+        """Check for any matrix that would match the given filter."""
+        # Get relavant snap information from item.
+        snap_matrices = self.get_snap_points()
+        # Validate key entry.
+        for key, info in snap_matrices.items():
+            if not filter or filter in key:
+                return True
+        return False

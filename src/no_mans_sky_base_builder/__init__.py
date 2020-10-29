@@ -1452,7 +1452,7 @@ class Divide(bpy.types.Operator):
         
         # Validate
         invalid_message = "Make sure you have a powerline item selected."
-        title = "Split"
+        title = "Divide"
         if not target:
             ShowMessageBox(message=invalid_message, title=title)
             return {"FINISHED"}

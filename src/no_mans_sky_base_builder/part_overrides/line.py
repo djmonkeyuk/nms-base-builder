@@ -228,8 +228,14 @@ class Line(no_mans_sky_base_builder.part.Part):
         point["rig_item"] = True
         point["SnapID"] = "POWER_CONTROL"
 
-        if name == default_name:
-            name = "{}.{}".format(name, point.name.split(".")[-1])
+        # blender will automatically de-dupe on rename, but it will rename
+        # some *other* object, whose name we might already have stored as text.
+        # (Also have to account for it having already given us a good name)
+        n = 0
+        base_name = name
+        while point.name != name and (name == default_name or blend_utils.item_exists_by_name(name)):
+            n += 1
+            name = "{}.{:0=3d}".format(base_name, n)
 
         point.name = name
         point.data.name = name+"_SHAPE"

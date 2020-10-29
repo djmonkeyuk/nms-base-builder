@@ -913,6 +913,9 @@ class NMS_PT_logic_panel(Panel):
         divide_row = col.row()
         divide_row.operator("nms.divide", icon="LINCURVE")
         divide_row.operator("nms.split", icon="MOD_PHYSICS")
+        select_row = col.row()
+        select_row.operator("nms.select_connected", icon="RESTRICT_SELECT_OFF")
+        select_row.operator("nms.select_floating", icon="RESTRICT_INSTANCED_ON")
 
         col.label(text="Logic")
         logic_row = col.row(align=True)
@@ -1509,6 +1512,46 @@ class Split(bpy.types.Operator):
         power_line.split()
         return {"FINISHED"}
 
+class SelectConnected(bpy.types.Operator):
+    bl_idname = "nms.select_connected"
+    bl_label = "Select Connected"
+    bl_options = {"UNDO", "REGISTER"}
+
+    def execute(self, context):
+        selected_objects = [BUILDER.get_builder_object_from_bpy_object(o) for o in bpy.context.selected_objects]
+
+        newly_selected = set()
+        for o in selected_objects:
+            newly_selected.update(o.get_connected_snapped_objects("POWER"))
+        for o in newly_selected:
+            o.object.select_set(True)
+        return {"FINISHED"}
+
+class SelectFloating(bpy.types.Operator):
+    bl_idname = "nms.select_floating"
+    bl_label = "Select Floating"
+    bl_options = {"UNDO", "REGISTER"}
+
+    def execute(self, context):
+        for part in BUILDER.get_all_parts(include_lines=True):
+            if not "SnapID" in part:
+                continue
+            part = BUILDER.get_builder_object_from_bpy_object(part)
+            if part.snap_id != "POWER_CONTROL":
+                continue
+            is_connected_to_object = False
+            num_line_connections = 0
+            for target in part.get_connected_snapped_objects("POWER", include_lines=False):
+                if not hasattr(target, "start_control"):
+                    is_connected_to_object = True
+                    break
+                else:
+                    num_line_connections += 1
+
+            if not is_connected_to_object and num_line_connections < 2:
+                part.object.select_set(True)
+
+        return {"FINISHED"}
 
 class LogicButton(bpy.types.Operator):
     bl_idname = "nms.logic_button"
@@ -1645,6 +1688,8 @@ classes = (
     Connect,
     Divide,
     Split,
+    SelectConnected,
+    SelectFloating,
 
     LogicButton,
     LogicWallSwitch,

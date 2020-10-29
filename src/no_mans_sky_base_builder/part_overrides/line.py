@@ -47,6 +47,15 @@ class Line(no_mans_sky_base_builder.part.Part):
     def end_control(self, value):
         self.object["end_control"] = value
 
+    # snap points are in the object's world space, so they are constant:
+    __snap_points = {
+        "POWER_A": { "matrix": mathutils.Matrix() },
+        "POWER_B": { "matrix": mathutils.Matrix.Translation([0, 0, 1]) }
+    }
+    def get_snap_points(self):
+        """Override base class for lines with synthetic snap points at each end."""
+        return self.__snap_points
+
     def build_rig(self, start=None, end=None):
         """Given the power line object, create 2 empties to control end points.
 

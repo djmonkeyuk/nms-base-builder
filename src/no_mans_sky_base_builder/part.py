@@ -706,3 +706,60 @@ class Part(object):
             return None
         # Return matrix.
         return snap_matrices[key]["matrix"]
+
+    def has_snap_point(self, filter=None):
+        """Check for any matrix that would match the given filter."""
+        # Get relavant snap information from item.
+        snap_matrices = self.get_snap_points()
+        # Validate key entry.
+        for key, info in snap_matrices.items():
+            if not filter or filter in key:
+                return True
+        return False
+
+    def get_connected_snapped_objects(self, filter=None, include_lines=True):
+        """Get all objects connected to the given snap category.
+        
+        Args:
+            filter (str): A filter for the snap points being used.
+        """
+        source_matrices = self.get_snap_points()
+        if filter is not None:
+            source_matrices = { k: v for k, v in source_matrices.items() if filter in k }
+
+        source_points = [self.matrix_world @ mathutils.Matrix(info["matrix"]) for k, info in source_matrices.items()]
+
+        result = []
+        if not source_points:
+            return result
+
+        for target in self.builder.get_all_parts(include_lines=include_lines):
+            if target == self.object:
+                continue
+
+            target = self.builder.get_builder_object_from_bpy_object(target)
+            snap_points = target.get_snap_points()
+            if not snap_points:
+                continue
+            for target_key, target_info in snap_points.items():
+                # Check target filter.
+                if filter and filter not in target_key:
+                    continue
+                
+                local_target_matrix = mathutils.Matrix(target_info["matrix"])
+                target_snap_matrix = target.matrix_world @ local_target_matrix
+
+                found = False
+                for source_snap_matrix in source_points:
+                    distance = blend_utils.get_distance_between(
+                        source_snap_matrix, target_snap_matrix
+                    )
+                    if distance < 0.050:  # XXX what is actual game threshold?
+                        found = True
+                        break
+                if found:
+                    result.append(target)
+                    break
+
+        return result
+

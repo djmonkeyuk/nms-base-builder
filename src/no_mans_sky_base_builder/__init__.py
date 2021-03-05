@@ -913,6 +913,9 @@ class NMS_PT_logic_panel(Panel):
         divide_row = col.row()
         divide_row.operator("nms.divide", icon="LINCURVE")
         divide_row.operator("nms.split", icon="MOD_PHYSICS")
+        select_row = col.row()
+        select_row.operator("nms.select_connected", icon="RESTRICT_SELECT_OFF")
+        select_row.operator("nms.select_floating", icon="RESTRICT_INSTANCED_ON")
 
         col.label(text="Logic")
         logic_row = col.row(align=True)
@@ -1403,44 +1406,56 @@ class Connect(bpy.types.Operator):
 
     def execute(self, context):
         # Validate selection.
-        selected_objects = bpy.context.selected_objects
-        if len(selected_objects) != 2:
+        selected_objects = [BUILDER.get_builder_object_from_bpy_object(o) for o in bpy.context.selected_objects]
+        selected_objects = [o for o in selected_objects if o.has_snap_point("POWER")]
+        if len(selected_objects) < 2:
             message = (
-                "Make sure you have two electric points selected."
+                "Make sure you have two or more electric points selected."
             )
             ShowMessageBox(message=message, title="Connect")
             return {"FINISHED"}
 
-        # Build and perform connection .
-        start = selected_objects[0]
-        end = selected_objects[1]
-
-        start = BUILDER.get_builder_object_from_bpy_object(start)
-        end = BUILDER.get_builder_object_from_bpy_object(end)
-        # Validate points.
-        start, end = line.Line.generate_control_points(start, end, BUILDER)
-        if not start and not end:
+        # Test this after selection for better error reporting
+        if not bpy.context.active_object:
             message = (
-                "These two items are not compatible to connect."
+                "Make sure one object is the active object (shift select the object to connect everything to)."
             )
             ShowMessageBox(message=message, title="Connect")
             return {"FINISHED"}
 
-        start_name = start.name
-        end_name = end.name
-        # Re-obtain objects
-        start = blend_utils.get_item_by_name(start_name)
-        end = blend_utils.get_item_by_name(end_name)
-        # Create new power line.
-        line_object = "U_POWERLINE"
-        if "power_line" in start:
-            line_object = start["power_line"].split(".")[0]
-        power_line = BUILDER.add_part(line_object, build_rigs=False)
-        # Create controls.
-        power_line.build_rig(
-            start=start,
-            end=end
-        )
+        start = BUILDER.get_builder_object_from_bpy_object(bpy.context.active_object)
+        if not start.has_snap_point("POWER"):
+            message = (
+                "Make sure the active object supports electrical connections."
+            )
+            ShowMessageBox(message=message, title="Connect")
+            return {"FINISHED"}
+
+        for end in selected_objects:
+            if end == start:
+                continue
+
+            # Build and perform connection.
+            start_point, end_point = line.Line.generate_control_points(start, end, BUILDER)
+            if not start_point or not end_point:
+                # should have been tested by filtering selected_objects above
+                continue
+
+            # Re-obtain objects
+            start_point = blend_utils.get_item_by_name(start_point.name)
+            end_point = blend_utils.get_item_by_name(end_point.name)
+
+            # Create new power line.
+            line_object = "U_POWERLINE"
+            if "power_line" in start_point:
+                line_object = start_point["power_line"].split(".")[0]
+            power_line = BUILDER.add_part(line_object, build_rigs=False)
+            # Create controls.
+            power_line.build_rig(
+                start=start_point,
+                end=end_point
+            )
+
         return {"FINISHED"}
 
 class Divide(bpy.types.Operator):
@@ -1499,6 +1514,46 @@ class Split(bpy.types.Operator):
         power_line.split()
         return {"FINISHED"}
 
+class SelectConnected(bpy.types.Operator):
+    bl_idname = "nms.select_connected"
+    bl_label = "Select Connected"
+    bl_options = {"UNDO", "REGISTER"}
+
+    def execute(self, context):
+        selected_objects = [BUILDER.get_builder_object_from_bpy_object(o) for o in bpy.context.selected_objects]
+
+        newly_selected = set()
+        for o in selected_objects:
+            newly_selected.update(o.get_connected_snapped_objects("POWER"))
+        for o in newly_selected:
+            o.object.select_set(True)
+        return {"FINISHED"}
+
+class SelectFloating(bpy.types.Operator):
+    bl_idname = "nms.select_floating"
+    bl_label = "Select Floating"
+    bl_options = {"UNDO", "REGISTER"}
+
+    def execute(self, context):
+        for part in BUILDER.get_all_parts(include_lines=True):
+            if not "SnapID" in part:
+                continue
+            part = BUILDER.get_builder_object_from_bpy_object(part)
+            if part.snap_id != "POWER_CONTROL":
+                continue
+            is_connected_to_object = False
+            num_line_connections = 0
+            for target in part.get_connected_snapped_objects("POWER", include_lines=False):
+                if not hasattr(target, "start_control"):
+                    is_connected_to_object = True
+                    break
+                else:
+                    num_line_connections += 1
+
+            if not is_connected_to_object and num_line_connections < 2:
+                part.object.select_set(True)
+
+        return {"FINISHED"}
 
 class LogicButton(bpy.types.Operator):
     bl_idname = "nms.logic_button"
@@ -1635,6 +1690,8 @@ classes = (
     Connect,
     Divide,
     Split,
+    SelectConnected,
+    SelectFloating,
 
     LogicButton,
     LogicWallSwitch,

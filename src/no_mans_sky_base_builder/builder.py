@@ -166,7 +166,7 @@ class Builder(object):
         # If all fails, return None.
         return None
 
-    def get_all_parts(self, exclude_presets=False, skip_object_type=None):
+    def get_all_parts(self, exclude_presets=False, skip_object_type=None, include_lines=False):
         """Get all NMS parts in the scene.
 
         Args:
@@ -179,6 +179,10 @@ class Builder(object):
         # Get all individual NMS parts.
         flat_parts = [part for part in bpy.data.objects if "ObjectID" in part]
         flat_parts = [part for part in flat_parts if part["ObjectID"] not in skip_object_type]
+
+        # Include line conatrol points?
+        if include_lines:
+            flat_parts.extend([part for part in bpy.data.objects if "SnapID" in part and not "ObjectID" in part])
 
         # If exclude presets is on, just return the top level objects.
         if exclude_presets:

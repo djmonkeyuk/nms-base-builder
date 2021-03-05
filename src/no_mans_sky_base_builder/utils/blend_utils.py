@@ -45,6 +45,16 @@ def get_item_by_name(item_name):
     """
     return bpy.data.objects[item_name]
 
+def item_exists_by_name(item_name):
+    """Check for a Blender object by specifying the name of the object.
+    
+    Args:
+        item_name (str): The name of the item.
+        
+    Returns:
+        bool: True iff object exists.    
+    """
+    return item_name in bpy.data.objects
 
 def remove_object(name):
     """Remove an item from the scene by specifying it's name.

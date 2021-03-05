@@ -1,3 +1,30 @@
+release 1.3.2
+-------------
+
+* Added the Derelict Freighter Turret as a buildable item.
+* Added some window and door items to the visibility ghost list.
+* Changed blender ops naming from "nms." to "object.nms_".
+* Added more snapping positions so walls can be snapped below floors.
+* Complete rework of triangle pieces.
+    * Triangles are now the correct size.
+    * 3D model updated to better represent part, with indication of the direction of the triangle.
+    * Fixed snapping points on triangle pieces.
+* Renamed Parts...
+    * BASE_HOTPLANT1 > * BASE_HOTPLANT01
+    * BASE_HOTPLANT2 > * BASE_HOTPLANT02
+    * BASE_HOTPLANT3 > * BASE_HOTPLANT03
+* Added support for the following models ...
+    * Freighter
+        * TURRET_ABAND - Freighter Turret
+* Fixed a power connection position on the Light Floor (credit: @bjj)
+* "Connect" can now operate on multiple selections. (credit: @bjj)
+* Added a "Select Connected" button to the Power Tooling (credit: @bjj)
+* Added a "Select Floating" button to the Power Tooling (credit: @bjj)
+* Fixed a power line division bug (credit: @bjj)
+* Material clears when importing OBJs. (credit: @bjj)
+* Power Controllers now created at the 3D cursor position. (credit: @bjj)
+
+
 release 1.3.1
 -------------
 

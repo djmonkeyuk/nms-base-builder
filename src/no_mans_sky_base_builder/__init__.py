@@ -725,13 +725,13 @@ class NMS_PT_file_buttons_panel(Panel):
         layout = self.layout
         first_column = layout.column(align=True)
         button_row = first_column.row(align=True)
-        button_row.operator("nms.new_file")
+        button_row.operator("object.nms_new_file")
         save_load_row = first_column.row(align=True)
-        save_load_row.operator("nms.save_data", icon="FILE_TICK")
-        save_load_row.operator("nms.load_data", icon="FILE_FOLDER")
+        save_load_row.operator("object.nms_save_data", icon="FILE_TICK")
+        save_load_row.operator("object.nms_load_data", icon="FILE_FOLDER")
         nms_row = first_column.row(align=True)
-        nms_row.operator("nms.import_nms_data", icon="PASTEDOWN")
-        nms_row.operator("nms.export_nms_data", icon="COPYDOWN")
+        nms_row.operator("object.nms_import_nms_data", icon="PASTEDOWN")
+        nms_row.operator("object.nms_export_nms_data", icon="COPYDOWN")
 
 
 # Base Property Panel ---
@@ -793,16 +793,16 @@ class NMS_PT_snap_panel(Panel):
             label = "Invisible"
 
         tools_col.operator(
-            "nms.toggle_room_visibility", icon="CUBE", text=label
+            "object.nms_toggle_room_visibility", icon="CUBE", text=label
         )
 
         tools_col.label(text="Duplicate")
-        tools_col.operator("nms.duplicate", icon="DUPLICATE")
+        tools_col.operator("object.nms_duplicate", icon="DUPLICATE")
         dup_along_curve = tools_col.operator(
-            "nms.duplicate_along_curve", icon="CURVE_DATA"
+            "object.nms_duplicate_along_curve", icon="CURVE_DATA"
         )
         tools_col.label(text="Delete")
-        tools_col.operator("nms.delete", icon="CANCEL")
+        tools_col.operator("object.nms_delete", icon="CANCEL")
 
         # Create Part Count Box.
         part_box = snap_column.box()
@@ -815,17 +815,17 @@ class NMS_PT_snap_panel(Panel):
         snap_box = snap_column.box()
         snap_col = snap_box.column(align=True)
         snap_col.label(text="Snap")
-        snap_op = snap_col.operator("nms.snap", icon="SNAP_ON")
+        snap_op = snap_col.operator("object.nms_snap", icon="SNAP_ON")
 
         target_row = snap_col.row(align=True)
         target_row.label(text="Target")
-        snap_target_prev = target_row.operator("nms.snap", icon="TRIA_LEFT", text="Prev")
-        snap_target_next = target_row.operator("nms.snap", icon="TRIA_RIGHT", text="Next")
+        snap_target_prev = target_row.operator("object.nms_snap", icon="TRIA_LEFT", text="Prev")
+        snap_target_next = target_row.operator("object.nms_snap", icon="TRIA_RIGHT", text="Next")
 
         source_row = snap_col.row(align=True)
         source_row.label(text="Source")
-        snap_source_prev = source_row.operator("nms.snap", icon="TRIA_LEFT", text="Prev")
-        snap_source_next = source_row.operator("nms.snap", icon="TRIA_RIGHT", text="Next")
+        snap_source_prev = source_row.operator("object.nms_snap", icon="TRIA_LEFT", text="Prev")
+        snap_source_next = source_row.operator("object.nms_snap", icon="TRIA_RIGHT", text="Next")
 
         # Set Snap Operator assignments.
         # Default
@@ -881,7 +881,7 @@ class NMS_PT_colour_panel(Panel):
         for idx in range(16):
             colour_icon = pcoll["{0}_colour".format(idx)]
             colour_op = colour_row_1.operator(
-                "nms.apply_colour", text="", icon_value=colour_icon.icon_id
+                "object.nms_apply_colour", text="", icon_value=colour_icon.icon_id
             )
             colour_op.colour_index = idx
 
@@ -908,24 +908,24 @@ class NMS_PT_logic_panel(Panel):
         col = box.column()
         col.label(text="Wiring")
         row = col.row()
-        row.operator("nms.point", icon="EMPTY_DATA")
-        row.operator("nms.connect", icon="PARTICLES")
+        row.operator("object.nms_point", icon="EMPTY_DATA")
+        row.operator("object.nms_connect", icon="PARTICLES")
         divide_row = col.row()
-        divide_row.operator("nms.divide", icon="LINCURVE")
-        divide_row.operator("nms.split", icon="MOD_PHYSICS")
+        divide_row.operator("object.nms_divide", icon="LINCURVE")
+        divide_row.operator("object.nms_split", icon="MOD_PHYSICS")
         select_row = col.row()
-        select_row.operator("nms.select_connected", icon="RESTRICT_SELECT_OFF")
-        select_row.operator("nms.select_floating", icon="RESTRICT_INSTANCED_ON")
+        select_row.operator("object.nms_select_connected", icon="RESTRICT_SELECT_OFF")
+        select_row.operator("object.nms_select_floating", icon="RESTRICT_INSTANCED_ON")
 
         col.label(text="Logic")
         logic_row = col.row(align=True)
-        logic_row.operator("nms.logic_button")
-        logic_row.operator("nms.logic_wall_switch")
-        logic_row.operator("nms.logic_prox_switch")
-        logic_row.operator("nms.logic_inv_switch")
-        logic_row.operator("nms.logic_auto_switch")
-        logic_row.operator("nms.logic_floor_switch")
-        logic_row.operator("nms.logic_beat_switch")
+        logic_row.operator("object.nms_logic_button")
+        logic_row.operator("object.nms_logic_wall_switch")
+        logic_row.operator("object.nms_logic_prox_switch")
+        logic_row.operator("object.nms_logic_inv_switch")
+        logic_row.operator("object.nms_logic_auto_switch")
+        logic_row.operator("object.nms_logic_floor_switch")
+        logic_row.operator("object.nms_logic_beat_switch")
 
 # Build Panel ---
 class NMS_PT_build_panel(Panel):
@@ -946,10 +946,10 @@ class NMS_PT_build_panel(Panel):
         nms_tool = scene.nms_base_tool
         layout.prop(nms_tool, "enum_switch", expand=True)
         col = layout.column(align=True)
-        col.operator("nms.save_as_preset", icon="SCENE_DATA")
+        col.operator("object.nms_save_as_preset", icon="SCENE_DATA")
         row = col.row(align=True)
-        row.operator("nms.get_more_presets", icon="WORLD_DATA")
-        row.operator("nms.open_preset_folder", icon="FILE_FOLDER")
+        row.operator("object.nms_get_more_presets", icon="WORLD_DATA")
+        row.operator("object.nms_open_preset_folder", icon="FILE_FOLDER")
         part_list = layout.template_list(
             "NMS_UL_actions_list",
             "compact",
@@ -1080,7 +1080,7 @@ def refresh_ui_part_list(scene, item_type="parts", pack=None):
 # Operators ---
 # File Operators ---
 class NewFile(bpy.types.Operator):
-    bl_idname = "nms.new_file"
+    bl_idname = "object.nms_new_file"
     bl_label = "New"
     bl_options = {"REGISTER", "INTERNAL", "UNDO", "UNDO_GROUPED"}
 
@@ -1095,7 +1095,7 @@ class NewFile(bpy.types.Operator):
 
 
 class SaveData(bpy.types.Operator):
-    bl_idname = "nms.save_data"
+    bl_idname = "object.nms_save_data"
     bl_label = "Save"
     filepath: bpy.props.StringProperty(subtype="FILE_PATH")
 
@@ -1111,7 +1111,7 @@ class SaveData(bpy.types.Operator):
 
 
 class LoadData(bpy.types.Operator):
-    bl_idname = "nms.load_data"
+    bl_idname = "object.nms_load_data"
     bl_label = "Load"
     bl_options = {"UNDO", "REGISTER"}
     filepath: bpy.props.StringProperty(subtype="FILE_PATH")
@@ -1128,7 +1128,7 @@ class LoadData(bpy.types.Operator):
 
 
 class ImportData(bpy.types.Operator):
-    bl_idname = "nms.import_nms_data"
+    bl_idname = "object.nms_import_nms_data"
     bl_label = "Import NMS"
     bl_options = {"UNDO", "REGISTER"}
 
@@ -1140,7 +1140,7 @@ class ImportData(bpy.types.Operator):
 
 
 class ExportData(bpy.types.Operator):
-    bl_idname = "nms.export_nms_data"
+    bl_idname = "object.nms_export_nms_data"
     bl_label = "Export NMS"
 
     def execute(self, context):
@@ -1152,7 +1152,7 @@ class ExportData(bpy.types.Operator):
 
 # Tool Operators ---
 class ToggleRoom(bpy.types.Operator):
-    bl_idname = "nms.toggle_room_visibility"
+    bl_idname = "object.nms_toggle_room_visibility"
     bl_label = "Toggle Room Visibility: Normal"
     bl_options = {"UNDO", "REGISTER"} # I think this must pass "UNDO" because it changes objects, but it probably doesn't interact correctly with the plugin?
 
@@ -1165,7 +1165,7 @@ class ToggleRoom(bpy.types.Operator):
 
 class SaveAsPreset(bpy.types.Operator):
     """Save the current scene contents as a new Preset"""
-    bl_idname = "nms.save_as_preset"
+    bl_idname = "object.nms_save_as_preset"
     bl_label = "Save As Preset"
     preset_name: bpy.props.StringProperty(name="Preset Name")
 
@@ -1188,7 +1188,7 @@ class SaveAsPreset(bpy.types.Operator):
 
 class GetMorePresets(bpy.types.Operator):
     """Load the No Man's Sky Presets web page to find more community presets."""
-    bl_idname = "nms.get_more_presets"
+    bl_idname = "object.nms_get_more_presets"
     bl_label = "Get More Presets..."
 
     def execute(self, context):
@@ -1198,7 +1198,7 @@ class GetMorePresets(bpy.types.Operator):
 
 class OpenPresetFolder(bpy.types.Operator):
     """Open the folder containing your presets."""
-    bl_idname = "nms.open_preset_folder"
+    bl_idname = "object.nms_open_preset_folder"
     bl_label = "Open Preset Folder"
 
     def execute(self, context):
@@ -1288,7 +1288,7 @@ class ListDeleteOperator(bpy.types.Operator):
 
 # Tool Operators ---
 class Duplicate(bpy.types.Operator):
-    bl_idname = "nms.duplicate"
+    bl_idname = "object.nms_duplicate"
     bl_label = "Duplicate"
     bl_options = {"UNDO", "REGISTER"}
 
@@ -1299,7 +1299,7 @@ class Duplicate(bpy.types.Operator):
         return {"FINISHED"}
 
 class Delete(bpy.types.Operator):
-    bl_idname = "nms.delete"
+    bl_idname = "object.nms_delete"
     bl_label = "Delete"
     bl_options = {"UNDO", "REGISTER"}
 
@@ -1310,7 +1310,7 @@ class Delete(bpy.types.Operator):
         return {"FINISHED"}
 
 class DuplicateAlongCurve(bpy.types.Operator):
-    bl_idname = "nms.duplicate_along_curve"
+    bl_idname = "object.nms_duplicate_along_curve"
     bl_label = "Duplicate Along Curve"
     bl_options = {"UNDO", "REGISTER"}
     distance_percentage: bpy.props.FloatProperty(
@@ -1330,7 +1330,7 @@ class DuplicateAlongCurve(bpy.types.Operator):
         return wm.invoke_props_dialog(self)
         
 class ApplyColour(bpy.types.Operator):
-    bl_idname = "nms.apply_colour"
+    bl_idname = "object.nms_apply_colour"
     bl_label = "Apply Colour"
     bl_options = {"UNDO", "REGISTER"}
     colour_index: IntProperty(default=0)
@@ -1346,7 +1346,7 @@ class ApplyColour(bpy.types.Operator):
 
 
 class Snap(bpy.types.Operator):
-    bl_idname = "nms.snap"
+    bl_idname = "object.nms_snap"
     bl_label = "Snap"
     bl_options = {"UNDO", "REGISTER"}
 
@@ -1369,7 +1369,7 @@ class Snap(bpy.types.Operator):
 
 # Logic Operators ---
 class Point(bpy.types.Operator):
-    bl_idname = "nms.point"
+    bl_idname = "object.nms_point"
     bl_label = "New Point"
     bl_options = {"UNDO", "REGISTER"}
 
@@ -1400,7 +1400,7 @@ class Point(bpy.types.Operator):
         return {"FINISHED"}
 
 class Connect(bpy.types.Operator):
-    bl_idname = "nms.connect"
+    bl_idname = "object.nms_connect"
     bl_label = "Connect"
     bl_options = {"UNDO", "REGISTER"}
 
@@ -1459,7 +1459,7 @@ class Connect(bpy.types.Operator):
         return {"FINISHED"}
 
 class Divide(bpy.types.Operator):
-    bl_idname = "nms.divide"
+    bl_idname = "object.nms_divide"
     bl_label = "Divide"
     bl_options = {"UNDO", "REGISTER"}
 
@@ -1488,7 +1488,7 @@ class Divide(bpy.types.Operator):
 
 
 class Split(bpy.types.Operator):
-    bl_idname = "nms.split"
+    bl_idname = "object.nms_split"
     bl_label = "Split"
 
     def execute(self, context):
@@ -1515,7 +1515,7 @@ class Split(bpy.types.Operator):
         return {"FINISHED"}
 
 class SelectConnected(bpy.types.Operator):
-    bl_idname = "nms.select_connected"
+    bl_idname = "object.nms_select_connected"
     bl_label = "Select Connected"
     bl_options = {"UNDO", "REGISTER"}
 
@@ -1530,7 +1530,7 @@ class SelectConnected(bpy.types.Operator):
         return {"FINISHED"}
 
 class SelectFloating(bpy.types.Operator):
-    bl_idname = "nms.select_floating"
+    bl_idname = "object.nms_select_floating"
     bl_label = "Select Floating"
     bl_options = {"UNDO", "REGISTER"}
 
@@ -1556,7 +1556,7 @@ class SelectFloating(bpy.types.Operator):
         return {"FINISHED"}
 
 class LogicButton(bpy.types.Operator):
-    bl_idname = "nms.logic_button"
+    bl_idname = "object.nms_logic_button"
     bl_label = "BTN"
     bl_options = {"UNDO", "REGISTER"}
 
@@ -1575,7 +1575,7 @@ class LogicButton(bpy.types.Operator):
         return {"FINISHED"}
 
 class LogicWallSwitch(bpy.types.Operator):
-    bl_idname = "nms.logic_wall_switch"
+    bl_idname = "object.nms_logic_wall_switch"
     bl_label = "SWITCH"
     bl_options = {"UNDO", "REGISTER"}
 
@@ -1592,7 +1592,7 @@ class LogicWallSwitch(bpy.types.Operator):
         return {"FINISHED"}
 
 class LogicProxSwitch(bpy.types.Operator):
-    bl_idname = "nms.logic_prox_switch"
+    bl_idname = "object.nms_logic_prox_switch"
     bl_label = "PROX"
     bl_options = {"UNDO", "REGISTER"}
 
@@ -1609,7 +1609,7 @@ class LogicProxSwitch(bpy.types.Operator):
         return {"FINISHED"}
 
 class LogicInvSwitch(bpy.types.Operator):
-    bl_idname = "nms.logic_inv_switch"
+    bl_idname = "object.nms_logic_inv_switch"
     bl_label = "INV"
     bl_options = {"UNDO", "REGISTER"}
 
@@ -1626,7 +1626,7 @@ class LogicInvSwitch(bpy.types.Operator):
         return {"FINISHED"}
 
 class LogicAutoSwitch(bpy.types.Operator):
-    bl_idname = "nms.logic_auto_switch"
+    bl_idname = "object.nms_logic_auto_switch"
     bl_label = "AUTO"
     bl_options = {"UNDO", "REGISTER"}
 
@@ -1643,7 +1643,7 @@ class LogicAutoSwitch(bpy.types.Operator):
         return {"FINISHED"}
 
 class LogicFloorSwitch(bpy.types.Operator):
-    bl_idname = "nms.logic_floor_switch"
+    bl_idname = "object.nms_logic_floor_switch"
     bl_label = "FLOOR"
     bl_options = {"UNDO", "REGISTER"}
 
@@ -1660,7 +1660,7 @@ class LogicFloorSwitch(bpy.types.Operator):
         return {"FINISHED"}
 
 class LogicBeatSwitch(bpy.types.Operator):
-    bl_idname = "nms.logic_beat_switch"
+    bl_idname = "object.nms_logic_beat_switch"
     bl_label = "BEAT"
     bl_options = {"UNDO", "REGISTER"}
 

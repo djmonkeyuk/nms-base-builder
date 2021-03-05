@@ -81,6 +81,22 @@
         "CORRIDORL_SPACE",
         "CORRIDORT_SPACE",
         "CORRIDORX_SPACE",
-        "CORSTAIRS_SPACE"
+        "CORSTAIRS_SPACE",
+        "C_ROOF",
+        "W_ROOF",
+        "M_ROOF",
+        "CUBEROOF",
+        "C_TRIFLOOR",
+        "W_TRIFLOOR",
+        "M_TRIFLOOR",
+        "C_TRIFLOOR_Q",
+        "W_TRIFLOOR_Q",
+        "M_TRIFLOOR_Q",
+        "PANEL_GLASS",
+        "DOOR2",
+        "BUILDDOOR",
+        "CUBEWINDOWOVAL",
+        "CUBEWINDOWSMALL",
+        "CUBEINNERDOOR"
     ]
 }

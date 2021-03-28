@@ -3,7 +3,7 @@ bl_info = {
     "name": "No Mans Sky Base Builder",
     "description": "A tool to assist with base building in No Mans Sky",
     "author": "Charlie Banks",
-    "version": (1, 3, 2),
+    "version": (1, 3, 3),
     "blender": (2, 90, 0),
     "location": "3D View > Tools",
     "warning": "",  # used for warning icon and text in addons panel

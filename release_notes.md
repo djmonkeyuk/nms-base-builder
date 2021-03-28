@@ -1,3 +1,35 @@
+release 1.3.3
+-------------
+
+Thanks to Wormhole Badger (@MarkAlanSwann1) for supplying the proxy models for
+this update.
+
+* Added a Fireworks category with firework items.
+* Added support for the following items.
+    * Unlockables
+        * BASE_HOUDINI1
+        * BASE_HOUDINI2
+        * BASE_HOUDINI3
+        * BASE_INFEST1
+        * BASE_INFEST2
+        * BASE_INFEST3
+        * BASE_LAVA1
+        * BASE_LAVA2
+        * BASE_LAVA3
+        * BASE_SWAMP1
+        * BASE_SWAMP2
+        * BASE_SWAMP3
+        * BASE_TOYJELLY
+        * SLIME_MED
+        * SPOOKY_PLANT
+        * SPEC_FIREWORK01
+        * SPEC_FIREWORK02
+        * SPEC_FIREWORK03
+        * SPEC_FIREWORK04
+        * SPEC_FIREWORK05
+        * SPEC_FIREWORK06
+
+
 release 1.3.2
 -------------
 

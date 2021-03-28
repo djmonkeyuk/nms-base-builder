@@ -447,5 +447,31 @@
     "LOCKER2": "Crew Locker",
     "MEDTUBE": "Sample Container",
     "PALLET": "Industrial Pallet",
-    "PLANTTUBE": "Floral Cannister"
+    "PLANTTUBE": "Floral Cannister",
+
+    "SPEC_FIREWORK01": "Blue Firework",
+    "SPEC_FIREWORK02": "Red Firework",
+    "SPEC_FIREWORK03": "Green Firework",
+    "SPEC_FIREWORK01": "Blue Firework",
+    "SPEC_FIREWORK02": "Red Firework",
+    "SPEC_FIREWORK03": "Green Firework",
+    "SPEC_FIREWORK04": "Triple Burst Firework",
+    "SPEC_FIREWORK05": "Dual Chromatic Firework",
+    "SPEC_FIREWORK06": "Wheel of Hirk Firework",
+
+    "BASE_HOUDINI1": "Chitinous Cage",
+    "BASE_HOUDINI2": "Protea Wheel",
+    "BASE_HOUDINI3": "Vigilant Taro",
+    "BASE_INFEST1": "Void Husk",
+    "BASE_INFEST2": "Plate Stem",
+    "BASE_INFEST3": "Compound Bulb",
+    "BASE_LAVA1": "Igneous Crystal",
+    "BASE_LAVA2": "Igneous Drop",
+    "BASE_LAVA3": "Archaic Habitation Heater",
+    "BASE_SWAMP1": "Flarecap Toadstool",
+    "BASE_SWAMP2": "Wizened Stump",
+    "BASE_SWAMP3": "Mud Hut",
+    "BASE_TOYJELLY": "Wiggling Companion",
+    "SLIME_MED": "Detoxified Slime",
+    "SPOOKY_PLANT": "Orange Pustule"
 }

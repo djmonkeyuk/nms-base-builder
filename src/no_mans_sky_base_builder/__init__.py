@@ -952,7 +952,7 @@ class NMS_PT_build_panel(Panel):
         row.operator("object.nms_open_preset_folder", icon="FILE_FOLDER")
         part_list = layout.template_list(
             "NMS_UL_actions_list",
-            "compact",
+            "",
             context.scene,
             "col",
             context.scene,
@@ -961,26 +961,18 @@ class NMS_PT_build_panel(Panel):
 
     
 class NMS_UL_actions_list(bpy.types.UIList):
-    previous_layout = None
     def draw_item(
-        self, context, layout, data, item, icon, active_data, active_propname
+        self, context, layout, data, item, icon, active_data, active_propname, index, flt_flag
     ):
         self.use_filter_show = True
         if self.layout_type in {"DEFAULT", "COMPACT"}:
-            # Add a category item if the title is specified.
-            if item.title:
-                layout.label(text=item.title)
-
             # Draw Parts
             if item.item_type == "parts" and item.description:
-                all_parts = [x for x in item.description.split(",") if x]
-                part_row = layout.column_flow(columns=3)
-                for part in all_parts:
-                    operator = part_row.operator(
-                        "object.list_build_operator",
-                        text=BUILDER.get_nice_name(part),
-                    )
-                    operator.part_id = part
+                operator = layout.operator(
+                    "object.list_build_operator",
+                    text=BUILDER.get_nice_name(item.description),
+                )
+                operator.part_id = item.description
 
             # Draw Presets
             if item.item_type == "presets":
@@ -1001,55 +993,65 @@ class NMS_UL_actions_list(bpy.types.UIList):
                     edit_operator.part_id = item.description
                     delete_operator.part_id = item.description
 
+    def filter_items(self, context, data, propname):
+        import fnmatch
+
+        items = getattr(data, propname)
+
+        # 32 bit flags word per item in items, set self.bitflag_filter_item to include
+        flt_flags = [self.bitflag_filter_item] * len(items)
+        # list containing the new indices of all items
+        flt_neworder = list(range(len(items)))
+
+        # Filtering by search field.
+        # For each word in the field, require a match of that string somewhere in the searchable text
+        if self.filter_name:
+            # NOTE ignore self.use_filter_invert because template_list draw does that itself
+            for word in self.filter_name.split():
+                pattern = "*" + word + "*"
+                for i, item in enumerate(items):
+                    if not fnmatch.fnmatch(item.name, pattern):
+                        flt_flags[i] &= ~self.bitflag_filter_item
+
+        # NOTE do note reverse on use_filter_sort_reverse because template_list draw does that itself
+        if self.use_filter_sort_alpha:
+            flt_neworder = bpy.types.UI_UL_list.sort_items_by_name(items, "name")
+
+        return flt_flags, flt_neworder
+
 
 class PartCollection(bpy.types.PropertyGroup):
-    title : bpy.props.StringProperty()
     description : bpy.props.StringProperty()
     item_type : bpy.props.StringProperty()
-
-def create_sublists(input_list, n=3):
-    """Create a list of sub-lists with n elements."""
-    total_list = [input_list[x : x + n] for x in range(0, len(input_list), n)]
-    # Fill in any blanks.
-    last_list = total_list[-1]
-    while len(last_list) < n:
-        last_list.append("")
-    return total_list
+    
 
 def generate_ui_list_data(item_type="parts", pack=None):
     """Generate a list of Blender UI friendly data of categories and parts.
     
     When we retrieve presets we just want an item name.
 
-    For parts I am doing a trick where I am grouping sets of 3 parts in order
-    to make a grid in each UIList entry.
-
     Args:
         item_type (str): The type of items we want to retrieve
             options - "presets", "parts".
     
     Return:
-        list: tuple (str, str): Label and Description of items for the UIList.
+        list: tuple (str, str): Category and Description of items for the UIList.
     """
     ui_list_data = []
     # Presets
     if "presets" in item_type:
-        ui_list_data.append(("Presets", ""))
         for _preset in preset.Preset.get_presets():
             ui_list_data.append(("", _preset))
     else:
         # Packs/Parts
         for category in BUILDER.get_categories(pack=pack):
-            ui_list_data.append((category, ""))
             category_parts = BUILDER.get_parts_from_category(
                 category,
                 pack=pack
             )
             category_parts = sorted(category_parts, key=BUILDER.get_nice_name)
-            new_parts = create_sublists(category_parts)
-            for part in new_parts:
-                joined_list = ",".join(part)
-                ui_list_data.append(("", joined_list))
+            for part in category_parts:
+                ui_list_data.append((category, part))
     return ui_list_data
 
 
@@ -1069,12 +1071,14 @@ def refresh_ui_part_list(scene, item_type="parts", pack=None):
     # Get part data based on
     ui_list_data = generate_ui_list_data(item_type=item_type, pack=pack)
     # Create items with labels and descriptions.
-    for i, (label, description) in enumerate(ui_list_data, 1):
+    for (category, description) in ui_list_data:
         item = scene.col.add()
-        item.title = label.title().replace("_", " ")
         item.description = description
         item.item_type = item_type
-        item.name = " ".join((str(i), label, description))
+        # name is searchable words and alpha sort key
+        item.name = " ".join((description, category))
+        if item_type == "parts":
+             item.name = BUILDER.get_nice_name(description) + " " + item.name
 
 
 # Operators ---

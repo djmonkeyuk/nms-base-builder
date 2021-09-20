@@ -30,7 +30,7 @@ A plugin for Blender to build bases in No Mans Sky.
 * An asset browser for searching and locating base parts.
 
 <p align="center" style="font-size:26px">
-<img src="https://raw.githubusercontent.com/charliebanks/nms-base-builder/master/images/AssetBrowser.png" alt="No Mans Sky"  width="75%">
+<img src="https://raw.githubusercontent.com/charliebanks/nms-base-builder/master/images/AssetBrowser.jpg" alt="No Mans Sky"  width="75%">
 </p>
 
 

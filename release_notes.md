@@ -1,3 +1,14 @@
+release 2.0.0
+-------------
+
+* Added over 250 new parts to support the FRONTIERs update.
+* Fixed issues with cable placement logic introduced with FRONTIERS.
+* Added a new Asset Browser UI for better browsing on building parts. (See readme and video tutorials for more information.)
+* Added category support for Presets. The tool will now recognise sub-folders within the user Preset folder.
+* Added a button to apply the default colour to a base part.
+* A fancy new logo.
+
+
 release 1.3.3
 -------------
 

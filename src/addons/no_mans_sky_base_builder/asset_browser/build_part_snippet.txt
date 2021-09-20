@@ -1,0 +1,27 @@
+import no_mans_sky_base_builder
+import no_mans_sky_base_builder.utils.blend_utils as blend_utils
+import no_mans_sky_base_builder.preset as preset
+
+BUILDER = no_mans_sky_base_builder.BUILDER
+
+part_id = {!r}
+selection = blend_utils.get_current_selection()
+
+# Build item
+if part_id in preset.Preset.get_presets():
+    new_item = BUILDER.add_preset(part_id)
+else:
+    new_item = BUILDER.add_part(part_id)
+    if hasattr(new_item, "build_rig"):
+        new_item.build_rig()
+
+# Make this item the selected.
+new_item.select()
+
+# If there was a previous selection, snap the new item to it.
+if selection:
+    builder_selection = BUILDER.get_builder_object_from_bpy_object(
+        selection
+    )
+    if builder_selection:
+        new_item.snap_to(builder_selection)

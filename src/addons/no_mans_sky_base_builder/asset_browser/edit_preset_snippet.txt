@@ -1,0 +1,20 @@
+import no_mans_sky_base_builder
+import no_mans_sky_base_builder.utils.blend_utils as blend_utils
+import no_mans_sky_base_builder.preset as preset
+import bpy
+
+BUILDER = no_mans_sky_base_builder.BUILDER
+part_id = {!r}
+
+nms_tool = bpy.context.scene.nms_base_tool
+if part_id in preset.Preset.get_presets():
+    nms_tool.new_file()
+    preset.Preset(
+        preset_id=part_id,
+        builder_object=BUILDER,
+        create_control=False,
+        apply_shader=False,
+        build_rigs=True
+    )
+    BUILDER.build_rigs()
+    BUILDER.optimise_control_points()

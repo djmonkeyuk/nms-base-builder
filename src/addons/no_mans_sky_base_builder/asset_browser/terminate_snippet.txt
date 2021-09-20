@@ -1,0 +1,2 @@
+import bpy.ops
+bpy.ops.wm.bpy_externall_server(mode="end")

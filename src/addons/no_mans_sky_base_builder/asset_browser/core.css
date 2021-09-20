@@ -1,0 +1,190 @@
+QMainWindow {
+    background-color: #0c293b;
+}
+
+QFrame {
+    background-color: #0c293b;
+}
+
+QScrollArea {
+    background-color: #0c293b;
+}
+
+QLineEdit,
+#refresh_button {
+    background-color: #021825;
+    border: 1px solid #a78d1b;
+    border-radius: 4px;
+    padding: 5px;
+    color: #FFF;
+    font-weight: bold;
+}
+
+QLineEdit:hover,
+#refresh_button:hover {
+    background-color: #102c3d;
+    border: 1px solid #eec920;
+    border-radius: 4px;
+    padding: 5px;
+    color: #FFF;
+    font-weight: bold;
+}
+
+CollapsableFrame QPushButton {
+    text-align: left;
+    padding: 5px 5px 5px 10px;
+    border-radius: 0px;
+    background-color: rgba(0, 0, 0, 0.4);
+    color: #eec920;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+CollapsableFrame {
+    border: 1px dashed rgba(200, 200, 200, 1);
+    border-radius: 4px;
+}
+
+CollapsableFrame QPushButton:hover {
+    background-color: rgba(105, 105, 105, 0.4);
+}
+
+CollapsableFrame QPushButton:pressed {
+    background-color: rgba(0, 0, 0, 1);
+}
+
+Item {
+    background-color: rgba(0, 0, 0, 0.4);
+    border-radius: 4px;
+    color: #eec920;
+}
+
+Item:hover {
+    background-color: rgba(105, 105, 105, 0.4);
+}
+
+Item:pressed {
+    background-color: rgba(0, 0, 0, 1);
+}
+
+Item QLabel {
+    background-color: transparent;
+    color: #FFF;
+}
+
+Thumb {
+    background-color: #b0cada;
+    border-radius: 4px;
+}
+
+Preset {
+    background-color: rgba(0, 0, 0, 0.4);
+    border-radius: 4px;
+    color: #eec920;
+}
+
+Preset:hover {
+    background-color: rgba(105, 105, 105, 0.4);
+}
+
+Preset:pressed {
+    background-color: rgba(0, 0, 0, 1);
+}
+
+Preset QLabel {
+    background-color: transparent;
+    color: #FFF;
+}
+
+Preset QPushButton {
+    background-color: transparent;
+    color: #FFF;
+    padding: 5px 10px;
+    text-align: left;
+    border-radius: 0px;
+    background-color: transparent;
+    font-size: 12px;
+}
+
+Preset QPushButton:hover {
+    background-color: rgba(105, 105, 105, 0.4);
+}
+
+Preset QPushButton:pressed {
+    background-color: rgba(0, 0, 0, 1);
+}
+
+QTabWidget {
+    background-color: #333;
+}
+
+QTabWidget::pane {
+    background-color: #333;
+    border: 0px;
+}
+
+QTabWidget::tab-bar:top {
+    top: 0px;
+    background-color: #333;
+}
+
+QTabBar QToolButton {
+    background-color: #021825;
+    border-radius: 2px;
+    border: 1px solid #6e5d13;
+    width: 30px;
+    color: #FFF;
+}
+
+QTabBar QToolButton:pressed {
+    background-color: #000;
+}
+
+QTabBar::tab {
+    background-color: #0c293b;
+    margin-top: 2px;
+    height: 20px;
+    color: #eec920;
+}
+
+QTabBar::tab:focus {
+    outline: none;
+    border: none;
+}
+
+QTabBar::tab:selected {
+    background: rgba(0, 0, 0, 0.9);
+    margin-top: 2px;
+    color: #fff;
+}
+
+QTabBar::tab:!selected {
+    background: rgba(0, 0, 0, 0.4);
+    margin-top: 2px;
+}
+
+QTabBar::tab:!selected:hover {
+    background: rgba(255, 255, 255, 0.1);
+    margin-top: 2px;
+}
+
+QTabBar::tab:top:!selected {
+    margin-top: 2px;
+}
+
+QTabBar::tab:top {
+    min-width: 8ex;
+    margin-right: -1px;
+    padding: 5px 10px 5px 10px;
+}
+
+QTabBar::tab:top:selected {
+    border-bottom-color: none;
+}
+
+QTabBar::tab:top:last,
+QTabBar::tab:bottom:last,
+QTabBar::tab:top:only-one,
+QTabBar::tab:bottom:only-one {
+    margin-right: 0;
+}

@@ -1,3 +1,6 @@
+# Ignore NMS icons. Don't want to redistribute.
+src/addons/no_mans_sky_base_builder/asset_browser/icons/*.PNG
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

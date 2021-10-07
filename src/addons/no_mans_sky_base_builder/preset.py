@@ -387,7 +387,7 @@ class Preset(object):
         return part
 
     @classmethod
-    def deserialise_from_data(cls, data, builder_object):
+    def deserialise_from_data(cls, data, builder_object, *args, **kwargs):
         """Reconstruct the class using an a data.
         
         Data usually comes from NMS or the serialise method.

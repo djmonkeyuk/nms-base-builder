@@ -10,7 +10,7 @@
     "W_FLOOR_Q": "Wood Floor (Small)",
     "C_FLOOR_Q": "Concrete Floor (Small)",
     "M_FLOOR_Q": "Metal Floor (Small)",
-    "L_FLOOR_Q": "Light Floor (Small)",
+    "L_FLOOR_Q": "Light Floor",
 
     "W_WALL": "Wood Wall",
     "C_WALL": "Concrete Wall",
@@ -106,6 +106,7 @@
 
     "CUBEFOUND": "Cube Foundation",
     "CUBEFOUND4": "Cube Foundation x4",
+    "FOUNDATION": "Foundation",
 
     "BUILDDOOR_WATER": "Underwater Door",
     "CORRIDOR_WATER": "Corridor Water",
@@ -677,7 +678,7 @@
     "S_CRATE3": "Moulded Lockbox",
     "S_CRATE3OPEN": "Open Moulded Lockbox",
     "S_CRATE4": "Tall Moulded Lockbox",
-    "S_CRATE4OPEN": "Lockbox",
+    "S_CRATE4OPEN": "Open Tall Moulded Box",
     "S_MILKCRATE": "Ventilated Crate",
     "S_RUG0": "Kite-Patterned Rug",
     "S_RUG1": "Circle-Patterned Rug",
@@ -713,8 +714,8 @@
     "S_WALLLIGHT0": "Wall Light",
     "S_HANGLAMP0": "Hanging Lamp",
     "S_HANGLAMP1": "Triple Hanging Lamp",
-    "S_HANGLAMP2": "Splayed Hanging Lamp",
-    "S_HANGLAMP3": "Circles Hanging Light",
+    "S_HANGLAMP2": "Circles Hanging Light",
+    "S_HANGLAMP3": "Splayed Hanging Lamp",
     "S_LIGHTSTRIP0": "Tube Light",
     "S_TABLELAMP0": "Table Lamp",
     "S_SIGN_BAR0": "Illuminated Sign",

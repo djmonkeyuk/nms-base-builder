@@ -397,7 +397,6 @@
     - LARGEDESK
     - MONITORDESK
     - OCTACABINET
-    - PLANTTUBE
     - ROBOTICARM
     - ROOFMONITOR
     - SERVERSTACK
@@ -431,8 +430,8 @@
     - LOCKER2
     - MEDTUBE
     - PALLET
-    - SLIME_MED
     - TURRET_ABAND
+    - PLANTTUBE
 - Decoration:
   - Lighting:
     - WALLLIGHTBLUE
@@ -587,6 +586,7 @@
     - BASE_INFEST2
     - BASE_INFEST3
     - SPOOKY_PLANT
+    - SLIME_MED
   - Statues:
     - STATUE_ASTRO_B
     - STATUE_ASTRO_G

@@ -1,3 +1,10 @@
+release 2.0.1
+-------------
+
+* Fixed an issue where loading a base using presets would error.
+* Small fixes to asset naming and categorization in the Asset Browser.
+
+
 release 2.0.0
 -------------
 

@@ -1,9 +1,9 @@
 import json
 import os
 
-from Qt import Qt, QtCore, QtGui, QtWidgets
-import asset_browser.icons.icons
+from PySide6 import QtCore, QtGui, QtWidgets
 
+import asset_browser.icons.icons
 
 THUMB_SIZE = 55
 ITEM_SIZE = 80

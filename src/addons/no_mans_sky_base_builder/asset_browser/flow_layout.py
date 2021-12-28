@@ -1,14 +1,16 @@
 #! /usr/bin/python2
 # -*- coding: utf-8 -*-
 
-from Qt import QtCore, QtGui, QtWidgets
+from PySide6 import QtCore, QtWidgets
+
 
 class FlowLayout(QtWidgets.QLayout):
     def __init__(self, parent=None, margin=0, spacing=-1):
         super(FlowLayout, self).__init__(parent)
 
+        self.margin = margin
         if parent is not None:
-            self.setMargin(margin)
+            self.setContentsMargins(margin, margin, margin, margin)
 
         self.setSpacing(spacing)
 
@@ -60,7 +62,7 @@ class FlowLayout(QtWidgets.QLayout):
         for item in self.itemList:
             size = size.expandedTo(item.minimumSize())
 
-        size += QtCore.QSize(2 * self.margin(), 2 * self.margin())
+        size += QtCore.QSize(2 * self.margin, 2 * self.margin)
         return size
 
     def _doLayout(self, rect, testOnly):
@@ -69,7 +71,7 @@ class FlowLayout(QtWidgets.QLayout):
         lineHeight = 0
 
         for item in self.itemList:
-    
+
             wid = item.widget()
             if not wid.isVisible():
                 continue
@@ -79,8 +81,8 @@ class FlowLayout(QtWidgets.QLayout):
                 QtCore.Qt.Horizontal)
 
             spaceY = self.spacing() + wid.style().layoutSpacing(
-                QtWidgets.QSizePolicy.PushButton, 
-                QtWidgets.QSizePolicy.PushButton, 
+                QtWidgets.QSizePolicy.PushButton,
+                QtWidgets.QSizePolicy.PushButton,
                 QtCore.Qt.Vertical)
 
             nextX = x + item.sizeHint().width() + spaceX

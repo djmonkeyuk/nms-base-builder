@@ -1,3 +1,10 @@
+release 2.0.2
+-------------
+
+* Simplified Qt Dependencies. (Swapped to PySide6)
+* Compatible with latest Python 3.10 and Blender 3.0 versions.
+
+
 release 2.0.1
 -------------
 
@@ -420,7 +427,7 @@ release 1.0.0
     * U_POWERLINE
     * U_PORTALLINE
     * U_PIPELINE
-    
+
 
 release 0.9.3
 -------------

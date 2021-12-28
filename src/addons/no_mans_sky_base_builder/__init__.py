@@ -3,8 +3,8 @@ bl_info = {
     "name": "No Mans Sky Base Builder",
     "description": "A tool to assist with base building in No Mans Sky",
     "author": "Charlie Banks",
-    "version": (2, 0, 1),
-    "blender": (2, 90, 0),
+    "version": (2, 0, 2),
+    "blender": (3, 0, 0),
     "location": "3D View > Tools",
     "warning": "",  # used for warning icon and text in addons panel
     "wiki_url": "https://www.nexusmods.com/nomanssky/mods/984",
@@ -312,7 +312,7 @@ class NMSSettings(PropertyGroup):
 
     def serialise(self, get_presets=False):
         """Export the data in the blender scene to NMS compatible data.
-        
+
         This will slot the data into the clip-board so you can easy copy
         and paste data back and forth between the tool.
         """
@@ -393,7 +393,7 @@ class NMSSettings(PropertyGroup):
 
     def export_nms_data(self):
         """Generate data and place it into the user's clipboard.
-        
+
         This generates a flat set of individual base parts for NMS to read.
         All preset information is lost in this process.
         """
@@ -403,7 +403,7 @@ class NMSSettings(PropertyGroup):
     # Save and Load Methods ---
     def save_nms_data(self, file_path):
         """Generate data and place it into a json file.
-        
+
         This preserves any presets built in scene.
 
         Args:
@@ -435,7 +435,7 @@ class NMSSettings(PropertyGroup):
 
     def new_file(self):
         """Reset's the entire Blender scene to default.
-        
+
         Note:
             * Removes all base information in the Blender properties.
             * Resets the build part order in the part builder.
@@ -443,7 +443,7 @@ class NMSSettings(PropertyGroup):
             * Resets the room visibility switch to default.
         """
         BUILDER.clear_caches()
-        
+
         # Remove basic blender default items.
         blend_utils.remove_object("Cube")
         blend_utils.remove_object("Light")
@@ -494,7 +494,7 @@ class NMSSettings(PropertyGroup):
 
     def toggle_room_visibility(self):
         """Cycle through room visibilities.
-        
+
         Note:
             Visibility types are...
                 0: Normal
@@ -527,13 +527,13 @@ class NMSSettings(PropertyGroup):
         hide_select = False
         if self.room_vis_switch in [1]:
             hide_select = True
-        
+
         # Iterate materials for transparency.
         # NOTE: Seems in 2.8 you can't set per object alpha toggling anymore :/
         for material in bpy.data.materials:
             if "transparent" in material.name:
                 material.diffuse_color[3] = 0.07 if show_transparent else 1.0
-        
+
         # Iterate object for selection.
         for ob in bpy.data.objects:
             if "ObjectID" in ob:
@@ -634,7 +634,7 @@ class NMSSettings(PropertyGroup):
         else:
             curve_object = selected_objects[0]
             dup_object = selected_objects[1]
-        
+
         # Perform duplication along curve.
         curve.duplicate_along_curve(
             BUILDER, dup_object, curve_object, distance_percentage
@@ -695,7 +695,7 @@ class NMSSettings(PropertyGroup):
             prev_target=False):
         """Snaps one object to another based on selection."""
         selected_objects = bpy.context.selected_objects
-        
+
         source = None
         target = None
         # If only one item is selected, see if it has a snapped_to variable to
@@ -815,7 +815,7 @@ class NMS_PT_snap_panel(Panel):
 
         tools_box = tools_column.box()
         tools_col = tools_box.column(align=True)
-        
+
         tools_col.label(text="Visibility")
         # Room Vis Button.
         label = "Normal"
@@ -995,7 +995,7 @@ class NMS_PT_build_panel(Panel):
             "col_idx"
         )
 
-    
+
 class NMS_UL_actions_list(bpy.types.UIList):
     previous_layout = None
     def draw_item(
@@ -1056,7 +1056,7 @@ def create_sublists(input_list, n=3):
 
 def generate_ui_list_data(item_type="parts", pack=None):
     """Generate a list of Blender UI friendly data of categories and parts.
-    
+
     When we retrieve presets we just want an item name.
 
     For parts I am doing a trick where I am grouping sets of 3 parts in order
@@ -1065,7 +1065,7 @@ def generate_ui_list_data(item_type="parts", pack=None):
     Args:
         item_type (str): The type of items we want to retrieve
             options - "presets", "parts".
-    
+
     Return:
         list: tuple (str, str): Label and Description of items for the UIList.
     """
@@ -1104,7 +1104,7 @@ def generate_ui_list_data(item_type="parts", pack=None):
 
 def refresh_ui_part_list(scene, item_type="parts", pack=None):
     """Refresh the UI List.
-    
+
     Args:
         item_type: The type of items we want to retrieve.
             options - "presets", "parts".
@@ -1389,7 +1389,7 @@ class DuplicateAlongCurve(bpy.types.Operator):
     def invoke(self, context, event):
         wm = context.window_manager
         return wm.invoke_props_dialog(self)
-        
+
 class ApplyColour(bpy.types.Operator):
     bl_idname = "object.nms_apply_colour"
     bl_label = "Apply Colour"
@@ -1540,7 +1540,7 @@ class Divide(bpy.types.Operator):
     def execute(self, context):
         # Get Selected item.
         target = blend_utils.get_current_selection()
-        
+
         # Validate
         invalid_message = "Make sure you have a powerline item selected."
         title = "Divide"
@@ -1554,7 +1554,7 @@ class Divide(bpy.types.Operator):
         if target["ObjectID"] not in valid_parts:
             ShowMessageBox(message=invalid_message, title=title)
             return {"FINISHED"}
-        
+
         # Perform split.
         power_line = BUILDER.get_builder_object_from_bpy_object(target)
         power_line.divide()
@@ -1757,8 +1757,8 @@ preview_collections = {}
 # Plugin Registration ---
 
 classes = (
-    NMSSettings, 
-    
+    NMSSettings,
+
     Snap,
     Point,
     Connect,
@@ -1780,20 +1780,20 @@ classes = (
     Duplicate,
     DuplicateAlongCurve,
     Delete,
-    
+
     SaveAsPreset,
     LoadFancyUI,
     GetMorePresets,
     OpenPresetFolder,
     ToggleRoom,
-    
-    NewFile, 
+
+    NewFile,
     SaveData,
     LoadData,
 
     ExportData,
     ImportData,
-    
+
     PartCollection,
 
     ListDeleteOperator,

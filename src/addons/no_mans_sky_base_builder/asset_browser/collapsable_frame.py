@@ -1,4 +1,5 @@
-from Qt import QtWidgets, QtCore, QtGui
+from PySide6 import QtCore, QtGui, QtWidgets
+
 from asset_browser.flow_layout import FlowLayout
 
 

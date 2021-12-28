@@ -7,7 +7,7 @@ import time
 from functools import partial
 
 import yaml
-from Qt import QtCore, QtGui, QtWidgets
+from PySide6 import QtCore, QtGui, QtWidgets
 
 import asset_browser.icons.icons
 from asset_browser.collapsable_frame import CollapsableFrame

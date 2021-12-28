@@ -9,7 +9,7 @@ PYTHON_DIR_PATH = os.path.dirname(PYTHON_EXE_PATH)
 def install_pip():
     command = [PYTHON_EXE_PATH, "-m", "ensurepip", "--upgrade"]
     subprocess.run(command)
-    
+
 def install_package(package_name):
     command = [PYTHON_EXE_PATH, "-m", "pip", "install", package_name]
     subprocess.run(command)
@@ -25,18 +25,12 @@ try:
     print ("Yaml found.")
 except:
     install_package("pyaml")
-    
-try:
-    import PySide2
-    print ("PySide2 found.")
-except:
-    install_package("PySide2")
 
 try:
-    import Qt
-    print ("Qt found.")
+    import PySide6
+    print ("PySide6 found.")
 except:
-    install_package("Qt.py")
+    install_package("PySide6")
 
 
 # Load the Asset Browser

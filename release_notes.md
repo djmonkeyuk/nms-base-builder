@@ -1,3 +1,10 @@
+release 2.0.3
+-------------
+
+* Added some automation scripts for updating this tool.
+* Added a bunch of missing objects since the last year (Expeditions/Sentinel/Outlaws/Endurance/Waypoint).
+* Thanks to Peter Laan for missing part assistance.
+
 release 2.0.2
 -------------
 
@@ -269,7 +276,7 @@ release 1.1.7
 * Added a specific "Delete" button in the tools area that safely removed Base Parts and Presets from the scene.
 * BYTEBEAT machines and their configurations are now supported.
     * BYTEBEAT machines and their songs can now be saved as presets and shared with other people.
-    * Example: https://charliebanks.github.io/nms-base-builder-presets/Byte%20Beats
+    * Example: https://djmonkeyuk.github.io/nms-base-builder-presets/Byte%20Beats
 * Optimized the creation of wiring controls. Bases with lots of wiring should now load faster.
 * Added models for...
     * BYTEBEAT

@@ -5,9 +5,9 @@ import os
 import xml.etree.ElementTree as ET
 
 # THESE PATHS NEED TO BE EDITED TO MATCH YOUR LOCAL FOLDERS---------------------
-PATH_TO_UNPACKED = "F:/Games/No Mans Sky/nms_modding_station/unpacked/"
-PATH_TO_MOD_PROJECT = "F:/Games/No Mans Sky/nms_modding_station/projects/BaseTables/"
-PATH_TO_REPO = "F:/Documents/dev/nms-base-builder/generator_tools"
+PATH_TO_UNPACKED = "N:/Games/No Mans Sky/nms_modding_station/unpacked/"
+PATH_TO_MOD_PROJECT = "N:/Games/No Mans Sky/nms_modding_station/projects/BaseTables/"
+PATH_TO_REPO = "N:/Documents/dev/nms-base-builder/generator_tools"
 #-------------------------------------------------------------------------------
 
 OUTPUT_FOLDER = os.path.join(PATH_TO_REPO, "OBJ_export")

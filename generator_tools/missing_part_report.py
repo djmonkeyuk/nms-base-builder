@@ -42,26 +42,28 @@ def print_report():
     )
 
     # Ready
-    print_with_color(
-        "Parts Ready To Process: {0}".format(len(known_parts)),
-        bcolors.OKGREEN
-    )
-    longest_known_part = max([len(x) for x in known_parts])
-    print_with_color(
-        "\n".join(["\t" + part.rjust(longest_known_part) + " : " + known_parts[part] for part in sorted(known_parts)]),
-        bcolors.OKGREEN
-    )
+    if known_parts:
+        print_with_color(
+            "Parts Ready To Process: {0}".format(len(known_parts)),
+            bcolors.OKGREEN
+        )
+        longest_known_part = max([len(x) for x in known_parts])
+        print_with_color(
+            "\n".join(["\t" + part.rjust(longest_known_part) + " : " + known_parts[part] for part in sorted(known_parts)]),
+            bcolors.OKGREEN
+        )
 
     # Not Ready
-    print_with_color(
-        "Parts NOT Ready To Process (please update the DT_PartTable): {0}".format(len(unknown_parts)),
-        bcolors.FAIL
-    )
-    longest_unknown_part = max([len(x) for x in unknown_parts])
-    print_with_color(
-        "\n".join(["\t" + part.rjust(longest_unknown_part) + " : MISSING PATH" for part in sorted(unknown_parts)]),
-        bcolors.FAIL
-    )
+    if unknown_parts:
+        print_with_color(
+            "Parts NOT Ready To Process (please update the DT_PartTable): {0}".format(len(unknown_parts)),
+            bcolors.FAIL
+        )
+        longest_unknown_part = max([len(x) for x in unknown_parts])
+        print_with_color(
+            "\n".join(["\t" + part.rjust(longest_unknown_part) + " : MISSING PATH" for part in sorted(unknown_parts)]),
+            bcolors.FAIL
+        )
 
     # Category.
     print_with_color(

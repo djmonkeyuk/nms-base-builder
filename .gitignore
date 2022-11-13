@@ -2,6 +2,7 @@
 src/addons/no_mans_sky_base_builder/asset_browser/icons/*.PNG
 automation_tools/part_genetator/**/*.obj
 automation_tools/icon_generator/**/*.PNG
+automation_tools/nicename_generator/export/*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

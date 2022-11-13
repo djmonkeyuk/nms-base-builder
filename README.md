@@ -118,9 +118,6 @@ If you would like to support me, I am currently working on my own indie video ga
 
 <a name="screenshots"></a>
 ## Screenshots
-<p align="center">
-  <img src="https://raw.githubusercontent.com/djmonkeyuk/nms-base-builder/feature/blender2.8/images/blender_poster.jpg" alt="NMS" width="100%">
-</p>
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/djmonkeyuk/nms-base-builder/feature/blender2.8/images/blender_showcase.png" alt="NMS1" width="100%">

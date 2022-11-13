@@ -51,7 +51,7 @@ Addon Requirements
 
 ## Installation and How To Use
 
-### Vidoes
+### Videos
 * **Installation** Video: https://youtu.be/TZKMGhNNFJQ
 * **Getting started** video: https://www.youtube.com/watch?v=qXcguoROM-A
 * How to use **presets** video: https://www.youtube.com/watch?v=BFIvRH5-S0I&t

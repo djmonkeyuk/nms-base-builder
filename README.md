@@ -107,11 +107,14 @@ The obj file name should reflect the name of the part in-game.
 
 ## Credits & Support
 
-Created and maintained by.
+Created and maintained by DjMonkey (<a href="http://www.twitter.com/DancingMoonGame" target="_blank">@DancingMoonGame</a>)
 
-* DjMonkey (<a href="http://www.twitter.com/DancingMoonGame" target="_blank">@DancingMoonGame</a>)
+If you would like to support me, I am currently working on my own indie video game. There is a <a href="https://store.steampowered.com/app/1782420/Tales_from_The_Dancing_Moon/" target="_blank">free demo on Steam</a> and it would mean the world to if you gave it a try!
 
-Feel free to get in touch :)
+<p align="center">
+  <a href="https://store.steampowered.com/app/1782420/Tales_from_The_Dancing_Moon/" target="_blank"><img src="https://raw.githubusercontent.com/djmonkeyuk/nms-base-builder/master/images/store_capsule_main.png" alt="Tales from The Dancing Moon" width="50%"></a>
+</p>
+
 
 <a name="screenshots"></a>
 ## Screenshots

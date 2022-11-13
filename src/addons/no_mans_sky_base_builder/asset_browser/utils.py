@@ -75,6 +75,14 @@ def import_folder_into_maya():
         mesh = [x for x in post if x not in pre]
         cmds.rename(mesh[0], id)
 
+def list_missing_icons():
+    unpacked_path = "N:/Games/No Mans Sky/nms_modding_station/unpacked/TEXTURES/UI/FRONTEND/ICONS/BUILDABLE"
+    return [x.split(".")[1]+".PNG" for x in os.listdir(unpacked_path)]
+    # from Image import image
+    # with image.Image(filename="white_rect_dxt3.dds") as img:
+    #     img.compression = "no"
+    #     img.save(filename="white_rect_dxt3.png")
+
 
 def write_qrc_contents():
     folder_dir = os.path.dirname(os.path.realpath(__file__))
@@ -118,4 +126,4 @@ def remove_unused_icons():
             pass
 
 
-print(list_missing_models())
+print(list_missing_icons())

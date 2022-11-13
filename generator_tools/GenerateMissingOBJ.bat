@@ -1,1 +1,0 @@
-blender -b -P N:\Documents\dev\nms-base-builder\generator_tools\blender_generate_objs.py

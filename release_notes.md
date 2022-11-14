@@ -3,7 +3,8 @@ release 2.0.3
 
 * Added some automation scripts for updating this tool.
 * Added a bunch of missing objects since the last year (Expeditions/Sentinel/Outlaws/Endurance/Waypoint).
-* Thanks to Peter Laan for missing part assistance.
+* Thanks to Peter Laan for assistance with missing parts and their source file locations.
+
 
 release 2.0.2
 -------------

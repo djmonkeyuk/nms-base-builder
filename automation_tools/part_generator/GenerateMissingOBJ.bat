@@ -1,0 +1,1 @@
+blender -b -P ./blender_generate_objs.py

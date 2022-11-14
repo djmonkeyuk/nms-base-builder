@@ -1,7 +1,7 @@
 # No Mans Sky Base Builder
 
 <p align="center" style="font-size:26px">
-  <img src="https://raw.githubusercontent.com/charliebanks/nms-base-builder/master/images/CommunityBadge.png" alt="No Mans Sky"  width="50%">
+  <img src="https://raw.githubusercontent.com/djmonkeyuk/nms-base-builder/master/images/CommunityBadge.png" alt="No Mans Sky"  width="50%">
   <br />
 A plugin for Blender to build bases in No Mans Sky.
 </p>
@@ -30,7 +30,7 @@ A plugin for Blender to build bases in No Mans Sky.
 * An asset browser for searching and locating base parts.
 
 <p align="center" style="font-size:26px">
-<img src="https://raw.githubusercontent.com/charliebanks/nms-base-builder/master/images/AssetBrowser.jpg" alt="No Mans Sky"  width="75%">
+<img src="https://raw.githubusercontent.com/djmonkeyuk/nms-base-builder/master/images/AssetBrowser.jpg" alt="No Mans Sky"  width="75%">
 </p>
 
 
@@ -38,7 +38,7 @@ A plugin for Blender to build bases in No Mans Sky.
 ## Requirements
 
 Addon Requirements
-* Latest Base Builder Release (https://github.com/charliebanks/nms-base-builder/releases)
+* Latest Base Builder Release (https://github.com/djmonkeyuk/nms-base-builder/releases)
 * No Mans Sky Save Editor (https://nomansskymods.com/mods/no-mans-sky-save-editor/)
 * Blender (https://www.blender.org/)
 * The Latest Python 3 version (https://www.python.org/)
@@ -64,7 +64,7 @@ Addon Requirements
 See video above for installation guide, otherwise follow these steps.
 
 1. Download and install all the necessary requirements from the Requirements section.
-2. Download the latest release. (https://github.com/charliebanks/nms-base-builder/releases)
+2. Download the latest release. (https://github.com/djmonkeyuk/nms-base-builder/releases)
 3. Open "User Preferences" in Blender.
 4. Go to the Add-ons tab.
 5. Click "Install Add-on from File..." at the bottom of the window.
@@ -79,7 +79,7 @@ Presets are stored in your "**%USERPROFILE%\NoMansSkyBaseBuilder\presets**" dire
 These can be downloaded and shared with other people.
 
 View the Preset directory to downlaod and share your own creations.
-https://charliebanks.github.io/nms-base-builder-presets/
+https://djmonkeyuk.github.io/nms-base-builder-presets/
 
 ## Mod Compatibility
 
@@ -107,20 +107,20 @@ The obj file name should reflect the name of the part in-game.
 
 ## Credits & Support
 
-Created and maintained by.
+Created and maintained by DjMonkey (<a href="http://www.twitter.com/DancingMoonGame" target="_blank">@DancingMoonGame</a>)
 
-* Charlie Banks (<a href="http://www.twitter.com/charliebanks" target="_blank">@charliebanks</a>)
+If you would like to support me, I am currently working on my own indie video game. There is a <a href="https://store.steampowered.com/app/1782420/Tales_from_The_Dancing_Moon/" target="_blank">free demo on Steam</a> and it would mean the world to if you gave it a try!
 
-Feel free to get in touch :)
+<p align="center">
+  <a href="https://store.steampowered.com/app/1782420/Tales_from_The_Dancing_Moon/" target="_blank"><img src="https://raw.githubusercontent.com/djmonkeyuk/nms-base-builder/master/images/store_capsule_main.png" alt="Tales from The Dancing Moon" width="50%"></a>
+</p>
+
 
 <a name="screenshots"></a>
 ## Screenshots
-<p align="center">
-  <img src="https://raw.githubusercontent.com/charliebanks/nms-base-builder/feature/blender2.8/images/blender_poster.jpg" alt="NMS" width="100%">
-</p>
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/charliebanks/nms-base-builder/feature/blender2.8/images/blender_showcase.png" alt="NMS1" width="100%">
+  <img src="https://raw.githubusercontent.com/djmonkeyuk/nms-base-builder/feature/blender2.8/images/blender_showcase.png" alt="NMS1" width="100%">
 </p>
 
 <a name="community_screenshots"></a>
@@ -128,16 +128,16 @@ Feel free to get in touch :)
 
 **/u/ashfacta**
 <p align="center">
-  <img src="https://raw.githubusercontent.com/charliebanks/nms-base-builder/feature/blender2.8/images/casino.jpg" alt="Casino" width="24%">
-  <img src="https://raw.githubusercontent.com/charliebanks/nms-base-builder/feature/blender2.8/images/airship.jpg" alt="Air Ship" width="24%">
-  <img src="https://raw.githubusercontent.com/charliebanks/nms-base-builder/feature/blender2.8/images/drop_ship.jpg" alt="Drop Ship" width="24%">
-  <img src="https://raw.githubusercontent.com/charliebanks/nms-base-builder/feature/blender2.8/images/skygate.jpg" alt="Sky Gate" width="24%">
+  <img src="https://raw.githubusercontent.com/djmonkeyuk/nms-base-builder/feature/blender2.8/images/casino.jpg" alt="Casino" width="24%">
+  <img src="https://raw.githubusercontent.com/djmonkeyuk/nms-base-builder/feature/blender2.8/images/airship.jpg" alt="Air Ship" width="24%">
+  <img src="https://raw.githubusercontent.com/djmonkeyuk/nms-base-builder/feature/blender2.8/images/drop_ship.jpg" alt="Drop Ship" width="24%">
+  <img src="https://raw.githubusercontent.com/djmonkeyuk/nms-base-builder/feature/blender2.8/images/skygate.jpg" alt="Sky Gate" width="24%">
 </p>
 
 **/u/258100**
 <p align="center">
-  <img src="https://raw.githubusercontent.com/charliebanks/nms-base-builder/feature/blender2.8/images/starwars.jpg" alt="Star Wars" width="24%">
-  <img src="https://raw.githubusercontent.com/charliebanks/nms-base-builder/feature/blender2.8/images/titanic.jpg" alt="Titanic" width="24%">
-  <img src="https://raw.githubusercontent.com/charliebanks/nms-base-builder/feature/blender2.8/images/notre_dam.png" alt="ND" width="24%">
-  <img src="https://raw.githubusercontent.com/charliebanks/nms-base-builder/feature/blender2.8/images/castle.png" alt="Castle" width="24%">
+  <img src="https://raw.githubusercontent.com/djmonkeyuk/nms-base-builder/feature/blender2.8/images/starwars.jpg" alt="Star Wars" width="24%">
+  <img src="https://raw.githubusercontent.com/djmonkeyuk/nms-base-builder/feature/blender2.8/images/titanic.jpg" alt="Titanic" width="24%">
+  <img src="https://raw.githubusercontent.com/djmonkeyuk/nms-base-builder/feature/blender2.8/images/notre_dam.png" alt="ND" width="24%">
+  <img src="https://raw.githubusercontent.com/djmonkeyuk/nms-base-builder/feature/blender2.8/images/castle.png" alt="Castle" width="24%">
 </p>

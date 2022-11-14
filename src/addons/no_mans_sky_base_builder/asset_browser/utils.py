@@ -2,9 +2,10 @@ import os
 
 import yaml
 
+
 def get_nice_ui_parts():
     data = []
-    with open("F:/Documents/dev/nms-base-builder/src/addons/no_mans_sky_base_builder/resources/asset_data.yaml") as stream:
+    with open("N:/Documents/dev/nms-base-builder/src/addons/no_mans_sky_base_builder/resources/asset_data.yaml") as stream:
         data = yaml.safe_load(stream)
 
     all_listed_items = []
@@ -20,7 +21,7 @@ def get_nice_ui_parts():
     return all_listed_items
 
 def list_models():
-    model_dir = "F:/Documents/dev/nms-base-builder/src/addons/no_mans_sky_base_builder/models"
+    model_dir = "N:/Documents/dev/nms-base-builder/src/addons/no_mans_sky_base_builder/models"
     all_models = []
     for sub_dir in os.listdir(model_dir):
         full_dir = os.path.join(model_dir, sub_dir)
@@ -41,15 +42,16 @@ def list_missing_models():
 
 
 def list_parts_in_folder():
-    folder = "F:/OneDrive/NMSBaseBuildShare/models/decorations"
+    folder = "N:/OneDrive/NMSBaseBuildShare/models/decorations"
     for item in os.listdir(folder):
         print ("- {}".format(item.replace(".blend", "")))
 
 
 def convert_blend_to_obj():
-    import bpy
     import os
-    file_path = "F:/OneDrive/NMSBaseBuildShare/models/alloy"
+
+    import bpy
+    file_path = "N:/OneDrive/NMSBaseBuildShare/models/alloy"
     all_files = os.listdir(file_path)
     for f in all_files:
         if not f.endswith(".blend"):
@@ -62,17 +64,16 @@ def convert_blend_to_obj():
 
 def import_folder_into_maya():
     from maya import cmds
-    folder_path = "F:/OneDrive/NMSBaseBuildShare/models/alloy/OBJ/"
+    folder_path = "N:/OneDrive/NMSBaseBuildShare/models/alloy/OBJ/"
     for sub_file in os.listdir(folder_path):
         if not sub_file.endswith(".obj"):
             continue
         id = sub_file.split(".")[0]
         pre = cmds.ls("|*")
-        cmds.file("F:/OneDrive/NMSBaseBuildShare/models/alloy/OBJ/{}.obj".format(id), i=True, type="OBJ", ignoreVersion=True, ra=True, mergeNamespacesOnClash=False, rpr="F_ARCH", options="mo=1", pr=True, importTimeRange="combine")
+        cmds.file("N:/OneDrive/NMSBaseBuildShare/models/alloy/OBJ/{}.obj".format(id), i=True, type="OBJ", ignoreVersion=True, ra=True, mergeNamespacesOnClash=False, rpr="F_ARCH", options="mo=1", pr=True, importTimeRange="combine")
         post = cmds.ls("|*")
         mesh = [x for x in post if x not in pre]
         cmds.rename(mesh[0], id)
-
 
 def write_qrc_contents():
     folder_dir = os.path.dirname(os.path.realpath(__file__))
@@ -116,4 +117,6 @@ def remove_unused_icons():
             pass
 
 
-print(list_missing_models())
+parts = list_missing_parts()
+for part in parts:
+    print ("- {}".format(part))

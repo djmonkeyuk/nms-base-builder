@@ -3,7 +3,7 @@ bl_info = {
     "name": "No Mans Sky Base Builder",
     "description": "A tool to assist with base building in No Mans Sky",
     "author": "Charlie Banks",
-    "version": (2, 0, 2),
+    "version": (2, 0, 3),
     "blender": (3, 0, 0),
     "location": "3D View > Tools",
     "warning": "",  # used for warning icon and text in addons panel
@@ -21,10 +21,6 @@ import bpy
 import bpy.ops
 import bpy.utils
 import bpy.utils.previews
-from bpy.props import (BoolProperty, EnumProperty, FloatProperty, IntProperty,
-                       PointerProperty, StringProperty)
-from bpy.types import Panel, PropertyGroup
-
 import no_mans_sky_base_builder.builder as builder
 import no_mans_sky_base_builder.part_overrides.line as line
 import no_mans_sky_base_builder.preset as preset
@@ -32,6 +28,9 @@ import no_mans_sky_base_builder.utils.blend_utils as blend_utils
 import no_mans_sky_base_builder.utils.curve as curve
 import no_mans_sky_base_builder.utils.material as _material
 import no_mans_sky_base_builder.utils.python as python_utils
+from bpy.props import (BoolProperty, EnumProperty, FloatProperty, IntProperty,
+                       PointerProperty, StringProperty)
+from bpy.types import Panel, PropertyGroup
 
 FILE_PATH = os.path.dirname(os.path.realpath(__file__))
 USER_PATH = os.path.join(os.path.expanduser("~"), "NoMansSkyBaseBuilder")

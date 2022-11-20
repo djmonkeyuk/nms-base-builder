@@ -20,7 +20,8 @@ EXISTING_CSV_FILE = os.path.join(os.path.dirname(os.path.realpath(__file__)), "D
 headings = ["---", "ObjectModel", "Category", "Icon", "SubCategory", "SocketClassIDs", "PlugClassIDs", "NiceName"]
 
 existing_rows = {}
-with open(EXISTING_CSV_FILE) as csv_file:
+
+with open(EXISTING_CSV_FILE, encoding="utf-16") as csv_file:
     csv_reader = csv.reader(csv_file, delimiter=',')
     line_count = 0
     for idx, row in enumerate(csv_reader):

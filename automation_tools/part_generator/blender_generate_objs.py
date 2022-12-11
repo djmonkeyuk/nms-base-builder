@@ -32,7 +32,6 @@ OUTPUT_FOLDER = os.path.join(os.path.dirname(os.path.realpath(__file__)), "OBJ_e
 
 def process_blender():
     import bpy
-
     def get_top_level_lods():
         objects = []
         for obj in bpy.data.objects:
@@ -87,7 +86,10 @@ def process_blender():
         os.path.join(PATH_TO_MOD_PROJECT, "METADATA/REALITY/TABLES/BASEBUILDINGPARTSTABLE.EXML"),
         os.path.join(PATH_TO_MOD_PROJECT, "METADATA/REALITY/TABLES/NMS_REALITY_GCPRODUCTTABLE.EXML"),
     )
-
+    # Path override
+    known_parts = {
+        "LANDINGZONE": "N:/Games/No Mans Sky/nms_modding_station/unpacked/MODELS/PLANETS/BIOMES/COMMON/BUILDINGS/PARTS/BUILDABLEPARTS/TECH/LANDINGZONE_LOD.SCENE.MBIN"
+    }
     for idname, path in known_parts.items():
         # Import the mbin
         bpy.ops.nmsdk.import_scene(

@@ -17,7 +17,7 @@ from automation_utils import get_all_existing_parts
 EXISTING_CSV_FILE = os.path.join(os.path.dirname(os.path.realpath(__file__)), "DT_PartDefinition.csv")
 # ---,ObjectModel,Category,Icon,SubCategory,SocketClassIDs,PlugClassIDs
 
-headings = ["---", "ObjectModel", "Category", "Icon", "SubCategory", "SocketClassIDs", "PlugClassIDs", "NiceName"]
+headings = ["---", "ObjectModel", "Category", "Icon", "SubCategory", "SocketClassIDs", "PlugClassIDs", "NiceName", "bShowInDrawer", "VariantOf"]
 
 existing_rows = {}
 with open(EXISTING_CSV_FILE) as csv_file:
@@ -34,7 +34,7 @@ existing_parts = [str(key.replace("^", "")) for key in existing_rows.keys()]
 obj_parts = get_all_existing_parts()
 missing_parts = sorted([x for x in obj_parts if x not in existing_parts])
 for part in missing_parts:
-    existing_rows["^"+part] = ["^"+part, "", "", "", "", "", ""]
+    existing_rows["^"+part] = ["^"+part, "", "", "", "", "", "", "", ""]
 
 # Validate data
 UE_model_path = "StaticMesh'/Game/NMSBaseBuilder/Features/Models/"
@@ -46,11 +46,11 @@ for key, value in existing_rows.items():
     value[7] = nice_name_data.get(nice_key, "")
 
 build_data = ""
-build_data += "---,ObjectModel,Category,Icon,SubCategory,SocketClassIDs,PlugClassIDs,NiceName\n"
+build_data += "---,ObjectModel,Category,Icon,SubCategory,SocketClassIDs,PlugClassIDs,NiceName,bShowInDrawer,VariantOf\n"
 for key in sorted(existing_rows.keys()):
     value = existing_rows[key]
     build_data += "{},\"{}\",\"{}\",\"{}\",\"{}\",\"{}\",\"{}\",\"{}\"\n".format(
-        value[0], value[1], value[2], value[3], value[4], value[5].replace("\"", "\"\""), value[6].replace("\"", "\"\""), value[7]
+        value[0], value[1], value[2], value[3], value[4], value[5].replace("\"", "\"\""), value[6].replace("\"", "\"\""), value[7], value[8], value[9]
     )
 
 with open(EXISTING_CSV_FILE, mode='w', newline='', encoding='utf-8') as csv_file:

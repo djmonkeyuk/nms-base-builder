@@ -1,3 +1,9 @@
+release 2.0.4
+-------------
+
+* Added model support for Timber, Alloy and Stone variant pieces.
+
+
 release 2.0.3
 -------------
 

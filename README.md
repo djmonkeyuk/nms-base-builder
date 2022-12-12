@@ -112,7 +112,7 @@ Created and maintained by DjMonkey (<a href="http://www.twitter.com/DancingMoonG
 If you would like to support me, I am currently working on my own indie video game. There is a <a href="https://store.steampowered.com/app/1782420/Tales_from_The_Dancing_Moon/" target="_blank">free demo on Steam</a> and it would mean the world to if you gave it a try!
 
 <p align="center">
-  <a href="https://store.steampowered.com/app/1782420/Tales_from_The_Dancing_Moon/" target="_blank"><img src="https://raw.githubusercontent.com/djmonkeyuk/nms-base-builder/master/images/store_capsule_main.png" alt="Tales from The Dancing Moon" width="50%"></a>
+  <a href="https://store.steampowered.com/app/1782420/Tales_from_The_Dancing_Moon/" target="_blank"><img src="https://raw.githubusercontent.com/djmonkeyuk/nms-base-builder/master/images/SteamDemoBanner.png" alt="Tales from The Dancing Moon Steam Store Page" width="50%"></a>
 </p>
 
 

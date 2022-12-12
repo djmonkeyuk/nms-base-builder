@@ -94,11 +94,14 @@ def get_all_existing_parts():
     full_model_path = os.path.join(this_path, "..", "src/addons/no_mans_sky_base_builder/models")
     # full_model_path = "F:/Documents/dev/nms-base-builder/src/addons/no_mans_sky_base_builder/models"
     categories = os.listdir(full_model_path)
-    all_files = set()
+    all_files = {}
     for category in categories:
-        files = os.listdir(os.path.join(full_model_path, category))
+        category_path = os.path.join(full_model_path, category)
+        files = os.listdir(category_path)
         for file in files:
-            all_files.add(os.path.splitext(file)[0])
+            part_id = os.path.splitext(file)[0]
+            full_path = os.path.join(category_path, file)
+            all_files[part_id] = full_path
     return all_files
 
 def get_buildable_ids_from_product_table(exml):

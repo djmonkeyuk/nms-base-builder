@@ -180,7 +180,7 @@ class Line(no_mans_sky_base_builder.part.Part):
     @classmethod
     def deserialise_from_data(cls, data, builder_object, build_rigs=True, compensate_normal=True):
         """Reconstruct the class using an a data.
-        
+
         Data usually comes from NMS or the serialise method.
         """
         # Create object based on the ID.
@@ -198,7 +198,7 @@ class Line(no_mans_sky_base_builder.part.Part):
         part.user_data = data.get("UserData", 0)
 
         return part
-    
+
     # Static Methods ---
     @staticmethod
     def create_point(builder, name=None):
@@ -229,7 +229,7 @@ class Line(no_mans_sky_base_builder.part.Part):
                 if obj is not None:
                     point = obj.copy()
                     blend_utils.add_to_scene(point)
-        
+
 
         point["rig_item"] = True
         point["SnapID"] = "POWER_CONTROL"
@@ -246,7 +246,7 @@ class Line(no_mans_sky_base_builder.part.Part):
         point.name = name
         point.data.name = name+"_SHAPE"
         builder.add_to_part_cache("POWER_CONTROL", point)
-        
+
         return bpy.data.objects[point.name]
 
     @staticmethod
@@ -280,7 +280,7 @@ class Line(no_mans_sky_base_builder.part.Part):
     @staticmethod
     def create_matrix_from_vectors(pos, up, at, compensate_normal=True):
         """Create a world space matrix given by an Up and At vector.
-        
+
         This is very similar to the inherited method. But we normalize the
         right vector slightly differently to maintain the line width.
 
@@ -297,13 +297,13 @@ class Line(no_mans_sky_base_builder.part.Part):
         if compensate_normal:
             at_vector_normalized = at_vector.normalized()
             at_vector = at_vector - at_vector_normalized
-            
+
         right_vector = at_vector.cross(up_vector)
-        
+
         # Make sure the right vector magnitude is an average of the other two.
         right_vector.normalize()
         right_vector *= -1
-        
+
         # Construct a world matrix for the item.
         mat = mathutils.Matrix(
             [
@@ -318,11 +318,11 @@ class Line(no_mans_sky_base_builder.part.Part):
         mat_rot = mathutils.Matrix.Rotation(math.radians(90.0), 4, 'X')
         mat = mat_rot @ mat
         return mat
-    
+
     @staticmethod
     def generate_control_points(source, target, builder):
         """Given two inputs, check if we can generate power connections points.
-        
+
         Args:
             source (bpy.ob): The source input.
             target (bpy.ob): The target input.
@@ -367,10 +367,24 @@ class Line(no_mans_sky_base_builder.part.Part):
 
     # Serialisation ---
     def serialise(self):
-        """Override serialise data to add normalized vector back onto at_vector."""
+        """Cables/pipes At vector dealt with slightly differnetly.
+
+        TODO: refactor to remove the copy+pasted code.
+        """
         return_data = super(Line, self).serialise()
-        at = return_data["At"]
+        # Get Matrix Data
+        world_matrix = self.matrix_world
+        z_compensate = mathutils.Matrix.Rotation(math.radians(-90.0), 4, 'X')
+        world_matrix_offset = z_compensate @ world_matrix
+        at = mathutils.Vector(
+            (
+                world_matrix_offset[0][2],
+                world_matrix_offset[1][2],
+                world_matrix_offset[2][2]
+            )
+        )
         at_vector = mathutils.Vector(at)
+        # Compensate the 0 distance of a cable by adding it's nomralized vector.
         at_vector = at_vector + at_vector.normalized()
         return_data["At"] = [at_vector[0], at_vector[1], at_vector[2]]
         return return_data

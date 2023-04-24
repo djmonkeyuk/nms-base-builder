@@ -22,7 +22,7 @@ class Part(object):
     SNAP_PAIR_DICTIONARY = python_utils.load_dictionary(SNAP_PAIR_JSON)
 
     SNAP_CACHE = {}
-    
+
     def __init__(
             self,
             object_id=None,
@@ -31,7 +31,7 @@ class Part(object):
             user_data=None,
             build_rigs=False):
         """Part __init__
-        
+
         Args:
             object_id (str): The object ID we wish to create.
             bpy_object (bpy.data.object): An existing part we can reconstruct
@@ -43,7 +43,7 @@ class Part(object):
         self.__builder_object = builder_object
         self.build_rigs = build_rigs
         user_data = user_data or self.DEFAULT_USER_DATA
-       
+
         # Decide whether or not to retrieve from the scene
         # or create a new one.
         if bpy_object:
@@ -85,7 +85,7 @@ class Part(object):
     @object.setter
     def object(self, value):
         self.__object = value
-        
+
     @property
     def location(self):
         return self.__object.location
@@ -105,7 +105,7 @@ class Part(object):
     @property
     def scale(self):
         return self.__object.scale
-    
+
     @scale.setter
     def scale(self, value):
         self.__object.scale = value
@@ -129,7 +129,7 @@ class Part(object):
     @order.setter
     def order(self, value):
         self.__object["order"] = value
-        
+
     @property
     def object_id(self):
         return self.__object["ObjectID"]
@@ -161,7 +161,7 @@ class Part(object):
     @property
     def user_data(self):
         return self.__object["UserData"]
-    
+
     @user_data.setter
     def user_data(self, value):
         self.__object["UserData"] = str(value)
@@ -211,7 +211,7 @@ class Part(object):
         anim_data = self.__object.animation_data
         if anim_data:
             drivers_data = anim_data.drivers
-            for dr in drivers_data:  
+            for dr in drivers_data:
                 self.__object.driver_remove(dr.data_path, -1)
 
 
@@ -239,7 +239,7 @@ class Part(object):
 
     def select(self, value=True, add=False):
         blend_utils.select(self.object)
-    
+
     @property
     def parent(self):
         return self.__object.parent
@@ -247,7 +247,7 @@ class Part(object):
     @parent.setter
     def parent(self, bpy_object):
         """Parent this to another blender object.
-        
+
         Whilst maintaining the offset.
         """
         if bpy_object:
@@ -259,7 +259,7 @@ class Part(object):
 
     def retrieve_object_from_id(self, object_id):
         """Given an ID. Find the best way to create a new one.
-        
+
         As loading OBJ can be resource and time intensive. We can figure ways
         of caching and duplicating existing items via th Builder class.
 
@@ -276,7 +276,7 @@ class Part(object):
             duped = duped.object
             blend_utils.add_to_scene(duped)
             return duped
-        
+
         # Locate OBJ.
         obj_path = self.builder.get_obj_path(object_id)
         # If it exists, import the obj.
@@ -308,7 +308,7 @@ class Part(object):
         """
         # Get Matrix Data
         world_matrix = self.matrix_world
-        # Bring the matrix from Blender Z-Up soace into standard Y-up space.
+        # Bring the matrix from Blender Z-Up space into standard Y-up space.
         z_compensate = mathutils.Matrix.Rotation(math.radians(-90.0), 4, 'X')
         world_matrix_offset = z_compensate @ world_matrix
         # Retrieve Position, Up and At vectors.
@@ -318,11 +318,14 @@ class Part(object):
             world_matrix_offset[1][1],
             world_matrix_offset[2][1]
         ]
-        at = [
-            world_matrix_offset[0][2],
-            world_matrix_offset[1][2],
-            world_matrix_offset[2][2]
-        ]
+        at = mathutils.Vector(
+            (
+                world_matrix_offset[0][2],
+                world_matrix_offset[1][2],
+                world_matrix_offset[2][2]
+            )
+        )
+        at = at.normalized()
 
         return {
             "ObjectID": self.object_id_format,
@@ -343,7 +346,7 @@ class Part(object):
     @classmethod
     def deserialise_from_data(cls, data, builder_object, build_rigs=True, *args, **kwargs):
         """Reconstruct the class using an a data.
-        
+
         Data usually comes from NMS or the serialise method.
         """
         # Create object based on the ID.
@@ -372,7 +375,7 @@ class Part(object):
     @staticmethod
     def create_matrix_from_vectors(pos, up, at):
         """Create a world space matrix given by an Up and At vector.
-        
+
         Args:
             pos (list): 3 element list/vector representing the x,y,z position.
             up (list): 3 element list/vector representing the up vector.
@@ -382,14 +385,15 @@ class Part(object):
         up_vector = mathutils.Vector(up)
         at_vector = mathutils.Vector(at)
         right_vector = at_vector.cross(up_vector)
-        
-        # Make sure the right vector magnitude is an average of the other two.
+
+        # Fix up on right_vector.
         right_vector.normalize()
         right_vector *= -1
 
-        average = ((up_vector.length + at_vector.length) / 2)
-        right_vector.length = right_vector.length * average
-        
+        # Extend `right` and `at`` length to match `up` vector length.
+        right_vector.length = up_vector.length
+        at_vector.length = up_vector.length
+
         # Construct a world matrix for the item.
         mat = mathutils.Matrix(
             [
@@ -417,13 +421,13 @@ class Part(object):
         # Further validation.
         if "snap_points" not in self.SNAP_MATRIX_DICTIONARY[use_group]:
             return
-        
+
         # Get the snap points from the dictionary.
         return self.SNAP_MATRIX_DICTIONARY[use_group]["snap_points"]
 
     def get_snap_group(self):
         """Search through the grouping dictionary and return the snap group.
-        
+
         Args:
             part_id (str): The ID of the building part.
         """
@@ -436,7 +440,7 @@ class Part(object):
         """Get the compatible snap points
 
         Args:
-            target_item (part.Part): 
+            target_item (part.Part):
         """
         # Get Groups.
         target_group = target_item.get_snap_group()
@@ -577,11 +581,11 @@ class Part(object):
                     source_key,
                     step="prev"
                 )
-        
+
         # If no keys were found, don't snap.
         if not source_key and not target_key:
             return False
-        
+
         # Snap-point to snap-point matrix maths.
         # As I've defined X to be always outward facing, we snap the rotated
         # matrix to the point.
@@ -659,7 +663,7 @@ class Part(object):
             source_filter=None,
             target_filter=None):
         """Get the closest snap points of two objects.
-        
+
         Args:
             target (part.Part): The object we are snapping on to.
             source_filter (str): A filter for the snap points being used.
@@ -667,7 +671,7 @@ class Part(object):
         """
         source_matrices = self.get_snap_points()
         target_matrices = target.get_snap_points()
-        
+
         lowest_source_key = None
         lowest_target_key = None
         lowest_distance = 9999999
@@ -680,7 +684,7 @@ class Part(object):
                 # Check target filter.
                 if target_filter and target_filter not in target_key:
                     continue
-                
+
                 # Find the distance and check if its lower then the one
                 # stored.
                 local_source_matrix = mathutils.Matrix(source_info["matrix"])
@@ -721,7 +725,7 @@ class Part(object):
 
     def get_connected_snapped_objects(self, filter=None, include_lines=True):
         """Get all objects connected to the given snap category.
-        
+
         Args:
             filter (str): A filter for the snap points being used.
         """
@@ -747,7 +751,7 @@ class Part(object):
                 # Check target filter.
                 if filter and filter not in target_key:
                     continue
-                
+
                 local_target_matrix = mathutils.Matrix(target_info["matrix"])
                 target_snap_matrix = target.matrix_world @ local_target_matrix
 

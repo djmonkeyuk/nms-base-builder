@@ -3,7 +3,7 @@ bl_info = {
     "name": "No Mans Sky Base Builder",
     "description": "A tool to assist with base building in No Mans Sky",
     "author": "Charlie Banks",
-    "version": (2, 0, 5),
+    "version": (2, 0, 6),
     "blender": (3, 0, 0),
     "location": "3D View > Tools",
     "warning": "",  # used for warning icon and text in addons panel
@@ -764,6 +764,10 @@ class NMS_PT_file_buttons_panel(Panel):
         nms_row.operator("object.nms_import_nms_data", icon="PASTEDOWN")
         nms_row.operator("object.nms_export_nms_data", icon="COPYDOWN")
 
+        second_column = layout.column(align=True)
+        community_row = second_column.row(align=True)
+        community_row.operator("object.nms_visit_community", icon="WORLD_DATA")
+
 
 # Base Property Panel ---
 class NMS_PT_base_prop_panel(Panel):
@@ -1246,6 +1250,16 @@ class LoadFancyUI(bpy.types.Operator):
         subprocess.Popen("python \"{}\"".format(loader))
         return {"FINISHED"}
 
+
+class PresetsMenu(bpy.types.Menu):
+    bl_idname = "object.nms_get_more_presets_menu"
+    bl_label = "Get More Presets..."
+
+    def draw(self, context):
+        layout = self.layout
+        layout.operator("object.nms_visit_prefab_community")
+        layout.operator("object.nms_visit_github")
+
 class GetMorePresets(bpy.types.Operator):
     """Load the No Man's Sky Presets web page to find more community presets."""
     bl_idname = "object.nms_get_more_presets"
@@ -1253,7 +1267,37 @@ class GetMorePresets(bpy.types.Operator):
 
     def execute(self, context):
         # Load web page.
-        webbrowser.open_new("https://charliebanks.github.io/nms-base-builder-presets/")
+        bpy.ops.wm.call_menu(name=PresetsMenu.bl_idname)
+        return {"FINISHED"}
+
+class VisitDiscord(bpy.types.Operator):
+    """Launch the community discord URL."""
+    bl_idname = "object.nms_visit_community"
+    bl_label = "Visit the Community Discord."
+
+    def execute(self, context):
+        # Load web page.
+        webbrowser.open_new("https://discord.gg/Mmz3rpq4Px")
+        return {"FINISHED"}
+
+class VisitPrefabDiscord(bpy.types.Operator):
+    """Launch the community discord URL."""
+    bl_idname = "object.nms_visit_prefab_community"
+    bl_label = "from the Community Discord..."
+
+    def execute(self, context):
+        # Load web page.
+        webbrowser.open_new("https://discord.gg/EqCXaFcd7Y")
+        return {"FINISHED"}
+
+class VisitGitHubRepo(bpy.types.Operator):
+    """Launch the GitHub Repo URL."""
+    bl_idname = "object.nms_visit_github"
+    bl_label = "from the GitHub Repository..."
+
+    def execute(self, context):
+        # Load web page.
+        webbrowser.open_new("https://djmonkeyuk.github.io/nms-base-builder-presets/")
         return {"FINISHED"}
 
 class OpenPresetFolder(bpy.types.Operator):
@@ -1783,6 +1827,10 @@ classes = (
     SaveAsPreset,
     LoadFancyUI,
     GetMorePresets,
+    PresetsMenu,
+    VisitDiscord,
+    VisitPrefabDiscord,
+    VisitGitHubRepo,
     OpenPresetFolder,
     ToggleRoom,
 

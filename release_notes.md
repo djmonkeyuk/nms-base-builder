@@ -1,3 +1,8 @@
+release 2.0.5
+-------------
+
+* Fixed a bug where some scaled parts were being assigned a random color.
+
 release 2.0.4
 -------------
 

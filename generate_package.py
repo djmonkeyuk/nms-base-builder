@@ -1,7 +1,8 @@
-import zipfile
-from zipfile import ZipFile
 import os
+import zipfile
 from os.path import basename
+from zipfile import ZipFile
+
 repo_dir = os.path.dirname(os.path.realpath(__file__))
 
 python_package_dir = os.path.join(repo_dir, "src", "addons", "no_mans_sky_base_builder")
@@ -12,7 +13,7 @@ def build_recursive_file_list(dir_path):
     for thing in os.listdir(dir_path):
         if thing == "__pycache__":
             continue
-        
+
         full_path = os.path.join(dir_path, thing)
         if "icons" in full_path and full_path.endswith(".PNG"):
             continue
@@ -34,4 +35,3 @@ with ZipFile(zip_out, 'w', zipfile.ZIP_DEFLATED) as zip_obj:
     for item in build_recursive_file_list(python_package_dir):
         zip_obj.write(item, remove_root_path(item))
 
-    

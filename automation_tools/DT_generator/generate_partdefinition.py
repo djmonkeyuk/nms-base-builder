@@ -42,7 +42,7 @@ UE_model_path = "StaticMesh'/Game/NMSBaseBuilder/Features/Models/"
 UE_texture_path = "Texture2D'/Game/NMSBaseBuilder/Features/UI/Icons/"
 for key, value in existing_rows.items():
     nice_key = key.replace("^", "")
-    if update_model_paths:
+    if update_model_paths or (value[1] == ""):
         value[1] = UE_model_path+nice_key+"."+nice_key+"'"
     value[3] = UE_texture_path+nice_key+"."+nice_key+"'"
     value[7] = nice_name_data.get(nice_key, "")

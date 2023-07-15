@@ -5,7 +5,8 @@ import yaml
 
 def get_nice_ui_parts():
     data = []
-    with open("N:/Documents/dev/nms-base-builder/src/addons/no_mans_sky_base_builder/resources/asset_data.yaml") as stream:
+    file_read = os.path.join(os.path.realpath(os.path.dirname(__file__)), "..", "resources/asset_data.yaml")
+    with open(file_read) as stream:
         data = yaml.safe_load(stream)
 
     all_listed_items = []
@@ -21,7 +22,8 @@ def get_nice_ui_parts():
     return all_listed_items
 
 def list_models():
-    model_dir = "N:/Documents/dev/nms-base-builder/src/addons/no_mans_sky_base_builder/models"
+    model_dir = os.path.join(os.path.realpath(os.path.dirname(__file__)), "..", "models")
+    # model_dir = "N:/Documents/dev/nms-base-builder/src/addons/no_mans_sky_base_builder/models"
     all_models = []
     for sub_dir in os.listdir(model_dir):
         full_dir = os.path.join(model_dir, sub_dir)

@@ -10,6 +10,12 @@ PATH_TO_MOD_PROJECT = "N:/Games/No Mans Sky/nms_modding_station/projects/BaseTab
 PATH_TO_REPO = "N:/Documents/dev/nms-base-builder/automation_tools"
 #-------------------------------------------------------------------------------
 
+IGNORE_LIST = os.path.join(os.path.realpath(os.path.dirname(__file__)), "part_generator", "ignore_list.txt")
+
+ignore_items = []
+with open(IGNORE_LIST, "r") as stream:
+    ignore_items = stream.read().split("\n")
+
 
 PATH_TO_PART_TABLE = os.path.join(os.path.realpath(os.path.dirname(__file__)), "part_generator", "DT_PartTable.csv")
 PART_TABLE_DATA = {}
@@ -61,6 +67,8 @@ def list_missing_parts(parts_table_exml, product_table_exml):
     known_data = {}
     unknown_data = {}
     for buildable_id in all_buildable_ids:
+        if buildable_id in ignore_items:
+            continue
         if buildable_id not in all_parts:
             if buildable_id in parts_data:
                 known_data[buildable_id] = parts_data[buildable_id]

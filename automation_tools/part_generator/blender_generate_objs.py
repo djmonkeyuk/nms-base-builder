@@ -87,9 +87,13 @@ def process_blender():
         os.path.join(PATH_TO_MOD_PROJECT, "METADATA/REALITY/TABLES/NMS_REALITY_GCPRODUCTTABLE.EXML"),
     )
     # Path override
-    known_parts = {
-        "LANDINGZONE": "N:/Games/No Mans Sky/nms_modding_station/unpacked/MODELS/PLANETS/BIOMES/COMMON/BUILDINGS/PARTS/BUILDABLEPARTS/TECH/LANDINGZONE_LOD.SCENE.MBIN"
-    }
+    # known_parts = {
+    #     "LANDINGZONE": "N:/Games/No Mans Sky/nms_modding_station/unpacked/MODELS/PLANETS/BIOMES/COMMON/BUILDINGS/PARTS/BUILDABLEPARTS/TECH/LANDINGZONE_LOD.SCENE.MBIN"
+    # }
+    for idname, path in known_parts.items():
+        path = os.path.join(PATH_TO_UNPACKED, path)
+        if not os.path.exists(path):
+            raise RuntimeError(f"File does not exist, please check {path}")
     for idname, path in known_parts.items():
         # Import the mbin
         bpy.ops.nmsdk.import_scene(

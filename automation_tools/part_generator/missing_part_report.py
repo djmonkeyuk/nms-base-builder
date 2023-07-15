@@ -27,7 +27,7 @@ sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), ".."))
 
 from automation_utils import (PATH_TO_MOD_PROJECT, bcolors,
                               get_unknown_category_parts,
-                              get_unknown_subcategory_parts,
+                              get_unknown_subcategory_parts, ignore_items,
                               list_missing_parts, print_with_color)
 
 
@@ -63,10 +63,9 @@ def print_report():
             bcolors.FAIL
         )
         longest_unknown_part = max([len(x) for x in unknown_parts])
-        print_with_color(
-            "\n".join(["\t" + part.rjust(longest_unknown_part) + " : MISSING PATH" for part in sorted(unknown_parts)]),
-            bcolors.FAIL
-        )
+        print_with_color("\n".join([part for part in sorted(unknown_parts)]), bcolors.FAIL)
+        #     "\n".join(["\t" + part.rjust(longest_unknown_part) + " : MISSING PATH" for part in sorted(unknown_parts)]),
+        # )
 
     # Category.
     print_with_color(

@@ -324,9 +324,8 @@
     <file alias="ABAND_BENCH">ABAND_BENCH.PNG</file>
     <file alias="PALLET">PALLET.PNG</file>
     <file alias="ABAND_BARREL">ABAND_BARREL.PNG</file>
-    <file alias="S9_SCIENCETREE">S9_SCIENCETREE.PNG</file>
+    <file alias="S9_SUITTREE">S9_SUITTREE.PNG</file>
     <file alias="S9_WEAPONTREE">S9_WEAPONTREE.PNG</file>
-    <file alias="S9_FARMTREE">S9_FARMTREE.PNG</file>
     <file alias="S9_EXOCRAFTTREE">S9_EXOCRAFTTREE.PNG</file>
     <file alias="S9_SHIPTREE">S9_SHIPTREE.PNG</file>
     <file alias="S9_BUILDERTREE">S9_BUILDERTREE.PNG</file>
@@ -853,6 +852,18 @@
     <file alias="BLD_FIREPIT">BLD_FIREPIT.PNG</file>
     <file alias="BLD_DATASIGN">BLD_DATASIGN.PNG</file>
     <file alias="EXPD_DECAL08">EXPD_DECAL08.PNG</file>
+    <file alias="EXPD_POSTER09A">EXPD_POSTER09A.PNG</file>
+    <file alias="EXPD_POSTER09B">EXPD_POSTER09B.PNG</file>
+    <file alias="EXPD_POSTER09C">EXPD_POSTER09C.PNG</file>
+    <file alias="BLD_HOLOGEK">BLD_HOLOGEK.PNG</file>
+    <file alias="EXPD_DECAL09">EXPD_DECAL09.PNG</file>
+    <file alias="EXPD_POSTER10A">EXPD_POSTER10A.PNG</file>
+    <file alias="EXPD_POSTER10B">EXPD_POSTER10B.PNG</file>
+    <file alias="EXPD_POSTER10C">EXPD_POSTER10C.PNG</file>
+    <file alias="BLD_CRYS_SENT0">BLD_CRYS_SENT0.PNG</file>
+    <file alias="BLD_CRYS_SENT1">BLD_CRYS_SENT1.PNG</file>
+    <file alias="BLD_CRYS_DRONE">BLD_CRYS_DRONE.PNG</file>
+    <file alias="EXPD_DECAL10">EXPD_DECAL10.PNG</file>
     <file alias="TWITCH_FIREW01A">TWITCH_FIREW01A.PNG</file>
     <file alias="TWITCH_FIREW01B">TWITCH_FIREW01B.PNG</file>
     <file alias="TWITCH_FIREW01C">TWITCH_FIREW01C.PNG</file>
@@ -878,6 +889,11 @@
     <file alias="TWITCH_FIREW05C">TWITCH_FIREW05C.PNG</file>
     <file alias="TWITCH_FIREW05D">TWITCH_FIREW05D.PNG</file>
     <file alias="TWITCH_FIREW05E">TWITCH_FIREW05E.PNG</file>
+    <file alias="TWITCH_FIREW06A">TWITCH_FIREW06A.PNG</file>
+    <file alias="TWITCH_FIREW06B">TWITCH_FIREW06B.PNG</file>
+    <file alias="TWITCH_FIREW06C">TWITCH_FIREW06C.PNG</file>
+    <file alias="TWITCH_FIREW06D">TWITCH_FIREW06D.PNG</file>
+    <file alias="TWITCH_FIREW06E">TWITCH_FIREW06E.PNG</file>
     <file alias="STATUE_BLOB_B">STATUE_BLOB_B.PNG</file>
     <file alias="STATUE_BLOB_S">STATUE_BLOB_S.PNG</file>
     <file alias="STATUE_BLOB_G">STATUE_BLOB_G.PNG</file>
@@ -941,6 +957,9 @@
     <file alias="BASE_WPLANT1">BASE_WPLANT1.PNG</file>
     <file alias="BASE_WPLANT2">BASE_WPLANT2.PNG</file>
     <file alias="BASE_WPLANT3">BASE_WPLANT3.PNG</file>
+    <file alias="BASE_WPLANT4">BASE_WPLANT4.PNG</file>
+    <file alias="BASE_WPLANT5">BASE_WPLANT5.PNG</file>
+    <file alias="BASE_WPLANT6">BASE_WPLANT6.PNG</file>
     <file alias="BASE_BARNACLE">BASE_BARNACLE.PNG</file>
     <file alias="SPEC_FIREWORK01">SPEC_FIREWORK01.PNG</file>
     <file alias="SPEC_FIREWORK02">SPEC_FIREWORK02.PNG</file>
@@ -1006,6 +1025,12 @@
     <file alias="BASE_GRASS5">BASE_GRASS5.PNG</file>
     <file alias="BASE_GRASS6">BASE_GRASS6.PNG</file>
     <file alias="BASE_GRASS7">BASE_GRASS7.PNG</file>
+    <file alias="BASE_FLOWER1">BASE_FLOWER1.PNG</file>
+    <file alias="BASE_FLOWER2">BASE_FLOWER2.PNG</file>
+    <file alias="BASE_FLOWER3">BASE_FLOWER3.PNG</file>
+    <file alias="S_SIGN_BAR1">S_SIGN_BAR1.PNG</file>
+    <file alias="S_SIGN_BAR2">S_SIGN_BAR2.PNG</file>
+    <file alias="S_SIGN_BAR3">S_SIGN_BAR3.PNG</file>
     <file alias="SLIME_MED">SLIME_MED.PNG</file>
     <file alias="SPOOKY_PLANT">SPOOKY_PLANT.PNG</file>
     <file alias="S_POSTER12">S_POSTER12.PNG</file>
@@ -1020,6 +1045,9 @@
     <file alias="S_POSTER23">S_POSTER23.PNG</file>
     <file alias="S_POSTER24">S_POSTER24.PNG</file>
     <file alias="S_POSTER25">S_POSTER25.PNG</file>
+    <file alias="S_POSTER26">S_POSTER26.PNG</file>
+    <file alias="S_POSTER27">S_POSTER27.PNG</file>
+    <file alias="S_POSTER28">S_POSTER28.PNG</file>
     <file alias="TOP_BAR_REFRESH">../images/TOP_BAR_REFRESH.PNG</file>
 </qresource>
 </RCC>

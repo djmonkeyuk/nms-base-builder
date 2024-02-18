@@ -26,7 +26,7 @@ return_string = "<!DOCTYPE RCC><RCC version=\"1.0\">\n"
 return_string += "<qresource>\n"
 for part in icon_dict.keys():
     return_string += "    <file alias=\"{0}\">{0}.PNG</file>\n".format(part)
-return_string += "    <file alias=\"TOP_BAR_REFRESH\">../images/TOP_BAR_REFRESH.PNG</file>\n".format(part)
+# return_string += "    <file alias=\"TOP_BAR_REFRESH\">../images/TOP_BAR_REFRESH.PNG</file>\n".format(part)
 return_string += "</qresource>\n"
 return_string += "</RCC>\n"
 

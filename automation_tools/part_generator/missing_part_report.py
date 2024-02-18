@@ -25,6 +25,9 @@ import sys
 
 sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), ".."))
 
+BASEBUILDINGPARTSTABLE = "METADATA/REALITY/TABLES/BASEBUILDINGPARTSTABLE.EXML"
+NMS_REALITY_GCPRODUCTTABLE = "METADATA/REALITY/TABLES/NMS_REALITY_GCPRODUCTTABLE.EXML"
+
 from automation_utils import (PATH_TO_MOD_PROJECT, bcolors,
                               get_unknown_category_parts,
                               get_unknown_subcategory_parts, ignore_items,
@@ -33,8 +36,8 @@ from automation_utils import (PATH_TO_MOD_PROJECT, bcolors,
 
 def print_report():
     known_parts, unknown_parts = list_missing_parts(
-        os.path.join(PATH_TO_MOD_PROJECT, "METADATA/REALITY/TABLES/BASEBUILDINGPARTSTABLE.EXML"),
-        os.path.join(PATH_TO_MOD_PROJECT, "METADATA/REALITY/TABLES/NMS_REALITY_GCPRODUCTTABLE.EXML"),
+        os.path.join(PATH_TO_MOD_PROJECT, BASEBUILDINGPARTSTABLE),
+        os.path.join(PATH_TO_MOD_PROJECT, NMS_REALITY_GCPRODUCTTABLE),
     )
     unknown_cats = get_unknown_category_parts() + get_unknown_subcategory_parts()
     all_parts = sorted(list(known_parts.keys())+list(unknown_parts.keys()))

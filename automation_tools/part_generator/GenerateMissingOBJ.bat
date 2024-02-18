@@ -1,1 +1,1 @@
-blender -b -P ./blender_generate_objs.py
+"N:/Games/No Mans Sky/Blender/blender.exe" -b -P ./blender_generate_objs.py

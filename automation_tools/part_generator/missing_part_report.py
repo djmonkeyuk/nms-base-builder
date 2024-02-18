@@ -15,7 +15,8 @@ How to use this file:
         )
 
 4. For any unknown paths, find and place relavant mbin paths into the "DT_PartTable.csv" file. Unfortunately this is quite a manual process.
-5. Keep running the above function until all paths fall in the "known" variable.
+5. Keep running the above function until
+ all paths fall in the "known" variable.
 6. Using the known list, run the following function in Blender to automate the OBJ export.
 7. With all OBJs exported, place them in their correct folder in the tool, and update the asset browser with the relevant info.
 

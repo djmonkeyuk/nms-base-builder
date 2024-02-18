@@ -167,6 +167,14 @@ class Part(object):
         self.__object["UserData"] = str(value)
 
     @property
+    def message(self):
+        return self.object.get("Message", "")
+
+    @message.setter
+    def message(self, value):
+        self.object["Message"] = str(value)
+
+    @property
     def belongs_to_preset(self):
         return self.__object["belongs_to_preset"]
 
@@ -326,14 +334,14 @@ class Part(object):
             )
         )
         at = at.normalized()
-
         return {
             "ObjectID": self.object_id_format,
             "Position": [pos[0], pos[1], pos[2]],
             "Up": [up[0], up[1], up[2]],
             "At": [at[0], at[1], at[2]],
             "Timestamp": int(self.time_stamp),
-            "UserData": int(self.user_data)
+            "UserData": int(self.user_data),
+            "Message": self.message
         }
 
     # Class Methods ---
@@ -369,6 +377,7 @@ class Part(object):
         # Apply metadata
         part.time_stamp = str(data.get("Timestamp", int(time.time())))
         part.user_data = data.get("UserData", 0)
+        part.message = data.get("Message", "")
         return part
 
     # Static Methods ---

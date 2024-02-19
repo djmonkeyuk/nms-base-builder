@@ -14,7 +14,8 @@ How to use this file:
             "F:/Games/No Mans Sky/nms_modding_station/projects/BaseTables/METADATA/REALITY/TABLES/NMS_REALITY_GCPRODUCTTABLE.EXML",
         )
 
-4. For any unknown paths, find and place relavant mbin paths into the "DT_PartTable.csv" file. Unfortunately this is quite a manual process.
+4. For any unknown p
+aths, find and place relavant mbin paths into the "DT_PartTable.csv" file. Unfortunately this is quite a manual process.
 5. Keep running the above function until all paths fall in the "known" variable.
 6. Using the known list, run the following function in Blender to automate the OBJ export.
 7. With all OBJs exported, place them in their correct folder in the tool, and update the asset browser with the relevant info.
@@ -111,8 +112,8 @@ def process_blender():
         category = os.path.join(OUTPUT_FOLDER, get_category_by_id(idname))
         if not os.path.exists(category):
             os.mkdir(category)
-        out_file = os.path.join(category, idname+".obj")
-        bpy.ops.export_scene.obj(filepath=out_file, use_selection=True, use_materials=False)
+        out_file = os.path.join(category, idname+".fbx")
+        bpy.ops.export_scene.fbx(filepath=out_file, object_types={'MESH'}, use_selection=True)
 
 
 process_blender()

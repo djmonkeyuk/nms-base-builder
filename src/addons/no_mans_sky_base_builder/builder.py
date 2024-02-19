@@ -356,7 +356,7 @@ class Builder(object):
         search_path = self.get_model_path_from_pack(pack)
         category_path = os.path.join(search_path, category)
         all_objs = [
-            part for part in os.listdir(category_path) if part.endswith(".obj")
+            part for part in os.listdir(category_path) if part.endswith(".fbx")
         ]
         file_names = sorted(all_objs)
         return file_names
@@ -370,7 +370,6 @@ class Builder(object):
         """Get the path to the OBJ file from a part."""
         path = self.get_obj_path(part)
         folder = os.path.dirname(path).split(os.sep)[-1]
-        print (part, path, folder)
         return folder
 
     def get_model_path_from_pack(self, pack_request):

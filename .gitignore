@@ -1,6 +1,7 @@
 # Ignore NMS icons. Don't want to redistribute.
 src/addons/no_mans_sky_base_builder/asset_browser/icons/*.PNG
 automation_tools/part_genetator/**/*.obj
+automation_tools/part_genetator/**/*.fbx
 automation_tools/part_genetator/OBJ_export/
 automation_tools/part_genetator/OBJ_export/*
 automation_tools/icon_generator/**/*.PNG

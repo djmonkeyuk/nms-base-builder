@@ -38,11 +38,16 @@ A plugin for Blender to build bases in No Mans Sky.
 ## Requirements
 
 Addon Requirements
-* Latest Base Builder Release (https://github.com/djmonkeyuk/nms-base-builder/releases)
-* No Mans Sky Save Editor (https://nomansskymods.com/mods/no-mans-sky-save-editor/)
-* Blender (https://www.blender.org/)
-* The Latest Python 3 version (https://www.python.org/)
-* bpy_externall addon. Installed and enabled in Blender. (https://github.com/djmonkeyuk/bpy_externall/tree/blender4-patch)
+* Latest Base Builder Release
+    * https://github.com/djmonkeyuk/nms-base-builder/releases
+* No Mans Sky Save Editor
+    * https://nomansskymods.com/mods/no-mans-sky-save-editor
+* Blender
+    * https://www.blender.org
+* The Latest Python 3 version
+    * https://www.python.org
+* bpy_externall addon. Installed and enabled in Blender.
+    * https://github.com/djmonkeyuk/bpy_externall/tree/blender4-patch
 
 <br />
 

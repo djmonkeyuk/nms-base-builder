@@ -108,6 +108,8 @@ def process_blender():
         bpy.ops.object.select_all(action='DESELECT')
         for item in lowest_lods:
             select_object_and_below(item)
+        # Combine selection into one.
+        bpy.ops.object.join()
         # Export LOD to new obj file.
         category = os.path.join(OUTPUT_FOLDER, get_category_by_id(idname))
         if not os.path.exists(category):

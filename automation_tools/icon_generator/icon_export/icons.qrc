@@ -1092,5 +1092,6 @@
     <file alias="S_POSTER26">S_POSTER26.PNG</file>
     <file alias="S_POSTER27">S_POSTER27.PNG</file>
     <file alias="S_POSTER28">S_POSTER28.PNG</file>
+    <file alias="TOP_BAR_REFRESH">../images/TOP_BAR_REFRESH.PNG</file>
 </qresource>
 </RCC>

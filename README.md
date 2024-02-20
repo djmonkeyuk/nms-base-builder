@@ -44,8 +44,8 @@ Addon Requirements
     * https://nomansskymods.com/mods/no-mans-sky-save-editor
 * Blender
     * https://www.blender.org
-* The Latest Python 3 version
-    * https://www.python.org
+* The Latest Python 3 version.
+    * Install using Windows Store, or from https://www.python.org
 * bpy_externall addon. Installed and enabled in Blender.
     * https://github.com/djmonkeyuk/bpy_externall/tree/blender4-patch
 

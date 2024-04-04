@@ -6,6 +6,7 @@ automation_tools/part_genetator/OBJ_export/
 automation_tools/part_genetator/OBJ_export/*
 automation_tools/icon_generator/**/*.PNG
 automation_tools/nicename_generator/export/*
+no_mans_sky_base_builder.zip
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

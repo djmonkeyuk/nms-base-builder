@@ -619,6 +619,33 @@
     - BLD_BUI_HAND
     - BLD_BUI_HEAD
     - BLD_BUI_TENT
+  - Station:
+    - ARCHIVE
+    - BILLBOARD
+    - CONT_S
+    - CRATEFRAME
+    - HOLOFILES
+    - HOLO_EXP
+    - HOLO_MED1
+    - HOLO_MED2
+    - HOLO_SMALL1
+    - HOLO_SMALL2
+    - HOLO_SMALL3
+    - HOLO_TRA
+    - HOLO_WAR
+    - LIGHTFRAME
+    - LIGHT_PLINTH
+    - LIGHT_TALL
+    - LIGHT_VERT
+    - MAPTABLE
+    - PLANTBOX
+    - PLANTER_S
+    - POWERBOX
+    - SERVERBOX1
+    - SERVERBOX2
+    - SHIPARMS
+    - STANDINGSIGN
+    - STATIONCRATE
 - Exotic Decorations:
   - Planetary Glitches:
     - BASE_AQUARIUM
@@ -836,6 +863,9 @@
     - S_POSTER26
     - S_POSTER27
     - S_POSTER28
+    - S_POSTER29
+    - S_POSTER30
+    - S_POSTER31
     - EXPD_POSTER05A
     - EXPD_POSTER05B
     - EXPD_POSTER05C

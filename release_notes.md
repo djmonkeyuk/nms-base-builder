@@ -2,7 +2,7 @@ release 2.1.0
 -------------
 
 * Fixed errors when using Blender 4.0
-* Base parts up to date as of OMEGA update.
+* Base parts up to date as of ORBITAL update.
 
 release 2.0.5
 -------------

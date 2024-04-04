@@ -330,6 +330,32 @@
     <file alias="S9_SHIPTREE">S9_SHIPTREE.PNG</file>
     <file alias="S9_BUILDERTREE">S9_BUILDERTREE.PNG</file>
     <file alias="HOLO_DISCO_0">HOLO_DISCO_0.PNG</file>
+    <file alias="ARCHIVE">ARCHIVE.PNG</file>
+    <file alias="CONT_S">CONT_S.PNG</file>
+    <file alias="STATIONCRATE">STATIONCRATE.PNG</file>
+    <file alias="CRATEFRAME">CRATEFRAME.PNG</file>
+    <file alias="HOLO_TRA">HOLO_TRA.PNG</file>
+    <file alias="HOLO_EXP">HOLO_EXP.PNG</file>
+    <file alias="HOLO_WAR">HOLO_WAR.PNG</file>
+    <file alias="HOLO_MED1">HOLO_MED1.PNG</file>
+    <file alias="HOLO_MED2">HOLO_MED2.PNG</file>
+    <file alias="HOLO_SMALL1">HOLO_SMALL1.PNG</file>
+    <file alias="HOLO_SMALL2">HOLO_SMALL2.PNG</file>
+    <file alias="HOLO_SMALL3">HOLO_SMALL3.PNG</file>
+    <file alias="LIGHTFRAME">LIGHTFRAME.PNG</file>
+    <file alias="LIGHT_TALL">LIGHT_TALL.PNG</file>
+    <file alias="LIGHT_PLINTH">LIGHT_PLINTH.PNG</file>
+    <file alias="LIGHT_VERT">LIGHT_VERT.PNG</file>
+    <file alias="PLANTBOX">PLANTBOX.PNG</file>
+    <file alias="PLANTER_S">PLANTER_S.PNG</file>
+    <file alias="SERVERBOX1">SERVERBOX1.PNG</file>
+    <file alias="SERVERBOX2">SERVERBOX2.PNG</file>
+    <file alias="HOLOFILES">HOLOFILES.PNG</file>
+    <file alias="POWERBOX">POWERBOX.PNG</file>
+    <file alias="SHIPARMS">SHIPARMS.PNG</file>
+    <file alias="STANDINGSIGN">STANDINGSIGN.PNG</file>
+    <file alias="BILLBOARD">BILLBOARD.PNG</file>
+    <file alias="MAPTABLE">MAPTABLE.PNG</file>
     <file alias="M_WALL">M_WALL.PNG</file>
     <file alias="M_WALL_H">M_WALL_H.PNG</file>
     <file alias="M_WALL_Q">M_WALL_Q.PNG</file>
@@ -1008,6 +1034,9 @@
     <file alias="SPEC_FIREWORK07">SPEC_FIREWORK07.PNG</file>
     <file alias="SPEC_FIREWORK08">SPEC_FIREWORK08.PNG</file>
     <file alias="SPEC_FIREWORK09">SPEC_FIREWORK09.PNG</file>
+    <file alias="SPEC_FIREWORK10">SPEC_FIREWORK10.PNG</file>
+    <file alias="SPEC_FIREWORK11">SPEC_FIREWORK11.PNG</file>
+    <file alias="SPEC_FIREWORK12">SPEC_FIREWORK12.PNG</file>
     <file alias="BASE_TOYCORE">BASE_TOYCORE.PNG</file>
     <file alias="BASE_TERRARIUM">BASE_TERRARIUM.PNG</file>
     <file alias="BASE_HOTPLANT01">BASE_HOTPLANT01.PNG</file>
@@ -1092,6 +1121,9 @@
     <file alias="S_POSTER26">S_POSTER26.PNG</file>
     <file alias="S_POSTER27">S_POSTER27.PNG</file>
     <file alias="S_POSTER28">S_POSTER28.PNG</file>
+    <file alias="S_POSTER29">S_POSTER29.PNG</file>
+    <file alias="S_POSTER30">S_POSTER30.PNG</file>
+    <file alias="S_POSTER31">S_POSTER31.PNG</file>
     <file alias="TOP_BAR_REFRESH">../images/TOP_BAR_REFRESH.PNG</file>
 </qresource>
 </RCC>

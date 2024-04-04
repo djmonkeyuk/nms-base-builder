@@ -96,6 +96,7 @@ def process_blender():
         if not os.path.exists(path):
             raise RuntimeError(f"File does not exist, please check {path}")
     for idname, path in known_parts.items():
+        print(f"Processing {idname}")
         # Import the mbin
         bpy.ops.nmsdk.import_scene(
             path=os.path.join(PATH_TO_UNPACKED, path)

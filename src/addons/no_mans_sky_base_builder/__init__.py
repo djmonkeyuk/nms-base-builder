@@ -1540,20 +1540,24 @@ class Connect(bpy.types.Operator):
             ShowMessageBox(message=message, title="Connect")
             return {"FINISHED"}
 
-        start = BUILDER.get_builder_object_from_bpy_object(bpy.context.active_object)
-        if not start.has_snap_point("POWER"):
+        active_object = BUILDER.get_builder_object_from_bpy_object(bpy.context.active_object)
+        if not active_object.has_snap_point("POWER"):
             message = (
                 "Make sure the active object supports electrical connections."
             )
             ShowMessageBox(message=message, title="Connect")
             return {"FINISHED"}
 
-        for end in selected_objects:
-            if end == start:
+        for selected_object in selected_objects:
+            if selected_object is active_object:
                 continue
-
+            if selected_object.name == active_object.name:
+                continue
             # Build and perform connection.
-            start_point, end_point = line.Line.generate_control_points(start, end, BUILDER)
+            start_point, end_point = line.Line.generate_control_points(
+                active_object, selected_object, BUILDER
+            )
+            print (f"Connecting {active_object.name} to {selected_object.name}")
             if not start_point or not end_point:
                 # should have been tested by filtering selected_objects above
                 continue

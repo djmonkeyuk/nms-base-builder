@@ -605,6 +605,7 @@ class Part(object):
         start_matrix = copy(self.matrix_world)
         start_matrix_inv = copy(self.matrix_world)
         start_matrix_inv.invert()
+        print(source_local_matrix_datas)
         offset_matrix = mathutils.Matrix(
             source_local_matrix_datas[source_key]["matrix"]
         )

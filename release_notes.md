@@ -1,13 +1,25 @@
+release 2.1.1
+-------------
+
+* Fixed model issues on BLD_BUI_HAND, BLD_CRANE, and MAPTABLE.
+* Fixed error when using the snapping buttons on power controllers.
+* Fixed snapping data for large structures/prefabs.
+* Fixed an issue where connecting power controllers would make extraneous wires and controllers.
+* Added power connections to the base teleporters.
+
+
 release 2.1.0
 -------------
 
 * Fixed errors when using Blender 4.0
 * Base parts up to date as of ORBITAL update.
 
+
 release 2.0.5
 -------------
 
 * Fixed a bug where some scaled parts were being assigned a random color.
+
 
 release 2.0.4
 -------------

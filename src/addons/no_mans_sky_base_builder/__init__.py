@@ -3,7 +3,7 @@ bl_info = {
     "name": "No Mans Sky Base Builder",
     "description": "A tool to assist with base building in No Mans Sky",
     "author": "DjMonkey",
-    "version": (2, 1, 0),
+    "version": (2, 1, 1),
     "blender": (4, 0, 0),
     "location": "3D View > Tools",
     "warning": "",  # used for warning icon and text in addons panel
@@ -1078,7 +1078,6 @@ def generate_ui_list_data(item_type="parts", pack=None):
         preset_categories = BUILDER.get_preset_categories()
         for category in preset_categories:
             presets = BUILDER.get_presets_from_category(category)
-            print(presets)
             if presets:
                 ui_list_data.append((category, ""))
                 for _preset in sorted(presets):
@@ -1557,7 +1556,6 @@ class Connect(bpy.types.Operator):
             start_point, end_point = line.Line.generate_control_points(
                 active_object, selected_object, BUILDER
             )
-            print (f"Connecting {active_object.name} to {selected_object.name}")
             if not start_point or not end_point:
                 # should have been tested by filtering selected_objects above
                 continue

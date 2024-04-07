@@ -3,7 +3,7 @@ bl_info = {
     "name": "No Mans Sky Base Builder",
     "description": "A tool to assist with base building in No Mans Sky",
     "author": "DjMonkey",
-    "version": (2, 1, 1),
+    "version": (2, 1, 2),
     "blender": (4, 0, 0),
     "location": "3D View > Tools",
     "warning": "",  # used for warning icon and text in addons panel
@@ -69,6 +69,8 @@ def get_line_type_from_enum(context):
         line_object = "U_PORTALLINE"
     elif line_value == "PIPE":
         line_object = "U_PIPELINE"
+    elif line_value == "BYTEBEAT":
+        line_object = "U_BYTEBEATLINE"
     return line_object
 
 # Core Settings Class
@@ -108,6 +110,7 @@ class NMSSettings(PropertyGroup):
         items=[
             ("POWER", "Electrical Wire", "Electrical Wire"),
             ("TELEPORT", "Teleport Wire", "Teleport Wire"),
+            ("BYTEBEAT", "Byte-Beat Cable", "Byte-Beat Cable"),
             ("PIPE", "Pipe", "Pipe")
         ],
         options={"ENUM_FLAG"},
@@ -1621,7 +1624,7 @@ class Divide(bpy.types.Operator):
         if "ObjectID" not in target:
             ShowMessageBox(message=invalid_message, title=title)
             return {"FINISHED"}
-        valid_parts = ["U_POWERLINE", "U_PIPELINE", "U_PORTALLINE"]
+        valid_parts = ["U_POWERLINE", "U_PIPELINE", "U_PORTALLINE", "U_BYTEBEATLINE"]
         if target["ObjectID"] not in valid_parts:
             ShowMessageBox(message=invalid_message, title=title)
             return {"FINISHED"}
@@ -1649,7 +1652,7 @@ class Split(bpy.types.Operator):
         if "ObjectID" not in target:
             ShowMessageBox(message=invalid_message, title=title)
             return {"FINISHED"}
-        valid_parts = ["U_POWERLINE", "U_PIPELINE", "U_PORTALLINE"]
+        valid_parts = ["U_POWERLINE", "U_PIPELINE", "U_PORTALLINE", "U_BYTEBEATLINE"]
         if target["ObjectID"] not in valid_parts:
             ShowMessageBox(message=invalid_message, title=title)
             return {"FINISHED"}

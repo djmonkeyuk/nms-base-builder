@@ -15,11 +15,11 @@ GHOSTED_ITEMS = ghosted_reference["GHOSTED"]
 
 def validate_material(colour_name, colour_value):
     """Creates or returns a material based on its name.
-    
+
     Args:
         colour_name (str): The name of the material.
         colour_value (list): RGBA values representing the colour.
-        
+
     Returns:
         bpy.Material: The Blender material.
     """
@@ -34,11 +34,11 @@ def validate_material(colour_name, colour_value):
 
 def set_material(item, material):
     """Set the material on an item.
-    
+
     Args:
         item (bpy.Object): The Blender object to assign the material to.
         material (bpy.Material): The material to assign.
-        
+
     Returns:
         bpy.Material: The Blender material.
     """
@@ -57,7 +57,7 @@ def set_material(item, material):
 
 def assign_power_material(item):
     """Assign light blue material to object.
-    
+
     Args:
         item (bpy.Object): The Blender object to assign the material to.
     """
@@ -66,16 +66,25 @@ def assign_power_material(item):
 
 def assign_portal_material(item):
     """Assign teal material to object.
-    
+
     Args:
         item (bpy.Object): The Blender object to assign the material to.
     """
     material = validate_material("portalline_material", [0.0, 1.0, 1.0, 0.5])
     set_material(item, material)
 
+def assign_pipe_material(item):
+    """Assign grey material to object.
+
+    Args:
+        item (bpy.Object): The Blender object to assign the material to.
+    """
+    material = validate_material("pipeline_material", [0.3, 0.3, 0.3, 0.5])
+    set_material(item, material)
+
 def assign_bytebeat_material(item):
     """Assign light purple material to object.
-    
+
     Args:
         item (bpy.Object): The Blender object to assign the material to.
     """
@@ -84,7 +93,7 @@ def assign_bytebeat_material(item):
 
 def assign_preset_material(item):
     """Assign gold material to object.
-    
+
     Args:
         item (bpy.Object): The Blender object to assign the material to.
     """
@@ -104,7 +113,7 @@ def assign_preset_material(item):
 
 def assign_default_material(item, index=0):
     """Given a blender object. Assign the default material,
-    
+
     Args:
         item (bpy_types.Object): A Blender object.
 
@@ -123,7 +132,7 @@ def assign_default_material(item, index=0):
 
 def assign_material(item, colour_index=0, material=None):
     """Given a blender object. assign a material and UserData index.
-    
+
     Args:
         item (bpy_types.Object): A Blender object.
         colour_index (int): The colour index determined by No Man's Sky.

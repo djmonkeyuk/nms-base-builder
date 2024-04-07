@@ -60,6 +60,17 @@ def part_switch(self, context):
         refresh_ui_part_list(scene, part_list)
 
 
+def get_line_type_from_enum(context):
+    line_object = "U_POWERLINE"
+    scene = context.scene
+    nms_tool = scene.nms_base_tool
+    line_value = list(nms_tool.line_switch)[0]
+    if line_value == "TELEPORT":
+        line_object = "U_PORTALLINE"
+    elif line_value == "PIPE":
+        line_object = "U_PIPELINE"
+    return line_object
+
 # Core Settings Class
 class NMSSettings(PropertyGroup):
     # Build Array of base part types. (Vanilla Parts - Mods - Presets)
@@ -89,6 +100,18 @@ class NMSSettings(PropertyGroup):
         ],
         options={"ENUM_FLAG"},
         default={"CONCRETE"},
+    )
+
+    line_switch : EnumProperty(
+        name="line_switch",
+        description="Decide what type of cable to build",
+        items=[
+            ("POWER", "Electrical Wire", "Electrical Wire"),
+            ("TELEPORT", "Teleport Wire", "Teleport Wire"),
+            ("PIPE", "Pipe", "Pipe")
+        ],
+        options={"ENUM_FLAG"},
+        default={"POWER"},
     )
 
     preset_name : StringProperty(
@@ -926,7 +949,7 @@ class NMS_PT_colour_panel(Panel):
 # Colour Panel ---
 class NMS_PT_logic_panel(Panel):
     bl_idname = "NMS_PT_logic_panel"
-    bl_label = "Power and Logic"
+    bl_label = "Cables and Logic"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
     bl_category = "No Mans Sky"
@@ -944,7 +967,9 @@ class NMS_PT_logic_panel(Panel):
         layout = self.layout
         box = layout.box()
         col = box.column()
-        col.label(text="Wiring")
+        col.label(text="Cables")
+        enum_row = col.row()
+        enum_row.prop(nms_tool, "line_switch")
         row = col.row()
         row.operator("object.nms_point", icon="EMPTY_DATA")
         row.operator("object.nms_connect", icon="PARTICLES")
@@ -956,7 +981,7 @@ class NMS_PT_logic_panel(Panel):
         select_row.operator("object.nms_select_floating", icon="RESTRICT_INSTANCED_ON")
 
         col.label(text="Logic")
-        logic_row = col.row(align=True)
+        logic_row = col.row()
         logic_row.operator("object.nms_logic_button")
         logic_row.operator("object.nms_logic_wall_switch")
         logic_row.operator("object.nms_logic_prox_switch")
@@ -1565,10 +1590,11 @@ class Connect(bpy.types.Operator):
             end_point = blend_utils.get_item_by_name(end_point.name)
 
             # Create new power line.
-            line_object = "U_POWERLINE"
-            if "power_line" in start_point:
-                line_object = start_point["power_line"].split(".")[0]
-            power_line = BUILDER.add_part(line_object, build_rigs=False)
+            line_object_id = get_line_type_from_enum(context)
+
+            # if "power_line" in start_point:
+            #     line_object_id = start_point["power_line"].split(".")[0]
+            power_line = BUILDER.add_part(line_object_id, build_rigs=False)
             # Create controls.
             power_line.build_rig(
                 start=start_point,
@@ -1859,9 +1885,6 @@ classes = (
 )
 
 def register():
-    # Load Dependencies.
-    obj_addon = "io_scene_obj"
-    blend_utils.load_plugin(obj_addon)
 
     # Ensure User data folder structure exists
     for data_path in [USER_PATH, PRESET_PATH]:

@@ -79,7 +79,7 @@ def assign_pipe_material(item):
     Args:
         item (bpy.Object): The Blender object to assign the material to.
     """
-    material = validate_material("pipeline_material", [0.3, 0.3, 0.3, 0.5])
+    material = validate_material("pipeline_material", [0.3, 0.3, 0.3, 0.9])
     set_material(item, material)
 
 def assign_bytebeat_material(item):

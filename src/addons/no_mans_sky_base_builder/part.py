@@ -282,6 +282,7 @@ class Part(object):
         if existing_object:
             duped = existing_object.duplicate()
             duped = duped.object
+            duped.name = object_id
             blend_utils.add_to_scene(duped)
             return duped
 
@@ -294,6 +295,7 @@ class Part(object):
             new_objects_capture = [x.name for x in bpy.data.objects]
             new_objects = [x for x in new_objects_capture if x not in prev_objects_capture]
             item = bpy.data.objects[new_objects[0]]
+            item.name = object_id
             # for convenience if saving obj/mtl files, delete any imported materials
             item.data.materials.clear()
             item.select_set(False)

@@ -1,3 +1,13 @@
+release 2.1.2
+-------------
+
+* Fixed model issues on FRE_FACE_WINDOW, BLD_HOLOGEK, CREATHOLOGRAM, S_GAZEBO0.
+* Replaced GEK statue's with their actual representation, rather than Blobs.
+* Added cable connection point to U_SILO_S, U_EXTRACTOR_S, and U_GASEXTRACTOR
+* Added a UI control to the cable window to toggle between the different cable types. (Power, ByeBeat, Portal, Pipe)
+* Renamed the tab to "No Man's Sky Base Builder"
+
+
 release 2.1.1
 -------------
 

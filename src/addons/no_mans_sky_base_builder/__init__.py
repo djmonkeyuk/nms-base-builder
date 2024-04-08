@@ -771,7 +771,7 @@ class NMS_PT_file_buttons_panel(Panel):
     bl_label = "No Man's Sky Base Builder"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
-    bl_category = "No Mans Sky"
+    bl_category = "No Mans Sky Base Builder"
     bl_context = "objectmode"
 
     @classmethod
@@ -801,7 +801,7 @@ class NMS_PT_base_prop_panel(Panel):
     bl_label = "Base Properties"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
-    bl_category = "No Mans Sky"
+    bl_category = "No Mans Sky Base Builder"
     bl_context = "objectmode"
 
     @classmethod
@@ -824,7 +824,7 @@ class NMS_PT_snap_panel(Panel):
     bl_label = "Tools"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
-    bl_category = "No Mans Sky"
+    bl_category = "No Mans Sky Base Builder"
     bl_context = "objectmode"
 
     @classmethod
@@ -921,7 +921,7 @@ class NMS_PT_colour_panel(Panel):
     bl_label = "Colour"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
-    bl_category = "No Mans Sky"
+    bl_category = "No Mans Sky Base Builder"
     bl_context = "objectmode"
 
     @classmethod
@@ -955,7 +955,7 @@ class NMS_PT_logic_panel(Panel):
     bl_label = "Cables and Logic"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
-    bl_category = "No Mans Sky"
+    bl_category = "No Mans Sky Base Builder"
     bl_context = "objectmode"
 
     @classmethod
@@ -999,7 +999,7 @@ class NMS_PT_build_panel(Panel):
     bl_label = "Build"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
-    bl_category = "No Mans Sky"
+    bl_category = "No Mans Sky Base Builder"
     bl_context = "objectmode"
 
     @classmethod

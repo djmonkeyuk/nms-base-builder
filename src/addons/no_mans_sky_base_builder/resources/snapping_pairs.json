@@ -628,7 +628,7 @@
     },
     "EXTRACTORS":
     {
-        "POWER_POINTS": ["POWER_A, POWER_B, POWER_C",        "POWER"]
+        "POWER_POINTS": ["POWER_A, POWER_B, POWER_C, POWER_D",        "POWER"]
     },
     "PORTALS":
     {

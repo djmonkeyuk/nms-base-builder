@@ -1334,7 +1334,13 @@ class OpenPresetFolder(bpy.types.Operator):
 
     def execute(self, context):
         # Load web page.
-        os.startfile(PRESET_PATH)
+        # FIXME: Mac OS
+        if hasattr(os, 'startfile'):
+          # Windows
+          os.startfile(PRESET_PATH)
+        else:
+          # Linux etc. (requires XDG tools)
+          subprocess.call(['xdg-open', PRESET_PATH])
         return {"FINISHED"}
 
 # List Operators ---

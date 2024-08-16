@@ -38,7 +38,9 @@ class AssetBrowser(QtWidgets.QMainWindow):
         self.setWindowTitle("No Man's Sky Base Builder :: Asset Browser")
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.WindowStaysOnTopHint)
         app_id = u"charliebanks.NMSBB.AssetBrowser.1"  # arbitrary string
-        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(app_id)
+        # FIXME: do this in some platform-agnostic way if possible
+        if hasattr(ctypes, 'windll'):
+            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(app_id)
         self.setWindowTitle("No Man's Sky Blender Builder - Asset Browser")
         self.setWindowIcon(QtGui.QIcon(APP_ICON))
         self.__search_buttons = []

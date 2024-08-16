@@ -1,7 +1,10 @@
 #! /usr/bin/python2
 # -*- coding: utf-8 -*-
 
-from PySide6 import QtCore, QtWidgets
+try:
+  from PySide6 import QtCore, QtWidgets
+except ImportError:
+  from PySide2 import QtCore, QtWidgets
 
 
 class FlowLayout(QtWidgets.QLayout):

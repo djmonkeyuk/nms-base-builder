@@ -1274,7 +1274,7 @@ class LoadFancyUI(bpy.types.Operator):
         # Load web page.
         bpy.ops.wm.bpy_externall_server(speed=0.15, mode="start")
         loader = os.path.join(ASSET_BROWSER_PATH, "load.py").replace("\\", "/")
-        subprocess.Popen("python \"{}\"".format(loader))
+        subprocess.Popen(["python", loader])
         return {"FINISHED"}
 
 
@@ -1334,7 +1334,13 @@ class OpenPresetFolder(bpy.types.Operator):
 
     def execute(self, context):
         # Load web page.
-        os.startfile(PRESET_PATH)
+        # FIXME: Mac OS
+        if hasattr(os, 'startfile'):
+          # Windows
+          os.startfile(PRESET_PATH)
+        else:
+          # Linux etc. (requires XDG tools)
+          subprocess.call(['xdg-open', PRESET_PATH])
         return {"FINISHED"}
 
 # List Operators ---

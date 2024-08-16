@@ -6,13 +6,12 @@ import tempfile
 import time
 from functools import partial
 
-import yaml
-from PySide6 import QtCore, QtGui, QtWidgets
-
 import asset_browser.icons.icons
+import yaml
 from asset_browser.collapsable_frame import CollapsableFrame
 from asset_browser.flow_layout import FlowLayout
 from asset_browser.item import Item, Preset
+from PySide6 import QtCore, QtGui, QtWidgets
 
 FILE_DIR = os.path.dirname(os.path.realpath(__file__))
 SEND_SNIPPET = os.path.join(FILE_DIR, "build_part_snippet.txt")
@@ -34,7 +33,7 @@ class AssetBrowser(QtWidgets.QMainWindow):
         super(AssetBrowser, self).__init__(*args, **kwargs)
         self.setWindowTitle("No Man's Sky Base Builder :: Asset Browser")
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.WindowStaysOnTopHint)
-        app_id = u"charliebanks.NMSBB.AssetBrowser.1"  # arbitrary string
+        app_id = u"djmonkey.NMSBB.AssetBrowser.1"  # arbitrary string
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(app_id)
         self.setWindowTitle("No Man's Sky Blender Builder - Asset Browser")
         self.setWindowIcon(QtGui.QIcon(APP_ICON))

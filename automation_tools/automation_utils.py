@@ -8,6 +8,10 @@ import xml.etree.ElementTree as ET
 PATH_TO_UNPACKED = "N:/Games/No Mans Sky/nms_modding_station/unpacked/"
 PATH_TO_MOD_PROJECT = "N:/Games/No Mans Sky/nms_modding_station/projects/BaseTables/"
 PATH_TO_REPO = "N:/Documents/dev/nms-base-builder/automation_tools"
+
+# Relative NMS paths.
+BASEBUILDINGPARTSTABLE = "METADATA/REALITY/TABLES/BASEBUILDINGPARTSTABLE.EXML"
+NMS_REALITY_GCPRODUCTTABLE = "METADATA/REALITY/TABLES/NMS_REALITY_GCPRODUCTTABLE.EXML"
 #-------------------------------------------------------------------------------
 
 IGNORE_LIST = os.path.join(os.path.realpath(os.path.dirname(__file__)), "part_generator", "ignore_list.txt")
@@ -149,14 +153,14 @@ def get_subcategory_by_id(part_id):
 
 def get_unknown_category_parts():
     known_parts, unknown_parts = list_missing_parts(
-        os.path.join(PATH_TO_MOD_PROJECT, "METADATA/REALITY/TABLES/BASEBUILDINGPARTSTABLE.EXML"),
-        os.path.join(PATH_TO_MOD_PROJECT, "METADATA/REALITY/TABLES/NMS_REALITY_GCPRODUCTTABLE.EXML"),
+        os.path.join(PATH_TO_MOD_PROJECT, BASEBUILDINGPARTSTABLE),
+        os.path.join(PATH_TO_MOD_PROJECT, NMS_REALITY_GCPRODUCTTABLE),
     )
     return [part for part in list(known_parts.keys())+list(unknown_parts.keys()) if get_category_by_id(part) == "Uncategorized"]
 
 def get_unknown_subcategory_parts():
     known_parts, unknown_parts = list_missing_parts(
-        os.path.join(PATH_TO_MOD_PROJECT, "METADATA/REALITY/TABLES/BASEBUILDINGPARTSTABLE.EXML"),
-        os.path.join(PATH_TO_MOD_PROJECT, "METADATA/REALITY/TABLES/NMS_REALITY_GCPRODUCTTABLE.EXML"),
+        os.path.join(PATH_TO_MOD_PROJECT, BASEBUILDINGPARTSTABLE),
+        os.path.join(PATH_TO_MOD_PROJECT, NMS_REALITY_GCPRODUCTTABLE),
     )
     return [part for part in list(known_parts.keys())+list(unknown_parts.keys()) if get_subcategory_by_id(part) == "Uncategorized"]

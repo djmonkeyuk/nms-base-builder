@@ -1,7 +1,35 @@
+release 2.1.2
+-------------
+
+* Fixed model issues on FRE_FACE_WINDOW, BLD_HOLOGEK, CREATHOLOGRAM, S_GAZEBO0.
+* Replaced GEK statue's with their actual representation, rather than Blobs.
+* Added cable connection point to U_SILO_S, U_EXTRACTOR_S, and U_GASEXTRACTOR
+* Added a UI control to the cable window to toggle between the different cable types. (Power, ByeBeat, Portal, Pipe)
+* Renamed the tab to "No Man's Sky Base Builder"
+
+
+release 2.1.1
+-------------
+
+* Fixed model issues on BLD_BUI_HAND, BLD_CRANE, and MAPTABLE.
+* Fixed error when using the snapping buttons on power controllers.
+* Fixed snapping data for large structures/prefabs.
+* Fixed an issue where connecting power controllers would make extraneous wires and controllers.
+* Added power connections to the base teleporters.
+
+
+release 2.1.0
+-------------
+
+* Fixed errors when using Blender 4.0
+* Base parts up to date as of ORBITAL update.
+
+
 release 2.0.5
 -------------
 
 * Fixed a bug where some scaled parts were being assigned a random color.
+
 
 release 2.0.4
 -------------

@@ -7,7 +7,10 @@ import time
 from functools import partial
 
 import yaml
-from PySide6 import QtCore, QtGui, QtWidgets
+try:
+  from PySide6 import QtCore, QtGui, QtWidgets
+except ImportError:
+  from PySide2 import QtCore, QtGui, QtWidgets
 
 import asset_browser.icons.icons
 from asset_browser.collapsable_frame import CollapsableFrame
@@ -35,7 +38,9 @@ class AssetBrowser(QtWidgets.QMainWindow):
         self.setWindowTitle("No Man's Sky Base Builder :: Asset Browser")
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.WindowStaysOnTopHint)
         app_id = u"charliebanks.NMSBB.AssetBrowser.1"  # arbitrary string
-        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(app_id)
+        # FIXME: do this in some platform-agnostic way if possible
+        if hasattr(ctypes, 'windll'):
+            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(app_id)
         self.setWindowTitle("No Man's Sky Blender Builder - Asset Browser")
         self.setWindowIcon(QtGui.QIcon(APP_ICON))
         self.__search_buttons = []

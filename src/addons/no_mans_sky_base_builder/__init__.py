@@ -3,8 +3,8 @@ bl_info = {
     "name": "No Mans Sky Base Builder",
     "description": "A tool to assist with base building in No Mans Sky",
     "author": "DjMonkey",
-    "version": (2, 0, 7),
-    "blender": (3, 0, 0),
+    "version": (2, 1, 2),
+    "blender": (4, 0, 0),
     "location": "3D View > Tools",
     "warning": "",  # used for warning icon and text in addons panel
     "wiki_url": "https://www.nexusmods.com/nomanssky/mods/984",
@@ -60,6 +60,19 @@ def part_switch(self, context):
         refresh_ui_part_list(scene, part_list)
 
 
+def get_line_type_from_enum(context):
+    line_object = "U_POWERLINE"
+    scene = context.scene
+    nms_tool = scene.nms_base_tool
+    line_value = list(nms_tool.line_switch)[0]
+    if line_value == "TELEPORT":
+        line_object = "U_PORTALLINE"
+    elif line_value == "PIPE":
+        line_object = "U_PIPELINE"
+    elif line_value == "BYTEBEAT":
+        line_object = "U_BYTEBEATLINE"
+    return line_object
+
 # Core Settings Class
 class NMSSettings(PropertyGroup):
     # Build Array of base part types. (Vanilla Parts - Mods - Presets)
@@ -89,6 +102,19 @@ class NMSSettings(PropertyGroup):
         ],
         options={"ENUM_FLAG"},
         default={"CONCRETE"},
+    )
+
+    line_switch : EnumProperty(
+        name="line_switch",
+        description="Decide what type of cable to build",
+        items=[
+            ("POWER", "Electrical Wire", "Electrical Wire"),
+            ("TELEPORT", "Teleport Wire", "Teleport Wire"),
+            ("BYTEBEAT", "Byte-Beat Cable", "Byte-Beat Cable"),
+            ("PIPE", "Pipe", "Pipe")
+        ],
+        options={"ENUM_FLAG"},
+        default={"POWER"},
     )
 
     preset_name : StringProperty(
@@ -745,7 +771,7 @@ class NMS_PT_file_buttons_panel(Panel):
     bl_label = "No Man's Sky Base Builder"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
-    bl_category = "No Mans Sky"
+    bl_category = "No Mans Sky Base Builder"
     bl_context = "objectmode"
 
     @classmethod
@@ -775,7 +801,7 @@ class NMS_PT_base_prop_panel(Panel):
     bl_label = "Base Properties"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
-    bl_category = "No Mans Sky"
+    bl_category = "No Mans Sky Base Builder"
     bl_context = "objectmode"
 
     @classmethod
@@ -798,7 +824,7 @@ class NMS_PT_snap_panel(Panel):
     bl_label = "Tools"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
-    bl_category = "No Mans Sky"
+    bl_category = "No Mans Sky Base Builder"
     bl_context = "objectmode"
 
     @classmethod
@@ -895,7 +921,7 @@ class NMS_PT_colour_panel(Panel):
     bl_label = "Colour"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
-    bl_category = "No Mans Sky"
+    bl_category = "No Mans Sky Base Builder"
     bl_context = "objectmode"
 
     @classmethod
@@ -926,10 +952,10 @@ class NMS_PT_colour_panel(Panel):
 # Colour Panel ---
 class NMS_PT_logic_panel(Panel):
     bl_idname = "NMS_PT_logic_panel"
-    bl_label = "Power and Logic"
+    bl_label = "Cables and Logic"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
-    bl_category = "No Mans Sky"
+    bl_category = "No Mans Sky Base Builder"
     bl_context = "objectmode"
 
     @classmethod
@@ -944,7 +970,9 @@ class NMS_PT_logic_panel(Panel):
         layout = self.layout
         box = layout.box()
         col = box.column()
-        col.label(text="Wiring")
+        col.label(text="Cables")
+        enum_row = col.row()
+        enum_row.prop(nms_tool, "line_switch")
         row = col.row()
         row.operator("object.nms_point", icon="EMPTY_DATA")
         row.operator("object.nms_connect", icon="PARTICLES")
@@ -956,7 +984,7 @@ class NMS_PT_logic_panel(Panel):
         select_row.operator("object.nms_select_floating", icon="RESTRICT_INSTANCED_ON")
 
         col.label(text="Logic")
-        logic_row = col.row(align=True)
+        logic_row = col.row()
         logic_row.operator("object.nms_logic_button")
         logic_row.operator("object.nms_logic_wall_switch")
         logic_row.operator("object.nms_logic_prox_switch")
@@ -971,7 +999,7 @@ class NMS_PT_build_panel(Panel):
     bl_label = "Build"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
-    bl_category = "No Mans Sky"
+    bl_category = "No Mans Sky Base Builder"
     bl_context = "objectmode"
 
     @classmethod
@@ -1078,7 +1106,6 @@ def generate_ui_list_data(item_type="parts", pack=None):
         preset_categories = BUILDER.get_preset_categories()
         for category in preset_categories:
             presets = BUILDER.get_presets_from_category(category)
-            print(presets)
             if presets:
                 ui_list_data.append((category, ""))
                 for _preset in sorted(presets):
@@ -1247,7 +1274,7 @@ class LoadFancyUI(bpy.types.Operator):
         # Load web page.
         bpy.ops.wm.bpy_externall_server(speed=0.15, mode="start")
         loader = os.path.join(ASSET_BROWSER_PATH, "load.py").replace("\\", "/")
-        subprocess.Popen("python \"{}\"".format(loader))
+        subprocess.Popen(["python", loader])
         return {"FINISHED"}
 
 
@@ -1307,7 +1334,13 @@ class OpenPresetFolder(bpy.types.Operator):
 
     def execute(self, context):
         # Load web page.
-        os.startfile(PRESET_PATH)
+        # FIXME: Mac OS
+        if hasattr(os, 'startfile'):
+          # Windows
+          os.startfile(PRESET_PATH)
+        else:
+          # Linux etc. (requires XDG tools)
+          subprocess.call(['xdg-open', PRESET_PATH])
         return {"FINISHED"}
 
 # List Operators ---
@@ -1540,20 +1573,23 @@ class Connect(bpy.types.Operator):
             ShowMessageBox(message=message, title="Connect")
             return {"FINISHED"}
 
-        start = BUILDER.get_builder_object_from_bpy_object(bpy.context.active_object)
-        if not start.has_snap_point("POWER"):
+        active_object = BUILDER.get_builder_object_from_bpy_object(bpy.context.active_object)
+        if not active_object.has_snap_point("POWER"):
             message = (
                 "Make sure the active object supports electrical connections."
             )
             ShowMessageBox(message=message, title="Connect")
             return {"FINISHED"}
 
-        for end in selected_objects:
-            if end == start:
+        for selected_object in selected_objects:
+            if selected_object is active_object:
                 continue
-
+            if selected_object.name == active_object.name:
+                continue
             # Build and perform connection.
-            start_point, end_point = line.Line.generate_control_points(start, end, BUILDER)
+            start_point, end_point = line.Line.generate_control_points(
+                active_object, selected_object, BUILDER
+            )
             if not start_point or not end_point:
                 # should have been tested by filtering selected_objects above
                 continue
@@ -1563,10 +1599,11 @@ class Connect(bpy.types.Operator):
             end_point = blend_utils.get_item_by_name(end_point.name)
 
             # Create new power line.
-            line_object = "U_POWERLINE"
-            if "power_line" in start_point:
-                line_object = start_point["power_line"].split(".")[0]
-            power_line = BUILDER.add_part(line_object, build_rigs=False)
+            line_object_id = get_line_type_from_enum(context)
+
+            # if "power_line" in start_point:
+            #     line_object_id = start_point["power_line"].split(".")[0]
+            power_line = BUILDER.add_part(line_object_id, build_rigs=False)
             # Create controls.
             power_line.build_rig(
                 start=start_point,
@@ -1593,7 +1630,7 @@ class Divide(bpy.types.Operator):
         if "ObjectID" not in target:
             ShowMessageBox(message=invalid_message, title=title)
             return {"FINISHED"}
-        valid_parts = ["U_POWERLINE", "U_PIPELINE", "U_PORTALLINE"]
+        valid_parts = ["U_POWERLINE", "U_PIPELINE", "U_PORTALLINE", "U_BYTEBEATLINE"]
         if target["ObjectID"] not in valid_parts:
             ShowMessageBox(message=invalid_message, title=title)
             return {"FINISHED"}
@@ -1621,7 +1658,7 @@ class Split(bpy.types.Operator):
         if "ObjectID" not in target:
             ShowMessageBox(message=invalid_message, title=title)
             return {"FINISHED"}
-        valid_parts = ["U_POWERLINE", "U_PIPELINE", "U_PORTALLINE"]
+        valid_parts = ["U_POWERLINE", "U_PIPELINE", "U_PORTALLINE", "U_BYTEBEATLINE"]
         if target["ObjectID"] not in valid_parts:
             ShowMessageBox(message=invalid_message, title=title)
             return {"FINISHED"}
@@ -1857,9 +1894,6 @@ classes = (
 )
 
 def register():
-    # Load Dependencies.
-    obj_addon = "io_scene_obj"
-    blend_utils.load_plugin(obj_addon)
 
     # Ensure User data folder structure exists
     for data_path in [USER_PATH, PRESET_PATH]:

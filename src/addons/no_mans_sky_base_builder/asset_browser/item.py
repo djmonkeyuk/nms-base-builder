@@ -1,7 +1,10 @@
 import json
 import os
 
-from PySide6 import QtCore, QtGui, QtWidgets
+try:
+  from PySide6 import QtCore, QtGui, QtWidgets
+except ImportError:
+  from PySide2 import QtCore, QtGui, QtWidgets
 
 import asset_browser.icons.icons
 

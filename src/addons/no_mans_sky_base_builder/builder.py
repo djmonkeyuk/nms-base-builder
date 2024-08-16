@@ -13,6 +13,7 @@ import no_mans_sky_base_builder.part_overrides.air_lock_connector as air_lock_co
 import no_mans_sky_base_builder.part_overrides.base_flag as base_flag
 import no_mans_sky_base_builder.part_overrides.bridge_connector as bridge_connector
 import no_mans_sky_base_builder.part_overrides.bytebeat as bytebeat
+import no_mans_sky_base_builder.part_overrides.bytebeatswitch as bytebeatswitch
 import no_mans_sky_base_builder.part_overrides.freighter_core as freighter_core
 import no_mans_sky_base_builder.part_overrides.line as line
 import no_mans_sky_base_builder.part_overrides.messagemodule as messagemodule
@@ -21,7 +22,6 @@ import no_mans_sky_base_builder.part_overrides.u_bytebeatline as u_bytebeatline
 import no_mans_sky_base_builder.part_overrides.u_pipeline as u_pipeline
 import no_mans_sky_base_builder.part_overrides.u_portalline as u_portalline
 import no_mans_sky_base_builder.part_overrides.u_powerline as u_powerline
-import no_mans_sky_base_builder.part_overrides.bytebeatswitch as bytebeatswitch
 import no_mans_sky_base_builder.preset as preset
 import no_mans_sky_base_builder.utils.blend_utils as blend_utils
 import no_mans_sky_base_builder.utils.python as python_utils
@@ -140,7 +140,7 @@ class Builder(object):
             object_id = bpy_object.get("ObjectID")
         elif "SnapID" in bpy_object:
             object_id = bpy_object.get("SnapID")
-        
+
         if not object_id:
             return None
 
@@ -175,7 +175,7 @@ class Builder(object):
         """
         # Validate skip list
         skip_object_type = skip_object_type or []
-            
+
         # Get all individual NMS parts.
         flat_parts = [part for part in bpy.data.objects if "ObjectID" in part]
         flat_parts = [part for part in flat_parts if part["ObjectID"] not in skip_object_type]
@@ -189,7 +189,7 @@ class Builder(object):
             flat_parts = [part for part in flat_parts if part["belongs_to_preset"] == False]
         flat_parts = sorted(flat_parts, key=Builder.by_order)
         return flat_parts
-            
+
 
     def get_all_presets(self):
         """Get all Builder preset items in the scene."""
@@ -210,13 +210,13 @@ class Builder(object):
         """Add an item based on it's preset ID."""
         item = preset.Preset(preset_id=preset_id, builder_object=self)
         return item
- 
+
     # Serialising ---
     def serialise(self, get_presets=False, add_timestamp=False):
         """Return NMS compatible dictionary.
 
         Args:
-            get_presets (bool): This will generate data for presets. And 
+            get_presets (bool): This will generate data for presets. And
                 exclude parts generated from presets.
         Returns:
             dict: Dictionary of base information.
@@ -237,7 +237,7 @@ class Builder(object):
             data["timestamp"] = int(time.time())
 
         # Add Base Version
-        data["BaseVersion"] = 5
+        data["BaseVersion"] = 8
 
         # Add preset information if specified.
         if get_presets:
@@ -254,11 +254,12 @@ class Builder(object):
 
     def deserialise_from_data(self, data):
         """Given NMS data, reconstruct the base.
-        
+
         We don't need to create a new class, we can act upon this one.
         """
 
-        base_version = data.get("BaseVersion", 4)
+        base_version = data.get("BaseVersion", 8)
+
         compensate_normal = True
         if base_version < 5:
             compensate_normal = False
@@ -285,7 +286,7 @@ class Builder(object):
     @staticmethod
     def by_order(bpy_object):
         """Sorting method to get objects by the order attribute.
-        
+
         Args:
             bpy_object (bpy.ob): A blender object.
 
@@ -298,7 +299,7 @@ class Builder(object):
     # Category Methods ---
     def get_categories(self, pack=None):
         """Get the list of categories.
-        
+
         Args:
             pack (str): The model pack search under for categories.
                 Use this for mod support. Defaults to vanilla 'Parts'.
@@ -331,7 +332,7 @@ class Builder(object):
 
     def get_presets_from_category(self, category):
         """Get a list of presets underneath a category.
-        
+
         Args:
             category (str): The name of the category.
         """
@@ -343,7 +344,7 @@ class Builder(object):
 
     def get_objs_from_category(self, category, pack=None):
         """Get a list of parts belonging to a category.
-        
+
         Args:
             category (str): The name of the category.
             pack (str): The model pack search under for categories.
@@ -355,7 +356,7 @@ class Builder(object):
         search_path = self.get_model_path_from_pack(pack)
         category_path = os.path.join(search_path, category)
         all_objs = [
-            part for part in os.listdir(category_path) if part.endswith(".obj")
+            part for part in os.listdir(category_path) if part.endswith(".fbx")
         ]
         file_names = sorted(all_objs)
         return file_names
@@ -369,15 +370,14 @@ class Builder(object):
         """Get the path to the OBJ file from a part."""
         path = self.get_obj_path(part)
         folder = os.path.dirname(path).split(os.sep)[-1]
-        print (part, path, folder)
         return folder
 
     def get_model_path_from_pack(self, pack_request):
         """Given a pack name, return it's associated path.
-        
+
         Args:
             pack_request (str): The name of the pack
-            
+
         Return:
             str: The model path of the pack.
         """
@@ -387,7 +387,7 @@ class Builder(object):
 
     def get_parts_from_category(self, category, pack=None):
         """Get all the parts from a specific category.
-        
+
         Args:
             category (str): The category to search.
             pack (str): The model pack name. Defaults to vanilla 'Parts'.
@@ -435,7 +435,7 @@ class Builder(object):
             builder_object = self.get_builder_object_from_bpy_object(part)
             if hasattr(builder_object, "build_rig"):
                 builder_object.build_rig()
-        
+
     def optimise_control_points(self):
         """Find all control points that share the same location and combine them."""
         blend_utils.scene_refresh()
@@ -464,7 +464,7 @@ class Builder(object):
                 power_line_obj = self.get_builder_object_from_bpy_object(power_line)
                 prev_start_control = bpy.data.objects[power_line_obj.start_control]
                 prev_end_control = bpy.data.objects[power_line_obj.end_control]
-                
+
                 # Assign new controls.
                 if control == prev_start_control:
                     power_line_obj.build_rig(
@@ -476,6 +476,6 @@ class Builder(object):
                         prev_start_control,
                         unique_control
                     )
-                
+
                 # Hide away control.
                 blend_utils.remove_object(control.name)

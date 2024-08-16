@@ -35,3 +35,9 @@ with ZipFile(zip_out, 'w', zipfile.ZIP_DEFLATED) as zip_obj:
     for item in build_recursive_file_list(python_package_dir):
         zip_obj.write(item, remove_root_path(item))
 
+
+RAW_ADDON_PATH = "C:/Users/charl/AppData/Roaming/Blender Foundation/Blender/4.1/scripts/addons/no_mans_sky_base_builder"
+
+from distutils.dir_util import copy_tree
+
+copy_tree(python_package_dir, RAW_ADDON_PATH)

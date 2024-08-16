@@ -36,10 +36,18 @@ from automation_utils import (PATH_TO_MOD_PROJECT, bcolors,
 
 
 def print_report():
+    BASEBUILDINGPARTSTABLE_path = os.path.join(PATH_TO_MOD_PROJECT, BASEBUILDINGPARTSTABLE)
+    NMS_REALITY_GCPRODUCTTABLE_path = os.path.join(PATH_TO_MOD_PROJECT, NMS_REALITY_GCPRODUCTTABLE)
     known_parts, unknown_parts = list_missing_parts(
-        os.path.join(PATH_TO_MOD_PROJECT, BASEBUILDINGPARTSTABLE),
-        os.path.join(PATH_TO_MOD_PROJECT, NMS_REALITY_GCPRODUCTTABLE),
+        BASEBUILDINGPARTSTABLE_path,
+        NMS_REALITY_GCPRODUCTTABLE_path,
     )
+
+    if not os.path.exists(BASEBUILDINGPARTSTABLE_path):
+        raise RuntimeError(BASEBUILDINGPARTSTABLE_path + " does not exist")
+    if not os.path.exists(NMS_REALITY_GCPRODUCTTABLE_path):
+        raise RuntimeError(NMS_REALITY_GCPRODUCTTABLE_path + " does not exist")
+
     unknown_cats = get_unknown_category_parts() + get_unknown_subcategory_parts()
     all_parts = sorted(list(known_parts.keys())+list(unknown_parts.keys()))
     # Total

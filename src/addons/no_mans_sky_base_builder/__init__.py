@@ -3,7 +3,7 @@ bl_info = {
     "name": "No Mans Sky Base Builder",
     "description": "A tool to assist with base building in No Mans Sky",
     "author": "DjMonkey",
-    "version": (2, 1, 2),
+    "version": (2, 1, 3),
     "blender": (4, 0, 0),
     "location": "3D View > Tools",
     "warning": "",  # used for warning icon and text in addons panel
@@ -281,6 +281,24 @@ class NMSSettings(PropertyGroup):
         default=False
     )
 
+    difficulty_flags : IntProperty(
+        name="DifficultyFlags",
+        description="DifficultyFlags.",
+        default=0
+    )
+
+    difficulty_preset : StringProperty(
+        name="DifficultyPresetType",
+        description="DifficultyPresetType.",
+        default="Creative"
+    )
+
+    auto_power_setting : StringProperty(
+        name="AutoPowerSetting",
+        description="AutoPowerSetting.",
+        default="UseDefault"
+    )
+
     room_vis_switch : IntProperty(name="room_vis_switch", default=0)
 
     def deserialise_from_data(self, nms_data):
@@ -334,6 +352,14 @@ class NMSSettings(PropertyGroup):
             self.is_reported = nms_data["IsReported"]
         if "IsFeatured" in nms_data:
             self.is_featured = nms_data["IsFeatured"]
+        if "AutoPowerSetting" in nms_data:
+            auto_power_container = nms_data.get("AutoPowerSetting", {})
+            self.auto_power_setting = auto_power_container.get("BaseAutoPowerSetting", "UseDefault")
+        if "Difficulty" in nms_data:
+            difficulty_container = nms_data.get("Difficulty", {})
+            sub_difficulty_container = difficulty_container.get("DifficultyPreset")
+            self.difficulty_preset = sub_difficulty_container.get("DifficultyPresetType", "Creative")
+            self.difficulty_flags = difficulty_container.get("PersistentBaseDifficultyFlags", 0)
 
     def serialise(self, get_presets=False):
         """Export the data in the blender scene to NMS compatible data.
@@ -385,7 +411,16 @@ class NMSSettings(PropertyGroup):
             },
             "PlatformToken":self.platform_token,
             "IsReported":self.is_reported,
-            "IsFeatured":self.is_featured
+            "IsFeatured":self.is_featured,
+            "Difficulty":{
+                "DifficultyPreset":{
+                    "DifficultyPresetType":self.difficulty_preset
+                },
+                "PersistentBaseDifficultyFlags":self.difficulty_flags
+            },
+            "AutoPowerSetting":{
+                "BaseAutoPowerSetting":self.auto_power_setting
+            }
         }
         # Capture Individual Objects
         data.update(BUILDER.serialise(get_presets=get_presets))
@@ -501,6 +536,9 @@ class NMSSettings(PropertyGroup):
         self.platform_token = ""
         self.is_reported = False
         self.is_featured = False
+        self.difficulty_preset = "Creative"
+        self.difficulty_flags = 0
+        self.auto_power_setting = "UseDefault"
 
         # Remove all no mans sky items from scene.
         # Deselect all
@@ -1010,13 +1048,13 @@ class NMS_PT_build_panel(Panel):
         layout = self.layout
         scene = context.scene
         nms_tool = scene.nms_base_tool
-        layout.prop(nms_tool, "enum_switch", expand=True)
         col = layout.column(align=True)
         col.operator("object.nms_launch_asset_browser", icon="DESKTOP")
         col.operator("object.nms_save_as_preset", icon="SCENE_DATA")
         row = col.row(align=True)
         row.operator("object.nms_get_more_presets", icon="WORLD_DATA")
         row.operator("object.nms_open_preset_folder", icon="FILE_FOLDER")
+        layout.prop(nms_tool, "enum_switch", expand=True)
         part_list = layout.template_list(
             "NMS_UL_actions_list",
             "compact",

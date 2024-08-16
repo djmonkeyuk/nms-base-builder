@@ -70,7 +70,6 @@ def process_blender():
         all_lod_items = get_top_level_lods()
         items = []
         for item in all_lod_items:
-            print(item)
             if item.name.startswith(lod_section):
                 items.append(item)
         return items
@@ -97,9 +96,11 @@ def process_blender():
             raise RuntimeError(f"File does not exist, please check {path}")
     for idname, path in known_parts.items():
         print(f"Processing {idname}")
+        path_to_file = os.path.join(PATH_TO_UNPACKED, path)
+        print(f"FILE :: {path_to_file}")
         # Import the mbin
         bpy.ops.nmsdk.import_scene(
-            path=os.path.join(PATH_TO_UNPACKED, path)
+            path=str(path_to_file)
         )
         # Select the lowest LOD items.
         lowest_lods = get_lowest_lods()

@@ -76,6 +76,7 @@
     - CUBESTAIRS
     - CUBEROOF
     - CUBEWALL
+    - CUBEWALL_SPACE
     - CUBEINNERDOOR
     - CUBEROOM
     - CUBESOLID
@@ -199,6 +200,7 @@
     - T_ROOF6
     - T_ROOF7
     - T_ROOF_M_CAP_Glass
+    - T_ROOF_M_WIN
 - Stone Structures:
   - Flooring and Stairs:
     - S_FLOOR
@@ -249,6 +251,7 @@
     - S_ROOF_E_Q
     - S_ROOF_M_CAP
     - S_ROOF_E_CAP
+    - S_ROOF_M_WIN
 - Alloy Structures:
   - Flooring and Stairs:
     - F_FLOOR
@@ -302,6 +305,7 @@
     - F_ROOF_E_Q
     - F_ROOF_M_CAP
     - F_ROOF_E_CAP
+    - F_ROOF_M_WIN
 - Advanced Technology:
   - General Utility:
     - BUILDLANDINGPAD
@@ -760,6 +764,18 @@
     - STATUE_DIP_G
     - STATUE_DIP_S
     - STATUE_DIP_I
+  - Trophies:
+    - BLD_BUGHEAD1
+    - BLD_BUGHEAD2
+    - BLD_BUGHEAD3
+    - BLD_BUGHEAD4
+    - BLD_BUGHEAD5
+  - Ship Wreckages:
+    - BLD_SHIPBREAK1
+    - BLD_SHIPBREAK2
+    - BLD_SHIPBREAK3
+    - BLD_SHIPBREAK4
+    - BLD_SHIPBREAK5
 - Wall Art:
   - Decals:
     - SPEC_DECAL01
@@ -804,6 +820,8 @@
     - EXPD_DECAL10
     - EXPD_DECAL11
     - EXPD_DECAL12
+    - EXPD_DECAL13
+    - EXPD_DECAL14
     - DECAL_CAFE
     - DECAL_UFT
     - DECAL_AGT
@@ -890,6 +908,12 @@
     - EXPD_POSTER12A
     - EXPD_POSTER12B
     - EXPD_POSTER12C
+    - EXPD_POSTER13A
+    - EXPD_POSTER13B
+    - EXPD_POSTER13C
+    - EXPD_POSTER14A
+    - EXPD_POSTER14B
+    - EXPD_POSTER14C
 - Legacy Structures:
   - Wood:
     - W_WALL

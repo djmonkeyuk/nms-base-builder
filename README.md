@@ -122,7 +122,7 @@ Created and maintained by DjMonkey (<a href="http://www.twitter.com/DancingMoonG
 
 If you have enjoyed using my tools, consider playing my very own indie game! It is the best way you can support me!
 
-'Tales from the Dancing Moon' is a life-sim RPG set in a parallel universe inspired by UK culture and fantasy novels. After the events of a shadow-beast invasion on a seaside town, complete villager quests and collect hidden diaries to understand your role in this mysterious character-driven story.
+<i>'Tales from the Dancing Moon' is a life-sim RPG set in a parallel universe inspired by UK culture and fantasy novels. After the events of a shadow-beast invasion on a seaside town, complete villager quests and collect hidden diaries to understand your role in this mysterious character-driven story.</i>
 
 There is a <a href="https://store.steampowered.com/app/1782420/Tales_from_The_Dancing_Moon/" target="_blank">FREE demo</a> and an Early Access version. You would help me a lot by either wishlisting it, trying it out, or even sharing it with your friends!
 

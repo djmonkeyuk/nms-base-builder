@@ -35,6 +35,22 @@ from automation_utils import (PATH_TO_MOD_PROJECT, bcolors,
                               list_missing_parts, print_with_color)
 
 
+def list_all_models_in_blender():
+    dir = "G:/Apps/nms-base-builder/src/addons/no_mans_sky_base_builder/models"
+    unreal_dir = "G:/Unreal Projects/NoMansSkyBaseBuilder/Content/NMSBaseBuilder/Features/Models"
+    all_unreal = [uasset.replace(".uasset", "") for uasset in os.listdir(unreal_dir)]
+    paths = os.listdir(dir)
+    count = 0
+    for path in paths:
+        full_path = os.path.join(dir, path)
+        part_files = os.listdir(full_path)
+        for part_file in part_files:
+            part_id = os.path.splitext(part_file)[0]
+            if part_id not in all_unreal:
+                print(part_id, "not found in unreal")
+            count += 1
+    return count
+
 def print_report():
     BASEBUILDINGPARTSTABLE_path = os.path.join(PATH_TO_MOD_PROJECT, BASEBUILDINGPARTSTABLE)
     NMS_REALITY_GCPRODUCTTABLE_path = os.path.join(PATH_TO_MOD_PROJECT, NMS_REALITY_GCPRODUCTTABLE)
@@ -90,4 +106,4 @@ def print_report():
             print_with_color("\t"+part, bcolors.FAIL)
 
 # Print Report.
-print_report()
+print(print_report())

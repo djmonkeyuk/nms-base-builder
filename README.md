@@ -120,7 +120,13 @@ The obj file name should reflect the name of the part in-game.
 
 Created and maintained by DjMonkey (<a href="http://www.twitter.com/DancingMoonGame" target="_blank">@DancingMoonGame</a>)
 
-If you would like to support me, I am currently working on my own indie video game. There is a <a href="https://store.steampowered.com/app/1782420/Tales_from_The_Dancing_Moon/" target="_blank">free demo on Steam</a> and it would mean the world to if you gave it a try!
+If you have enjoyed using my tools, consider playing my very own indie game! It is the best way you can support me!
+
+'Tales from the Dancing Moon' is a life-sim RPG set in a parallel universe inspired by UK culture and fantasy novels. After the events of a shadow-beast invasion on a seaside town, complete villager quests and collect hidden diaries to understand your role in this mysterious character-driven story.
+
+There is a <a href="https://store.steampowered.com/app/1782420/Tales_from_The_Dancing_Moon/" target="_blank">FREE demo</a> and an Early Access version. You would help me a lot by either wishlisting it, trying it out, or even sharing it with your friends!
+
+Click the image below to be taken to the Steam page!
 
 <p align="center">
   <a href="https://store.steampowered.com/app/1782420/Tales_from_The_Dancing_Moon/" target="_blank"><img src="https://raw.githubusercontent.com/djmonkeyuk/nms-base-builder/master/images/SteamDemoBanner.png" alt="Tales from The Dancing Moon Steam Store Page" width="50%"></a>

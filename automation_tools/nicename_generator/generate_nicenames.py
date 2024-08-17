@@ -39,7 +39,8 @@ for path in [LOC1_FULL_PATH, LOC4_FULL_PATH, LOC5_FULL_PATH, LOC6_FULL_PATH, LOC
     local_table = language_root[0]
     for table in local_table:
         id = table[0].attrib["value"]
-        data[id] = table[1][0].attrib["value"]
+        data[id] = table[1].attrib["value"]
+        # break
 
 # Build
 product_tree = ET.parse(PRODUCT_PATH)

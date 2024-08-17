@@ -19,9 +19,10 @@ EXISTING_CSV_FILE = os.path.join(os.path.dirname(os.path.realpath(__file__)), "D
 
 headings = ["---", "ObjectModel", "Category", "Icon", "SubCategory", "SocketClassIDs", "PlugClassIDs", "NiceName", "bShowInDrawer", "VariantOf"]
 
+
 existing_rows = {}
 with open(EXISTING_CSV_FILE) as csv_file:
-    csv_reader = csv.reader(csv_file, delimiter=',')
+    csv_reader = csv.reader((x.replace('\0', '') for x in csv_file), delimiter=',')
     line_count = 0
     for idx, row in enumerate(csv_reader):
         if idx == 0:
@@ -29,11 +30,13 @@ with open(EXISTING_CSV_FILE) as csv_file:
         id = row[0]
         existing_rows[id] = row
 
-
 existing_parts = [str(key.replace("^", "")) for key in existing_rows.keys()]
-obj_parts = get_all_existing_parts()
+obj_parts = get_all_existing_parts().keys()
 missing_parts = sorted([x for x in obj_parts if x not in existing_parts])
+# print(existing_parts)
+# print(obj_parts)
 for part in missing_parts:
+    print(f"Part {part} was missing, adding to the list.")
     existing_rows["^"+part] = ["^"+part, "", "", "", "", "", "", "", "", ""]
 
 # Validate data

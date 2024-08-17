@@ -188,3 +188,8 @@ QTabBar::tab:top:only-one,
 QTabBar::tab:bottom:only-one {
     margin-right: 0;
 }
+
+QToolTip {
+    background: white;
+    color: black;
+}

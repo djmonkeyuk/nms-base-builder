@@ -37,7 +37,6 @@ A plugin for Blender to build bases in No Mans Sky.
 <a name="requirements"></a>
 ## Requirements
 
-Addon Requirements
 * Latest Base Builder Release
     * https://github.com/djmonkeyuk/nms-base-builder/releases
 * No Mans Sky Save Editor
@@ -85,6 +84,13 @@ These can be downloaded and shared with other people.
 
 View the Preset directory to downlaod and share your own creations.
 https://djmonkeyuk.github.io/nms-base-builder-presets/
+
+## Technical Dependencies
+
+Casual users may ignore this section. These Python dependencies are installed automatically on exeuction of the Asset Browser UI.
+
+* PySide6
+* pyaml
 
 ## Mod Compatibility
 

@@ -3,7 +3,7 @@ release 2.1.3
 * Added support for base parts added up to Worlds Part 1 Update.
 * Adjusted hallway and walkway freighter models.
 * Added some Linux compatibility thanks to dsalt on GitHub.
-* Added missing base dictionary information for AutoPower and Difficulty settings.
+* Updated output JSON format to match latest version found in the game.
 
 
 release 2.1.2

@@ -22,9 +22,9 @@ except:
 
 try:
     import yaml
-    print ("Yaml found.")
+    print ("PyYAML found.")
 except:
-    install_package("pyaml")
+    install_package("PyYAML")
 
 try:
     import PySide6

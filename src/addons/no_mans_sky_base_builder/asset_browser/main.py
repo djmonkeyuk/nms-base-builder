@@ -6,19 +6,16 @@ import tempfile
 import time
 from functools import partial
 
-import yaml
-
-try:
-  from PySide6 import QtCore, QtGui, QtWidgets
-except ImportError:
-  from PySide2 import QtCore, QtGui, QtWidgets
 
 import asset_browser.icons.icons
 import yaml
 from asset_browser.collapsable_frame import CollapsableFrame
 from asset_browser.flow_layout import FlowLayout
 from asset_browser.item import Item, Preset
-from PySide6 import QtCore, QtGui, QtWidgets
+try:
+  from PySide6 import QtCore, QtGui, QtWidgets
+except ImportError:
+  from PySide2 import QtCore, QtGui, QtWidgets
 
 FILE_DIR = os.path.dirname(os.path.realpath(__file__))
 SEND_SNIPPET = os.path.join(FILE_DIR, "build_part_snippet.txt")

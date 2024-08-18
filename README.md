@@ -88,9 +88,15 @@ https://djmonkeyuk.github.io/nms-base-builder-presets/
 ## Technical Dependencies
 
 Casual users may ignore this section. These Python dependencies are installed automatically on execution of the Asset Browser UI.
+(Fallback dependencies, in parentheses, won't be.)
 
-* PySide6
+* PySide6 (or PySide2)
 * PyYAML
+
+For Linux users, the corresponding packages (for Debian-like systems) are:
+
+* python3-pyside6 (or python3-pyside2)
+* python3-yaml
 
 ## Mod Compatibility
 

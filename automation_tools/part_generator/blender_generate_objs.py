@@ -21,30 +21,32 @@ aths, find and place relavant mbin paths into the "DT_PartTable.csv" file. Unfor
 7. With all OBJs exported, place them in their correct folder in the tool, and update the asset browser with the relevant info.
 
 """
+
 import os
+import shutil
 import sys
 
 sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), ".."))
 
-from automation_utils import (PATH_TO_MOD_PROJECT, PATH_TO_UNPACKED,
-                              get_category_by_id, list_missing_parts)
+from automation_utils import PATH_TO_UNPACKED, get_category_by_id, list_missing_parts
 
 OUTPUT_FOLDER = os.path.join(os.path.dirname(os.path.realpath(__file__)), "OBJ_export")
 
+
 def process_blender():
     import bpy
+
     def get_top_level_lods():
         objects = []
         for obj in bpy.data.objects:
             if obj.parent:
-                if obj.parent.name.endswith(".SCENE"):
-                    if ("LOD" in obj.name) and (obj.NMSNode_props.node_types == "Mesh"):
-                        objects.append(obj)
+                if "LOD" in obj.name:
+                    objects.append(obj)
         return objects
 
     def get_scene_object():
         for obj in bpy.data.objects:
-            if obj.name.endswith(".SCENE"):
+            if obj.name.lower().endswith(".scene"):
                 return obj
 
     def get_lowest_lod():
@@ -82,14 +84,7 @@ def process_blender():
             lods.append(sections_lods[-1])
         return lods
 
-    known_parts, unknown_parts = list_missing_parts(
-        os.path.join(PATH_TO_MOD_PROJECT, "METADATA/REALITY/TABLES/BASEBUILDINGPARTSTABLE.EXML"),
-        os.path.join(PATH_TO_MOD_PROJECT, "METADATA/REALITY/TABLES/NMS_REALITY_GCPRODUCTTABLE.EXML"),
-    )
-    # Path override
-    # known_parts = {
-    #     "LANDINGZONE": "N:/Games/No Mans Sky/nms_modding_station/unpacked/MODELS/PLANETS/BIOMES/COMMON/BUILDINGS/PARTS/BUILDABLEPARTS/TECH/LANDINGZONE_LOD.SCENE.MBIN"
-    # }
+    known_parts, unknown_parts = list_missing_parts()
     for idname, path in known_parts.items():
         path = os.path.join(PATH_TO_UNPACKED, path)
         if not os.path.exists(path):
@@ -98,16 +93,16 @@ def process_blender():
         print(f"Processing {idname}")
         path_to_file = os.path.join(PATH_TO_UNPACKED, path)
         print(f"FILE :: {path_to_file}")
+        if not os.path.exists(path_to_file):
+            print("File does not exist. Skipping.")
         # Import the mbin
-        bpy.ops.nmsdk.import_scene(
-            path=str(path_to_file)
-        )
+        bpy.ops.nmsdk.import_scene(path=str(path_to_file))
         # Select the lowest LOD items.
         lowest_lods = get_lowest_lods()
         # If no lods exist, just select the whole scene.
         if not lowest_lods:
             lowest_lods = [get_scene_object()]
-        bpy.ops.object.select_all(action='DESELECT')
+        bpy.ops.object.select_all(action="DESELECT")
         for item in lowest_lods:
             select_object_and_below(item)
         # Combine selection into one.
@@ -116,8 +111,10 @@ def process_blender():
         category = os.path.join(OUTPUT_FOLDER, get_category_by_id(idname))
         if not os.path.exists(category):
             os.mkdir(category)
-        out_file = os.path.join(category, idname+".fbx")
-        bpy.ops.export_scene.fbx(filepath=out_file, object_types={'MESH'}, use_selection=True)
+        out_file = os.path.join(category, idname + ".fbx")
+        bpy.ops.export_scene.fbx(
+            filepath=out_file, object_types={"MESH"}, use_selection=True
+        )
 
 
 process_blender()

@@ -3,7 +3,7 @@ bl_info = {
     "name": "No Mans Sky Base Builder",
     "description": "A tool to assist with base building in No Mans Sky",
     "author": "DjMonkey",
-    "version": (2, 1, 3),
+    "version": (2, 1, 4),
     "blender": (4, 0, 0),
     "location": "3D View > Tools",
     "warning": "",  # used for warning icon and text in addons panel
@@ -28,8 +28,14 @@ import no_mans_sky_base_builder.utils.blend_utils as blend_utils
 import no_mans_sky_base_builder.utils.curve as curve
 import no_mans_sky_base_builder.utils.material as _material
 import no_mans_sky_base_builder.utils.python as python_utils
-from bpy.props import (BoolProperty, EnumProperty, FloatProperty, IntProperty,
-                       PointerProperty, StringProperty)
+from bpy.props import (
+    BoolProperty,
+    EnumProperty,
+    FloatProperty,
+    IntProperty,
+    PointerProperty,
+    StringProperty,
+)
 from bpy.types import Panel, PropertyGroup
 
 FILE_PATH = os.path.dirname(os.path.realpath(__file__))
@@ -42,12 +48,14 @@ GHOSTED_JSON = os.path.join(FILE_PATH, "resources", "ghosted.json")
 ghosted_reference = python_utils.load_dictionary(GHOSTED_JSON)
 GHOSTED_ITEMS = ghosted_reference["GHOSTED"]
 
+
 # Setting Support Methods ---
 def ShowMessageBox(message="", title="Message Box", icon="INFO"):
     def draw(self, context):
         self.layout.label(text=message)
 
     bpy.context.window_manager.popup_menu(draw, title=title, icon=icon)
+
 
 def part_switch(self, context):
     """Toggle method for switching between parts and presets."""
@@ -73,6 +81,7 @@ def get_line_type_from_enum(context):
         line_object = "U_BYTEBEATLINE"
     return line_object
 
+
 # Core Settings Class
 class NMSSettings(PropertyGroup):
     # Build Array of base part types. (Vanilla Parts - Mods - Presets)
@@ -82,7 +91,7 @@ class NMSSettings(PropertyGroup):
     enum_items.append(("PRESETS", "Presets", "View Presets..."))
 
     # Blender Properties.
-    enum_switch : EnumProperty(
+    enum_switch: EnumProperty(
         name="enum_switch",
         description="Toggle to display between parts and presets.",
         items=enum_items,
@@ -91,7 +100,7 @@ class NMSSettings(PropertyGroup):
         update=part_switch,
     )
 
-    material_switch : EnumProperty(
+    material_switch: EnumProperty(
         name="material_switch",
         description="Decide what type of material to apply",
         items=[
@@ -104,202 +113,188 @@ class NMSSettings(PropertyGroup):
         default={"CONCRETE"},
     )
 
-    line_switch : EnumProperty(
+    line_switch: EnumProperty(
         name="line_switch",
         description="Decide what type of cable to build",
         items=[
             ("POWER", "Electrical Wire", "Electrical Wire"),
             ("TELEPORT", "Teleport Wire", "Teleport Wire"),
             ("BYTEBEAT", "Byte-Beat Cable", "Byte-Beat Cable"),
-            ("PIPE", "Pipe", "Pipe")
+            ("PIPE", "Pipe", "Pipe"),
         ],
         options={"ENUM_FLAG"},
         default={"POWER"},
     )
 
-    preset_name : StringProperty(
+    preset_name: StringProperty(
         name="preset_name", description="The of a preset.", default="", maxlen=1024
     )
 
-    string_base : StringProperty(
+    string_base: StringProperty(
         name="Base Name",
         description="The name of the base set in game.",
         default="",
         maxlen=1024,
     )
 
-    string_address : StringProperty(
+    string_address: StringProperty(
         name="Galactic Address",
         description="The galactic address.",
         default="",
         maxlen=1024,
     )
 
-    string_base_type : StringProperty(
+    string_base_type: StringProperty(
         name="The base type",
         description="Planet or Freighter.",
         default="HomePlanetBase",
         maxlen=1024,
     )
 
-    string_usn : StringProperty(
+    string_usn: StringProperty(
         name="USN", description="The username attribute.", default="", maxlen=1024
     )
 
-    string_uid : StringProperty(
+    string_uid: StringProperty(
         name="UID", description="A user ID.", default="", maxlen=1024
     )
 
-    string_lid : StringProperty(
+    string_lid: StringProperty(
         name="LID", description="Not sure what this is.", default="", maxlen=1024
     )
 
-    string_ptk : StringProperty(
+    string_ptk: StringProperty(
         name="PTK", description="Not sure what this is.", default="", maxlen=1024
     )
 
-    string_ts : StringProperty(
+    string_ts: StringProperty(
         name="TS",
         description="Timestamp.",
         default="",
         maxlen=1024,
     )
 
-    string_last_ts : StringProperty(
+    string_last_ts: StringProperty(
         name="LastUpdatedTimestamp",
         description="Timestamp - last updated timestamp.",
         default="",
         maxlen=1024,
     )
 
-    float_pos_x : FloatProperty(
+    float_pos_x: FloatProperty(
         name="X", description="The X position of the base in planet space.", default=0.0
     )
 
-    float_pos_y : FloatProperty(
+    float_pos_y: FloatProperty(
         name="Y", description="The Y position of the base in planet space.", default=0.0
     )
 
-    float_pos_z : FloatProperty(
+    float_pos_z: FloatProperty(
         name="Z", description="The Z position of the base in planet space.", default=0.0
     )
 
-    float_ori_x : FloatProperty(
+    float_ori_x: FloatProperty(
         name="X",
         description="The X orientation vector of the base in planet space.",
         default=0.0,
     )
 
-    float_ori_y : FloatProperty(
+    float_ori_y: FloatProperty(
         name="Y",
         description="The Y orientation vector of the base in planet space.",
         default=0.0,
     )
 
-    float_ori_z : FloatProperty(
+    float_ori_z: FloatProperty(
         name="Z",
         description="The Z orientation vector of the base in planet space.",
         default=0.0,
     )
 
     # Unimportant details...
-    LastEditedById : StringProperty(
+    LastEditedById: StringProperty(
         name="LastEditedByID",
         description="LastEditedByID.",
         default="",
         maxlen=1024,
     )
-    LastEditedByUsername_value : StringProperty(
+    LastEditedByUsername_value: StringProperty(
         name="LastEditedByUsername",
         description="LastEditedByUsername.",
         default="",
         maxlen=1024,
     )
-    original_base_version : IntProperty(
-        name="OriginalBaseVersion",
-        description="OriginalBaseVersion.",
-        default=3
+    original_base_version: IntProperty(
+        name="OriginalBaseVersion", description="OriginalBaseVersion.", default=3
     )
 
-    screenshot_at_x : FloatProperty(
+    screenshot_at_x: FloatProperty(
         name="SAX",
         description="The X orientation vector of the screenshot.",
         default=1.0,
     )
 
-    screenshot_at_y : FloatProperty(
+    screenshot_at_y: FloatProperty(
         name="SAY",
         description="The Y orientation vector of the screenshot.",
         default=0.0,
     )
 
-    screenshot_at_z : FloatProperty(
+    screenshot_at_z: FloatProperty(
         name="SAZ",
         description="The Z orientation vector of the screenshot.",
         default=0.0,
     )
 
-    screenshot_pos_x : FloatProperty(
+    screenshot_pos_x: FloatProperty(
         name="SPX",
         description="The X pos vector of the screenshot.",
         default=1.0,
     )
 
-    screenshot_pos_y : FloatProperty(
+    screenshot_pos_y: FloatProperty(
         name="SPY",
         description="The Y pos vector of the screenshot.",
         default=1.0,
     )
 
-    screenshot_pos_z : FloatProperty(
+    screenshot_pos_z: FloatProperty(
         name="SUZ",
         description="The Z pos vector of the screenshot.",
         default=0.0,
     )
 
-    game_mode : StringProperty(
-        name="GameMode",
-        description="GameMode.",
-        default="Unspecified"
+    game_mode: StringProperty(
+        name="GameMode", description="GameMode.", default="Unspecified"
     )
 
-    platform_token : StringProperty(
-        name="PlatformToken",
-        description="PlatformToken.",
-        default=""
+    platform_token: StringProperty(
+        name="PlatformToken", description="PlatformToken.", default=""
     )
 
-    is_reported : BoolProperty(
-        name="IsReported",
-        description="Is Reported.",
-        default=False
+    is_reported: BoolProperty(
+        name="IsReported", description="Is Reported.", default=False
     )
 
-    is_featured : BoolProperty(
-        name="IsFeatured",
-        description="Is Featured.",
-        default=False
+    is_featured: BoolProperty(
+        name="IsFeatured", description="Is Featured.", default=False
     )
 
-    difficulty_flags : IntProperty(
-        name="DifficultyFlags",
-        description="DifficultyFlags.",
-        default=0
+    difficulty_flags: IntProperty(
+        name="DifficultyFlags", description="DifficultyFlags.", default=0
     )
 
-    difficulty_preset : StringProperty(
+    difficulty_preset: StringProperty(
         name="DifficultyPresetType",
         description="DifficultyPresetType.",
-        default="Creative"
+        default="Creative",
     )
 
-    auto_power_setting : StringProperty(
-        name="AutoPowerSetting",
-        description="AutoPowerSetting.",
-        default="UseDefault"
+    auto_power_setting: StringProperty(
+        name="AutoPowerSetting", description="AutoPowerSetting.", default="UseDefault"
     )
 
-    room_vis_switch : IntProperty(name="room_vis_switch", default=0)
+    room_vis_switch: IntProperty(name="room_vis_switch", default=0)
 
     def deserialise_from_data(self, nms_data):
         # Start new file
@@ -354,12 +349,18 @@ class NMSSettings(PropertyGroup):
             self.is_featured = nms_data["IsFeatured"]
         if "AutoPowerSetting" in nms_data:
             auto_power_container = nms_data.get("AutoPowerSetting", {})
-            self.auto_power_setting = auto_power_container.get("BaseAutoPowerSetting", "UseDefault")
+            self.auto_power_setting = auto_power_container.get(
+                "BaseAutoPowerSetting", "UseDefault"
+            )
         if "Difficulty" in nms_data:
             difficulty_container = nms_data.get("Difficulty", {})
             sub_difficulty_container = difficulty_container.get("DifficultyPreset")
-            self.difficulty_preset = sub_difficulty_container.get("DifficultyPresetType", "Creative")
-            self.difficulty_flags = difficulty_container.get("PersistentBaseDifficultyFlags", 0)
+            self.difficulty_preset = sub_difficulty_container.get(
+                "DifficultyPresetType", "Creative"
+            )
+            self.difficulty_flags = difficulty_container.get(
+                "PersistentBaseDifficultyFlags", 0
+            )
 
     def serialise(self, get_presets=False):
         """Export the data in the blender scene to NMS compatible data.
@@ -370,20 +371,12 @@ class NMSSettings(PropertyGroup):
         # Try making the address an int, if not it should be a string.
         data = {
             "BaseVersion": 5,
-            "OriginalBaseVersion":self.original_base_version,
+            "OriginalBaseVersion": self.original_base_version,
             "GalacticAddress": python_utils.prefer_int(self.string_address),
-            "Position": [
-                self.float_pos_x,
-                self.float_pos_y,
-                self.float_pos_z
-            ],
-            "Forward": [
-                self.float_ori_x,
-                self.float_ori_y,
-                self.float_ori_z
-            ],
+            "Position": [self.float_pos_x, self.float_pos_y, self.float_pos_z],
+            "Forward": [self.float_ori_x, self.float_ori_y, self.float_ori_z],
             "UserData": 0,
-            "LastUpdateTimestamp":python_utils.prefer_int(self.string_last_ts),
+            "LastUpdateTimestamp": python_utils.prefer_int(self.string_last_ts),
             "RID": "",
             "Owner": {
                 "UID": self.string_uid,
@@ -399,28 +392,22 @@ class NMSSettings(PropertyGroup):
             "ScreenshotAt": [
                 self.screenshot_at_x,
                 self.screenshot_at_y,
-                self.screenshot_at_z
+                self.screenshot_at_z,
             ],
             "ScreenshotPos": [
                 self.screenshot_pos_x,
                 self.screenshot_pos_y,
-                self.screenshot_pos_z
+                self.screenshot_pos_z,
             ],
-            "GameMode":{
-                "PresetGameMode": self.game_mode
+            "GameMode": {"PresetGameMode": self.game_mode},
+            "PlatformToken": self.platform_token,
+            "IsReported": self.is_reported,
+            "IsFeatured": self.is_featured,
+            "Difficulty": {
+                "DifficultyPreset": {"DifficultyPresetType": self.difficulty_preset},
+                "PersistentBaseDifficultyFlags": self.difficulty_flags,
             },
-            "PlatformToken":self.platform_token,
-            "IsReported":self.is_reported,
-            "IsFeatured":self.is_featured,
-            "Difficulty":{
-                "DifficultyPreset":{
-                    "DifficultyPresetType":self.difficulty_preset
-                },
-                "PersistentBaseDifficultyFlags":self.difficulty_flags
-            },
-            "AutoPowerSetting":{
-                "BaseAutoPowerSetting":self.auto_power_setting
-            }
+            "AutoPowerSetting": {"BaseAutoPowerSetting": self.auto_power_setting},
         }
         # Capture Individual Objects
         data.update(BUILDER.serialise(get_presets=get_presets))
@@ -449,7 +436,6 @@ class NMSSettings(PropertyGroup):
         # Start a new file
         self.deserialise_from_data(nms_import_data)
         BUILDER.deserialise_from_data(nms_import_data)
-
 
     def export_nms_data(self):
         """Generate data and place it into the user's clipboard.
@@ -549,7 +535,7 @@ class NMSSettings(PropertyGroup):
             preset_check = "PresetID" in bpy_object
             light_check = "NMS_LIGHT" in bpy_object
             rig_check = "rig_item" in bpy_object
-            if any ([id_check, preset_check, light_check, rig_check]):
+            if any([id_check, preset_check, light_check, rig_check]):
                 blend_utils.remove_object(bpy_object.name)
 
         # Reset room vis
@@ -574,7 +560,6 @@ class NMSSettings(PropertyGroup):
         if self.room_vis_switch in [0, 1, 2]:
             bpy.context.space_data.shading.type = "SOLID"
             bpy.context.scene.render.engine = "BLENDER_EEVEE"
-
 
         # Set Hide
         hidden = True
@@ -616,8 +601,7 @@ class NMSSettings(PropertyGroup):
         # Validate
         if not selected_objects:
             ShowMessageBox(
-                message="Select an item to delete from the scene.",
-                title="Delete"
+                message="Select an item to delete from the scene.", title="Delete"
             )
             return
 
@@ -632,8 +616,7 @@ class NMSSettings(PropertyGroup):
         # Validate
         if not selected_objects:
             ShowMessageBox(
-                message="Make sure you have an item selected.",
-                title="Duplicate"
+                message="Make sure you have an item selected.", title="Duplicate"
             )
             return
 
@@ -708,8 +691,7 @@ class NMSSettings(PropertyGroup):
         selected_objects = bpy.context.selected_objects
         if not selected_objects:
             ShowMessageBox(
-                message="Make sure you have an item selected.",
-                title="Apply Colour"
+                message="Make sure you have an item selected.", title="Apply Colour"
             )
             return {"FINISHED"}
 
@@ -720,14 +702,12 @@ class NMSSettings(PropertyGroup):
         # Refresh the viewport.
         bpy.ops.wm.redraw_timer(type="DRAW_WIN_SWAP", iterations=1)
 
-
     def apply_default_colour(self):
         """Gives an item a new colour."""
         selected_objects = bpy.context.selected_objects
         if not selected_objects:
             ShowMessageBox(
-                message="Make sure you have an item selected.",
-                title="Apply Colour"
+                message="Make sure you have an item selected.", title="Apply Colour"
             )
             return {"FINISHED"}
 
@@ -751,11 +731,8 @@ class NMSSettings(PropertyGroup):
         bpy.ops.wm.redraw_timer(type="DRAW_WIN_SWAP", iterations=1)
 
     def snap(
-            self,
-            next_source=False,
-            prev_source=False,
-            next_target=False,
-            prev_target=False):
+        self, next_source=False, prev_source=False, next_target=False, prev_target=False
+    ):
         """Snaps one object to another based on selection."""
         selected_objects = bpy.context.selected_objects
 
@@ -876,9 +853,7 @@ class NMS_PT_snap_panel(Panel):
 
         # Split into two columns of equal widths.
         split = layout.split(factor=0.5)
-        tools_column, snap_column = (
-            split.column(),split.column()
-        )
+        tools_column, snap_column = (split.column(), split.column())
 
         tools_box = tools_column.box()
         tools_col = tools_box.column(align=True)
@@ -891,9 +866,7 @@ class NMS_PT_snap_panel(Panel):
         elif nms_tool.room_vis_switch == 2:
             label = "Invisible"
 
-        tools_col.operator(
-            "object.nms_toggle_room_visibility", icon="CUBE", text=label
-        )
+        tools_col.operator("object.nms_toggle_room_visibility", icon="CUBE", text=label)
 
         tools_col.label(text="Duplicate")
         tools_col.operator("object.nms_duplicate", icon="DUPLICATE")
@@ -918,13 +891,21 @@ class NMS_PT_snap_panel(Panel):
 
         target_row = snap_col.row(align=True)
         target_row.label(text="Target")
-        snap_target_prev = target_row.operator("object.nms_snap", icon="TRIA_LEFT", text="Prev")
-        snap_target_next = target_row.operator("object.nms_snap", icon="TRIA_RIGHT", text="Next")
+        snap_target_prev = target_row.operator(
+            "object.nms_snap", icon="TRIA_LEFT", text="Prev"
+        )
+        snap_target_next = target_row.operator(
+            "object.nms_snap", icon="TRIA_RIGHT", text="Next"
+        )
 
         source_row = snap_col.row(align=True)
         source_row.label(text="Source")
-        snap_source_prev = source_row.operator("object.nms_snap", icon="TRIA_LEFT", text="Prev")
-        snap_source_next = source_row.operator("object.nms_snap", icon="TRIA_RIGHT", text="Next")
+        snap_source_prev = source_row.operator(
+            "object.nms_snap", icon="TRIA_LEFT", text="Prev"
+        )
+        snap_source_next = source_row.operator(
+            "object.nms_snap", icon="TRIA_RIGHT", text="Next"
+        )
 
         # Set Snap Operator assignments.
         # Default
@@ -952,6 +933,7 @@ class NMS_PT_snap_panel(Panel):
         snap_source_next.next_source = True
         snap_source_next.prev_target = False
         snap_source_next.next_target = False
+
 
 # Colour Panel ---
 class NMS_PT_colour_panel(Panel):
@@ -986,6 +968,7 @@ class NMS_PT_colour_panel(Panel):
                 "object.nms_apply_colour", text="", icon_value=colour_icon.icon_id
             )
             colour_op.colour_index = idx
+
 
 # Colour Panel ---
 class NMS_PT_logic_panel(Panel):
@@ -1031,6 +1014,7 @@ class NMS_PT_logic_panel(Panel):
         logic_row.operator("object.nms_logic_floor_switch")
         logic_row.operator("object.nms_logic_beat_switch")
 
+
 # Build Panel ---
 class NMS_PT_build_panel(Panel):
     bl_idname = "NMS_PT_build_panel"
@@ -1061,12 +1045,13 @@ class NMS_PT_build_panel(Panel):
             context.scene,
             "col",
             context.scene,
-            "col_idx"
+            "col_idx",
         )
 
 
 class NMS_UL_actions_list(bpy.types.UIList):
     previous_layout = None
+
     def draw_item(
         self, context, layout, data, item, icon, active_data, active_propname
     ):
@@ -1108,9 +1093,10 @@ class NMS_UL_actions_list(bpy.types.UIList):
 
 
 class PartCollection(bpy.types.PropertyGroup):
-    title : bpy.props.StringProperty()
-    description : bpy.props.StringProperty()
-    item_type : bpy.props.StringProperty()
+    title: bpy.props.StringProperty()
+    description: bpy.props.StringProperty()
+    item_type: bpy.props.StringProperty()
+
 
 def create_sublists(input_list, n=3):
     """Create a list of sub-lists with n elements."""
@@ -1122,6 +1108,7 @@ def create_sublists(input_list, n=3):
     while len(last_list) < n:
         last_list.append("")
     return total_list
+
 
 def generate_ui_list_data(item_type="parts", pack=None):
     """Generate a list of Blender UI friendly data of categories and parts.
@@ -1158,10 +1145,7 @@ def generate_ui_list_data(item_type="parts", pack=None):
         # Packs/Parts
         for category in BUILDER.get_categories(pack=pack):
             ui_list_data.append((category, ""))
-            category_parts = BUILDER.get_parts_from_category(
-                category,
-                pack=pack
-            )
+            category_parts = BUILDER.get_parts_from_category(category, pack=pack)
             category_parts = sorted(category_parts, key=BUILDER.get_nice_name)
             new_parts = create_sublists(category_parts)
             for part in new_parts:
@@ -1271,7 +1255,10 @@ class ExportData(bpy.types.Operator):
 class ToggleRoom(bpy.types.Operator):
     bl_idname = "object.nms_toggle_room_visibility"
     bl_label = "Toggle Room Visibility: Normal"
-    bl_options = {"UNDO", "REGISTER"} # I think this must pass "UNDO" because it changes objects, but it probably doesn't interact correctly with the plugin?
+    bl_options = {
+        "UNDO",
+        "REGISTER",
+    }  # I think this must pass "UNDO" because it changes objects, but it probably doesn't interact correctly with the plugin?
 
     def execute(self, context):
         scene = context.scene
@@ -1282,6 +1269,7 @@ class ToggleRoom(bpy.types.Operator):
 
 class SaveAsPreset(bpy.types.Operator):
     """Save the current scene contents as a new Preset"""
+
     bl_idname = "object.nms_save_as_preset"
     bl_label = "Save As Preset"
     preset_name: bpy.props.StringProperty(name="Preset Name")
@@ -1305,6 +1293,7 @@ class SaveAsPreset(bpy.types.Operator):
 
 class LoadFancyUI(bpy.types.Operator):
     """Launch the standalone asset browser."""
+
     bl_idname = "object.nms_launch_asset_browser"
     bl_label = "Launch Asset Browser..."
 
@@ -1325,8 +1314,10 @@ class PresetsMenu(bpy.types.Menu):
         layout.operator("object.nms_visit_prefab_community")
         layout.operator("object.nms_visit_github")
 
+
 class GetMorePresets(bpy.types.Operator):
     """Load the No Man's Sky Presets web page to find more community presets."""
+
     bl_idname = "object.nms_get_more_presets"
     bl_label = "Get More Presets..."
 
@@ -1335,8 +1326,10 @@ class GetMorePresets(bpy.types.Operator):
         bpy.ops.wm.call_menu(name=PresetsMenu.bl_idname)
         return {"FINISHED"}
 
+
 class VisitDiscord(bpy.types.Operator):
     """Launch the community discord URL."""
+
     bl_idname = "object.nms_visit_community"
     bl_label = "Visit the Community Discord."
 
@@ -1345,8 +1338,10 @@ class VisitDiscord(bpy.types.Operator):
         webbrowser.open_new("https://discord.gg/Mmz3rpq4Px")
         return {"FINISHED"}
 
+
 class VisitPrefabDiscord(bpy.types.Operator):
     """Launch the community discord URL."""
+
     bl_idname = "object.nms_visit_prefab_community"
     bl_label = "from the Community Discord..."
 
@@ -1355,8 +1350,10 @@ class VisitPrefabDiscord(bpy.types.Operator):
         webbrowser.open_new("https://discord.gg/EqCXaFcd7Y")
         return {"FINISHED"}
 
+
 class VisitGitHubRepo(bpy.types.Operator):
     """Launch the GitHub Repo URL."""
+
     bl_idname = "object.nms_visit_github"
     bl_label = "from the GitHub Repository..."
 
@@ -1365,21 +1362,24 @@ class VisitGitHubRepo(bpy.types.Operator):
         webbrowser.open_new("https://djmonkeyuk.github.io/nms-base-builder-presets/")
         return {"FINISHED"}
 
+
 class OpenPresetFolder(bpy.types.Operator):
     """Open the folder containing your presets."""
+
     bl_idname = "object.nms_open_preset_folder"
     bl_label = "Open Preset Folder"
 
     def execute(self, context):
         # Load web page.
         # FIXME: Mac OS
-        if hasattr(os, 'startfile'):
-          # Windows
-          os.startfile(PRESET_PATH)
+        if hasattr(os, "startfile"):
+            # Windows
+            os.startfile(PRESET_PATH)
         else:
-          # Linux etc. (requires XDG tools)
-          subprocess.call(['xdg-open', PRESET_PATH])
+            # Linux etc. (requires XDG tools)
+            subprocess.call(["xdg-open", PRESET_PATH])
         return {"FINISHED"}
+
 
 # List Operators ---
 class ListBuildOperator(bpy.types.Operator):
@@ -1407,9 +1407,7 @@ class ListBuildOperator(bpy.types.Operator):
 
         # If there was a previous selection, snap the new item to it.
         if selection:
-            builder_selection = BUILDER.get_builder_object_from_bpy_object(
-                selection
-            )
+            builder_selection = BUILDER.get_builder_object_from_bpy_object(selection)
             if builder_selection:
                 new_item.snap_to(builder_selection)
         return {"FINISHED"}
@@ -1432,7 +1430,7 @@ class ListEditOperator(bpy.types.Operator):
                 builder_object=BUILDER,
                 create_control=False,
                 apply_shader=False,
-                build_rigs=True
+                build_rigs=True,
             )
             BUILDER.build_rigs()
             BUILDER.optimise_control_points()
@@ -1461,6 +1459,7 @@ class ListDeleteOperator(bpy.types.Operator):
     def invoke(self, context, event):
         return context.window_manager.invoke_confirm(self, event)
 
+
 # Tool Operators ---
 class Duplicate(bpy.types.Operator):
     bl_idname = "object.nms_duplicate"
@@ -1473,6 +1472,7 @@ class Duplicate(bpy.types.Operator):
         nms_tool.duplicate()
         return {"FINISHED"}
 
+
 class Delete(bpy.types.Operator):
     bl_idname = "object.nms_delete"
     bl_label = "Delete"
@@ -1483,6 +1483,7 @@ class Delete(bpy.types.Operator):
         nms_tool = scene.nms_base_tool
         nms_tool.delete()
         return {"FINISHED"}
+
 
 class DuplicateAlongCurve(bpy.types.Operator):
     bl_idname = "object.nms_duplicate_along_curve"
@@ -1495,14 +1496,13 @@ class DuplicateAlongCurve(bpy.types.Operator):
     def execute(self, context):
         scene = context.scene
         nms_tool = scene.nms_base_tool
-        nms_tool.duplicate_along_curve(
-            distance_percentage=self.distance_percentage
-        )
+        nms_tool.duplicate_along_curve(distance_percentage=self.distance_percentage)
         return {"FINISHED"}
 
     def invoke(self, context, event):
         wm = context.window_manager
         return wm.invoke_props_dialog(self)
+
 
 class ApplyColour(bpy.types.Operator):
     bl_idname = "object.nms_apply_colour"
@@ -1514,9 +1514,7 @@ class ApplyColour(bpy.types.Operator):
         scene = context.scene
         nms_tool = scene.nms_base_tool
         material = nms_tool.material_switch
-        nms_tool.apply_colour(
-            colour_index=self.colour_index, material=material
-        )
+        nms_tool.apply_colour(colour_index=self.colour_index, material=material)
         return {"FINISHED"}
 
 
@@ -1538,10 +1536,10 @@ class Snap(bpy.types.Operator):
     bl_label = "Snap"
     bl_options = {"UNDO", "REGISTER"}
 
-    next_source : BoolProperty()
-    prev_source : BoolProperty()
-    next_target : BoolProperty()
-    prev_target : BoolProperty()
+    next_source: BoolProperty()
+    prev_source: BoolProperty()
+    next_target: BoolProperty()
+    prev_target: BoolProperty()
 
     def execute(self, context):
         scene = context.scene
@@ -1550,10 +1548,11 @@ class Snap(bpy.types.Operator):
             "next_source": self.next_source,
             "prev_source": self.prev_source,
             "next_target": self.next_target,
-            "prev_target": self.prev_target
+            "prev_target": self.prev_target,
         }
         nms_tool.snap(**kwargs)
         return {"FINISHED"}
+
 
 # Logic Operators ---
 class Point(bpy.types.Operator):
@@ -1578,14 +1577,12 @@ class Point(bpy.types.Operator):
             line_object = selection.get("power_line", "U_POWERLINE").split(".")[0]
             power_line = BUILDER.add_part(line_object, build_rigs=False)
             # Create controls.
-            power_line.build_rig(
-                start=selection,
-                end=point
-            )
+            power_line.build_rig(start=selection, end=point)
 
         # Now select the new point.
         blend_utils.select(point)
         return {"FINISHED"}
+
 
 class Connect(bpy.types.Operator):
     bl_idname = "object.nms_connect"
@@ -1594,28 +1591,27 @@ class Connect(bpy.types.Operator):
 
     def execute(self, context):
         # Validate selection.
-        selected_objects = [BUILDER.get_builder_object_from_bpy_object(o) for o in bpy.context.selected_objects]
+        selected_objects = [
+            BUILDER.get_builder_object_from_bpy_object(o)
+            for o in bpy.context.selected_objects
+        ]
         selected_objects = [o for o in selected_objects if o.has_snap_point("POWER")]
         if len(selected_objects) < 2:
-            message = (
-                "Make sure you have two or more electric points selected."
-            )
+            message = "Make sure you have two or more electric points selected."
             ShowMessageBox(message=message, title="Connect")
             return {"FINISHED"}
 
         # Test this after selection for better error reporting
         if not bpy.context.active_object:
-            message = (
-                "Make sure one object is the active object (shift select the object to connect everything to)."
-            )
+            message = "Make sure one object is the active object (shift select the object to connect everything to)."
             ShowMessageBox(message=message, title="Connect")
             return {"FINISHED"}
 
-        active_object = BUILDER.get_builder_object_from_bpy_object(bpy.context.active_object)
+        active_object = BUILDER.get_builder_object_from_bpy_object(
+            bpy.context.active_object
+        )
         if not active_object.has_snap_point("POWER"):
-            message = (
-                "Make sure the active object supports electrical connections."
-            )
+            message = "Make sure the active object supports electrical connections."
             ShowMessageBox(message=message, title="Connect")
             return {"FINISHED"}
 
@@ -1643,12 +1639,10 @@ class Connect(bpy.types.Operator):
             #     line_object_id = start_point["power_line"].split(".")[0]
             power_line = BUILDER.add_part(line_object_id, build_rigs=False)
             # Create controls.
-            power_line.build_rig(
-                start=start_point,
-                end=end_point
-            )
+            power_line.build_rig(start=start_point, end=end_point)
 
         return {"FINISHED"}
+
 
 class Divide(bpy.types.Operator):
     bl_idname = "object.nms_divide"
@@ -1706,13 +1700,17 @@ class Split(bpy.types.Operator):
         power_line.split()
         return {"FINISHED"}
 
+
 class SelectConnected(bpy.types.Operator):
     bl_idname = "object.nms_select_connected"
     bl_label = "Select Connected"
     bl_options = {"UNDO", "REGISTER"}
 
     def execute(self, context):
-        selected_objects = [BUILDER.get_builder_object_from_bpy_object(o) for o in bpy.context.selected_objects]
+        selected_objects = [
+            BUILDER.get_builder_object_from_bpy_object(o)
+            for o in bpy.context.selected_objects
+        ]
 
         newly_selected = set()
         for o in selected_objects:
@@ -1720,6 +1718,7 @@ class SelectConnected(bpy.types.Operator):
         for o in newly_selected:
             o.object.select_set(True)
         return {"FINISHED"}
+
 
 class SelectFloating(bpy.types.Operator):
     bl_idname = "object.nms_select_floating"
@@ -1735,7 +1734,9 @@ class SelectFloating(bpy.types.Operator):
                 continue
             is_connected_to_object = False
             num_line_connections = 0
-            for target in part.get_connected_snapped_objects("POWER", include_lines=False):
+            for target in part.get_connected_snapped_objects(
+                "POWER", include_lines=False
+            ):
                 if not hasattr(target, "start_control"):
                     is_connected_to_object = True
                     break
@@ -1746,6 +1747,7 @@ class SelectFloating(bpy.types.Operator):
                 part.object.select_set(True)
 
         return {"FINISHED"}
+
 
 class LogicButton(bpy.types.Operator):
     bl_idname = "object.nms_logic_button"
@@ -1766,6 +1768,7 @@ class LogicButton(bpy.types.Operator):
         button.select()
         return {"FINISHED"}
 
+
 class LogicWallSwitch(bpy.types.Operator):
     bl_idname = "object.nms_logic_wall_switch"
     bl_label = "SWITCH"
@@ -1782,6 +1785,7 @@ class LogicWallSwitch(bpy.types.Operator):
         # Select new item.
         button.select()
         return {"FINISHED"}
+
 
 class LogicProxSwitch(bpy.types.Operator):
     bl_idname = "object.nms_logic_prox_switch"
@@ -1800,6 +1804,7 @@ class LogicProxSwitch(bpy.types.Operator):
         button.select()
         return {"FINISHED"}
 
+
 class LogicInvSwitch(bpy.types.Operator):
     bl_idname = "object.nms_logic_inv_switch"
     bl_label = "INV"
@@ -1816,6 +1821,7 @@ class LogicInvSwitch(bpy.types.Operator):
         # Select new item.
         button.select()
         return {"FINISHED"}
+
 
 class LogicAutoSwitch(bpy.types.Operator):
     bl_idname = "object.nms_logic_auto_switch"
@@ -1834,6 +1840,7 @@ class LogicAutoSwitch(bpy.types.Operator):
         button.select()
         return {"FINISHED"}
 
+
 class LogicFloorSwitch(bpy.types.Operator):
     bl_idname = "object.nms_logic_floor_switch"
     bl_label = "FLOOR"
@@ -1850,6 +1857,7 @@ class LogicFloorSwitch(bpy.types.Operator):
         # Select new item.
         button.select()
         return {"FINISHED"}
+
 
 class LogicBeatSwitch(bpy.types.Operator):
     bl_idname = "object.nms_logic_beat_switch"
@@ -1868,6 +1876,7 @@ class LogicBeatSwitch(bpy.types.Operator):
         button.select()
         return {"FINISHED"}
 
+
 # We can store multiple preview collections here,
 # however in this example we only store "main"
 preview_collections = {}
@@ -1876,7 +1885,6 @@ preview_collections = {}
 
 classes = (
     NMSSettings,
-
     Snap,
     Point,
     Connect,
@@ -1884,7 +1892,6 @@ classes = (
     Split,
     SelectConnected,
     SelectFloating,
-
     LogicButton,
     LogicWallSwitch,
     LogicProxSwitch,
@@ -1892,13 +1899,11 @@ classes = (
     LogicAutoSwitch,
     LogicFloorSwitch,
     LogicBeatSwitch,
-
     ApplyColour,
     ApplyDefaultColour,
     Duplicate,
     DuplicateAlongCurve,
     Delete,
-
     SaveAsPreset,
     LoadFancyUI,
     GetMorePresets,
@@ -1908,28 +1913,24 @@ classes = (
     VisitGitHubRepo,
     OpenPresetFolder,
     ToggleRoom,
-
     NewFile,
     SaveData,
     LoadData,
-
     ExportData,
     ImportData,
-
     PartCollection,
-
     ListDeleteOperator,
     ListEditOperator,
     ListBuildOperator,
     NMS_UL_actions_list,
-
     NMS_PT_file_buttons_panel,
     NMS_PT_base_prop_panel,
     NMS_PT_snap_panel,
     NMS_PT_colour_panel,
     NMS_PT_logic_panel,
-    NMS_PT_build_panel
+    NMS_PT_build_panel,
 )
+
 
 def register():
 
@@ -1961,6 +1962,7 @@ def register():
     bpy.types.Scene.nms_base_tool = PointerProperty(type=NMSSettings)
     bpy.types.Scene.col = bpy.props.CollectionProperty(type=PartCollection)
     bpy.types.Scene.col_idx = bpy.props.IntProperty(default=0)
+
 
 def unregister():
     for pcoll in preview_collections.values():

@@ -3,7 +3,8 @@
 <p align="center" style="font-size:26px">
   <img src="https://raw.githubusercontent.com/djmonkeyuk/nms-base-builder/master/images/CommunityBadge.png" alt="No Mans Sky"  width="50%">
   <br />
-A plugin for Blender to build bases in No Mans Sky.
+A plugin for Blender to build bases in No Mans Sky.<br />
+<span style="font-size:18">Community Discord: <a href="https://discord.gg/kpGVRKPn5W">https://discord.gg/kpGVRKPn5W</a></span>
 </p>
 
 
@@ -118,7 +119,14 @@ The obj file name should reflect the name of the part in-game.
 
 ## Credits & Support
 
-Created and maintained by DjMonkey (<a href="http://www.twitter.com/DancingMoonGame" target="_blank">@DancingMoonGame</a>)
+Created and maintained by DjMonkey. You can reach out via various social media channels:
+
+* Discord: <a href="https://discord.gg/kpGVRKPn5W">https://discord.gg/kpGVRKPn5W</a>
+* Threads: <a href="https://www.threads.net/@dancingmoongame" target="_blank">@dancingmoongame</a>
+* Twitter/X: <a href="https://www.x.com/@dancingmoongame" target="_blank">@DancingMoonGame</a> or <a href="https://www.x.com/@charliebanks" target="_blank">@charliebanks</a>
+* BlueSky: <a href="https://bsky.app/profile/djmonkeyuk.bsky.social" target="_blank">@djmonkeyuk.bsky.social</a>
+
+## Play my Indie Game!
 
 If you have enjoyed using my tools, consider playing my very own indie game! It is the best way you can support me!
 

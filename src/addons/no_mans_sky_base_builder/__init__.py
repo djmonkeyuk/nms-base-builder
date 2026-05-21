@@ -17,6 +17,7 @@ from bpy.props import (
     StringProperty,
 )
 from bpy.types import Panel, PropertyGroup
+from bpy.app.handlers import persistent
 from numpy import isin
 
 from . import builder, part, preset
@@ -25,6 +26,11 @@ from .utils import blend_utils, curve
 from .utils import material as _material
 from .utils import python as python_utils
 from .utils import mirror_utils
+
+from .save_editor.save_manager import SaveManager
+from .save_editor.save_editor_presentation import NMS_PT_save_editor_panel
+from .save_editor import save_editor_operators
+from .save_editor import save_editor_utils
 
 FILE_PATH = os.path.dirname(os.path.realpath(__file__))
 USER_PATH = os.path.join(os.path.expanduser("~"), "NoMansSkyBaseBuilder")
@@ -2099,6 +2105,17 @@ class LogicBeatSwitch(bpy.types.Operator):
         return {"FINISHED"}
 
 
+@persistent
+def reset_save_editor_state(dummy):
+    for scene in bpy.data.scenes:
+        save_data = scene.nms_save_data
+        save_data.check_plugin_enabled = False
+
+    print("Save-Editor state reset")
+
+
+
+
 # We can store multiple preview collections here,
 # however in this example we only store "main"
 preview_collections = {}
@@ -2149,14 +2166,18 @@ classes = (
     ListDeleteOperator,
     ListEditOperator,
     ListBuildOperator,
+    SaveManager,
     NMS_UL_actions_list,
     NMS_PT_file_buttons_panel,
+    NMS_PT_save_editor_panel,
     NMS_PT_base_prop_panel,
     NMS_PT_snap_panel,
     NMS_PT_colour_panel,
     NMS_PT_logic_panel,
     NMS_PT_build_panel,
 )
+
+classes = classes  + save_editor_operators.classes
 
 
 def register():
@@ -2188,6 +2209,14 @@ def register():
     bpy.types.Scene.nms_base_tool = PointerProperty(type=NMSSettings)
     bpy.types.Scene.col = bpy.props.CollectionProperty(type=PartCollection)
     bpy.types.Scene.col_idx = bpy.props.IntProperty(default=0)
+    bpy.types.Scene.nms_save_data = bpy.props.PointerProperty(type=SaveManager)
+    bpy.types.Scene.nms_save_folder_path = StringProperty(
+        name="Save Directory ",
+        description="Folder where save files are stored",
+        default = str(save_editor_utils.get_root_save_folder()) if not None else "/"
+    )
+    
+    bpy.app.handlers.load_post.append(reset_save_editor_state)
 
 
 def unregister():

@@ -1,0 +1,198 @@
+import os
+import bpy
+import platform
+from pathlib import Path
+from . import save_translation
+from .save_translation import SaveTranslation
+
+# called to display messages/notificatoin
+def ShowMessageBox(message="", title="Message Box", icon="INFO"):
+    def draw(self, context):
+        self.layout.label(text=message)
+    bpy.context.window_manager.popup_menu(draw, title=title, icon=icon)
+    
+# return save folder path for different OS versions
+def get_root_save_folder():
+    system = platform.system()
+    if system == "Windows":
+        # windows
+        return (Path.home()/ "AppData/Roaming/HelloGames/NMS" )
+    elif system == "Darwin":
+        # macOS
+        return (Path.home()/ "Library/Application Support/HelloGames/NMS" )
+    elif system == "Linux":
+        # Proton / Steam Play
+        return (Path.home() / ".steam/steam/steamapps/compatdata" )
+    else:
+        raise RuntimeError(f"Unsupported OS: {system}")
+
+
+#Returns all account folders
+def get_accounts_list():
+    accounts_list = []
+    root_dir = Path(bpy.context.scene.nms_save_folder_path)
+    for folder in root_dir.iterdir():
+        if not folder.is_dir():
+            continue
+        # Steam/Gamepass account folders
+        if folder.name.startswith("st_"):
+            accounts_list.append(folder)
+    return accounts_list
+
+
+# Returns list of save slot data that contains save name and save files lines
+def get_save_slots_list(account):
+    
+    from .hg_save_file import HGFile
+    
+    # store list of all hg save files
+    hg_files_list = []
+    for file in Path(account).glob("save*.hg"):
+        hg_files_list.append(file)
+    
+    # interate through each save file and record their pairs
+    save_slots = []
+    # store previous hg file temporarily
+    prev_slot = None
+    for file in hg_files_list:
+        file_number = file.name[4]  # Assuming the format is "save*.hg"
+        if file_number.isdigit():
+            number = int(file_number)
+            # for eg save.hg and save2.hg are for save slot, same way save3.hg and save4.hg are for another
+            # we can record data when an even number is detected
+            if number%2 == 0:
+                #slot number is always half of second save file's number
+                save_slot_number = number//2
+                saves_links = [str(prev_slot), str(file)]
+                save_file = HGFile(file)
+                save_slot = {
+                    "slot": save_slot_number,
+                    "saves": saves_links,
+                    #extract save's name from save file data by partially loading it, and increasing efficiency
+                    "save_name": save_file.search_property(SaveTranslation.save_name)
+                }
+                save_slots.append(save_slot)
+        prev_slot = file
+    return save_slots  
+
+# returns list of data related to bses present in a save slot
+def extract_bases_list_from_save(save_slot):
+    save_file = get_save_file(save_slot)
+    data = save_file.load()
+    
+    obfuscated_persistent_base_data = data[SaveTranslation.base_context][SaveTranslation.player_state_data][SaveTranslation.persistent_player_bases]
+    
+    bases = []
+    corvettes = []
+    
+    #record only what is necessary rather than entire data about base
+    for index,base in enumerate(obfuscated_persistent_base_data):
+        base_data = {
+            "base_index":index,
+            "base_name":base[SaveTranslation.base_name],
+            "user_data":base[SaveTranslation.user_data],
+            "galactic_address": str(base[SaveTranslation.galactic_address]),
+            "base_type":base[SaveTranslation.base_type][SaveTranslation.persistent_base_types],
+            "save_links":[ save_slot[0], save_slot[1] ]
+        }
+        #store list of corvettes and bases in their respective list
+        if base_data["base_type"] == "PlayerShipBase":
+            corvettes.append(base_data)
+        elif base_data["base_type"] == "HomePlanetBase":
+            bases.append(base_data)
+    
+    # sort list of corvettes with restpect to their user_data, because user_data represents location of corvette in ship slots making it wasy to read
+    corvettes.sort(key=lambda x: x["user_data"])
+    
+    # return combined list in an object for easy search
+    return {
+        "corvettes":corvettes,
+        "bases":bases
+    }
+    
+    
+# active save is most recently modified save file
+def get_lastes_save_file_location(save_slot):
+    save_1 = Path(save_slot[0])
+    save_2 = Path(save_slot[1])
+    
+    # store when last time these save files were modified
+    m_time_save_1 = os.path.getmtime(save_1)
+    m_time_save_2 = os.path.getmtime(save_2)
+    
+    # return the save file that was most recently modified
+    return save_1 if m_time_save_1 > m_time_save_2 else save_2
+
+# since there is no unique identifier for a base, we can compare bases by matching their fingerprints
+def matches_base(base, identifier):
+    base_tuple = (base[SaveTranslation.base_name] ,base[SaveTranslation.base_type][SaveTranslation.persistent_base_types],str(base[SaveTranslation.galactic_address]))
+    identifier_tuple = (identifier["base_name"],identifier["base_type"],identifier["galactic_address"])
+    return ( base_tuple == identifier_tuple)
+    
+# helper function that gives returns save file object for easier loading
+def get_save_file(save_slot):
+    save_location = get_lastes_save_file_location(save_slot)
+    from .hg_save_file import HGFile
+    save_file = HGFile(save_location)
+    return save_file
+
+# first check if base exist at an index, if not check for in in bases list
+def search_base_with_identifier(data, base_identifier):
+    base_list = data[SaveTranslation.base_context][SaveTranslation.player_state_data][SaveTranslation.persistent_player_bases]
+    
+    #try looking for base in bases list
+    try:
+        in_base = base_list[base_identifier["base_index"]]
+    except IndexError:
+        print("base not found")
+        return None
+    
+    # return base if base found or else iterate over each base to check if it exist somewhere else
+    base_found = matches_base(in_base,base_identifier)
+    if base_found:
+        return in_base
+    else:
+        for base in base_list:
+            if matches_base(base, base_identifier):
+                return in_base
+    # reaching here means base doesnt exist
+    return None
+
+# impart a base from save file
+def import_paticular_base_from_save(base_identifier,  save_slot):
+    save_file = get_save_file(save_slot)
+    data = save_file.load()
+    
+    # fist see if base actially exists or not
+    searched_base = search_base_with_identifier(data, base_identifier)
+    if searched_base is None:
+        ShowMessageBox(message="Base/Corvette Not found", title="Import",icon = "X")
+        return None
+        
+    #return bases after translating it to engish
+    return save_translation.translate_to_eng_data(searched_base)
+    
+#save a base to save file
+def save_base_to_save_file(objects_data, base_identifier,  save_slot, base_name_from_fields = None):
+    save_file = get_save_file(save_slot)
+    data = save_file.load()
+    
+    # look for base in save file to see it it exist or not
+    in_base = search_base_with_identifier(data, base_identifier)
+    if in_base is None:
+        ShowMessageBox(message="Base couldn't be saved", title="Export", icon = "X")
+        return
+    
+    # here update objects list with list provided
+    in_base[SaveTranslation.objects] = save_translation.translate_to_obf_data(objects_data)
+    
+    #other properties like name can also be changed here
+    if base_name_from_fields is not None:
+        in_base[SaveTranslation.base_name] = base_name_from_fields
+    
+    # save the file and make backup after update it
+    save_file.make_backup()
+    save_file.save()
+    return "Base/Corvette saved sucessfully"
+    #ShowMessageBox(message="Base/Corvette saved to save_file", title="Export", icon = "CHECKMARK")
+        

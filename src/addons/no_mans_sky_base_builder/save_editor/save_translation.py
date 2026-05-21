@@ -33,6 +33,7 @@ class SaveTranslation:
     galactic_address            = eng_to_obf_translator("GalacticAddress")
     save_name                   = eng_to_obf_translator("SaveName")
     user_data                   = eng_to_obf_translator("UserData")
+    objects                     = eng_to_obf_translator("Objects")
     
     
 # this function recursively replaces each key in object with respect to mapping provided by translator

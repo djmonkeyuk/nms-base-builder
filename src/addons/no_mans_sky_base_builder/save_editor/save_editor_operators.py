@@ -39,7 +39,8 @@ class ImportBaseFromSave(bpy.types.Operator):
         save_data = scene.nms_save_data
         result = save_data.import_base_from_save_file(context)
         save_data.pin_base()
-        self.report({'INFO'}, result)
+        if result is not None:
+            self.report({'INFO'}, result)
         return {"FINISHED"}
 
 # Button to export base selected from list of bases in save editor section
@@ -51,7 +52,8 @@ class ExportBaseToSave(bpy.types.Operator):
         scene = context.scene
         save_data = scene.nms_save_data
         result = save_data.export_base_to_save_file(context)
-        self.report({'INFO'}, result)
+        if result is not None:
+            self.report({'INFO'}, result)
         return {"FINISHED"}
     
 # Button to pin base to top of the editor
@@ -97,7 +99,9 @@ class ExoprtPinnedBase(bpy.types.Operator):
         scene = context.scene
         save_data = scene.nms_save_data
         result = save_data.export_pinned_base(context)
-        self.report({'INFO'}, result)
+        if result is not None:
+            self.report({'INFO'}, result)
+        else: print("result is none")
         return {"FINISHED"}
 
 # these classes can be appened to classes list in __init__.py file with + operator  

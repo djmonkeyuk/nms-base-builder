@@ -2105,13 +2105,12 @@ class LogicBeatSwitch(bpy.types.Operator):
         return {"FINISHED"}
 
 
+# to reset toggle button of save editor
 @persistent
 def reset_save_editor_state(dummy):
     for scene in bpy.data.scenes:
         save_data = scene.nms_save_data
         save_data.check_plugin_enabled = False
-
-    print("Save-Editor state reset")
 
 
 

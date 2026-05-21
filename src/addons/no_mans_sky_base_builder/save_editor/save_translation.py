@@ -9,18 +9,30 @@ SAVE_MAP_JSON_FILE = os.path.join(FILE_PATH, "save_map_dictionary.json")
 save_map_dictionary_reversed = python_utils.load_dictionary(SAVE_MAP_JSON_FILE)
 save_map_dictionary = {v: k for k, v in save_map_dictionary_reversed.items()}
 
+# helpers to map keys
+eng_to_obf_translator = lambda k: save_map_dictionary.get(k, k)
+obf_to_eng_translator = lambda k: save_map_dictionary_reversed.get(k, k)
+
+#  translate to english data
+def translate_to_eng_data(data):
+    return translate_data(data,obf_to_eng_translator)
+
+# translate to obfuscated data
+def translate_to_obf_data(data):
+    return translate_data(data,eng_to_obf_translator)
+
 #collection of most used keys
 class SaveTranslation:
-    base_context = "vLc"
-    player_state_data = "6f="
-    persistent_player_bases = "F?0"
-    base_name = "NKm"
-    base_type = "peI"
-    persistent_base_types = "DPp"
-    galactic_address = "oZw"
-    save_name = "Pk4"
-    user_data = "CVX"
-    objects = "@ZJ"
+    #hignly used obfuscated strings for traversing save file
+    base_context                = eng_to_obf_translator("BaseContext")
+    player_state_data           = eng_to_obf_translator("PlayerStateData")
+    persistent_player_bases     = eng_to_obf_translator("PersistentPlayerBases")
+    base_name                   = eng_to_obf_translator("Name")
+    base_type                   = eng_to_obf_translator("BaseType")
+    persistent_base_types       = eng_to_obf_translator("PersistentBaseTypes")
+    galactic_address            = eng_to_obf_translator("GalacticAddress")
+    save_name                   = eng_to_obf_translator("SaveName")
+    user_data                   = eng_to_obf_translator("UserData")
     
     
 # this function recursively replaces each key in object with respect to mapping provided by translator
@@ -40,14 +52,3 @@ def translate_data(obj,translator):
         else:
             return obj
 
-# helpers to map keys
-eng_to_obf_translator = lambda k: save_map_dictionary.get(k, k)
-obf_to_eng_translator = lambda k: save_map_dictionary_reversed.get(k, k)
-
-#  translate to english data
-def translate_to_eng_data(data):
-    return translate_data(data,obf_to_eng_translator)
-
-# translate to obfuscated data
-def translate_to_obf_data(data):
-    return translate_data(data,eng_to_obf_translator)

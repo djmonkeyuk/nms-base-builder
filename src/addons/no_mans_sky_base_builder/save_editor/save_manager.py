@@ -271,7 +271,6 @@ class SaveManager(bpy.types.PropertyGroup):
             return "Could not import base data, Incorrect json"
 
         # Import json into scene
-        print("base json is ", nms_base_json)
         nms_tools = context.scene.nms_base_tool
         nms_tools.deserialise_from_data(nms_base_json)
         BUILDER.deserialise_from_data(nms_base_json)

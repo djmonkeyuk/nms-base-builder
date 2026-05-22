@@ -38,7 +38,7 @@ class NMS_PT_save_editor_panel(Panel):
             
             #display metadata related to pinned base
             bookmark_smaller_col = bookmark_col.column(align = True)
-            bookmark_smaller_col.scale_y = 0.7
+            bookmark_smaller_col.scale_y = 0.6
             #display base type
             bookmark_smaller_col.label(text = save_data.get_base_type_string(save_data.pinned_base_type), icon = "DOT")
             #display save slot and last 3 digits of account number for easy recognition
@@ -49,6 +49,7 @@ class NMS_PT_save_editor_panel(Panel):
             update_row = bookmark_col.row(align = True)
             update_row.scale_y = 1.2
             update_row.operator("object.export_pinned_base", icon="FILE_TICK", text = "Update Save")
+            bookmark_col.prop(save_data,"check_also_update_name")
             
         
         #make a seprate section to display elements related to selecting bases

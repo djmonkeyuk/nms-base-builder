@@ -25,11 +25,12 @@ class SaveManager(bpy.types.PropertyGroup):
     #These will track state of UI for easy access
     save_data_loaded= False
     is_base_selected = False
+    is_base_list_load_first_time = True
     
     # A toggle button at top of Save Editor section
     check_plugin_enabled: bpy.props.BoolProperty(
         name="Open save editor",
-        description="Enable/disbale Plugin",
+        description="Enable/disbale Plugin, \nClicking will check for dependencies, \nWill take few seconds to load for first time",
         default=False,
         update = lambda self, context: self.on_check_plugin_enabled(),
         options={'SKIP_SAVE'}
@@ -38,7 +39,7 @@ class SaveManager(bpy.types.PropertyGroup):
     # List to display miltiple accounts on same device
     nms_account_selected: bpy.props.EnumProperty(
         name="",
-        description="account from which save file will be loaded",
+        description="Account from which save file will be loaded",
         items = lambda self, context: SaveManager.enum_accounts_list,
         update = lambda self, context: self.on_account_list_change(),
         options={'SKIP_SAVE'}
@@ -47,7 +48,7 @@ class SaveManager(bpy.types.PropertyGroup):
     #list of save slots form an account
     nms_save_slot: bpy.props.EnumProperty(
         name="",
-        description="Folder where save files are stored",
+        description="Choose a save slot, \nThere can be multiple save slots within an account",
         items = lambda self, context: SaveManager.enum_save_slots_list,
         update = lambda self, context: self.on_save_slot_list_change(),
         options={'SKIP_SAVE'}
@@ -58,7 +59,7 @@ class SaveManager(bpy.types.PropertyGroup):
     # we store index so that it is easier to accress data later
     nms_base_index : bpy.props.EnumProperty(
         name="base index",
-        description="Index of the base in the save file.",
+        description="Base in the save file.",
         items = lambda self, context: SaveManager.enum_base_list,
         options={'SKIP_SAVE'},
         update = lambda self, context: self.on_base_selected()
@@ -67,7 +68,7 @@ class SaveManager(bpy.types.PropertyGroup):
     # for radio button to select between corvette and base
     nms_base_type: bpy.props.EnumProperty(
         name="base type",
-        description="Type of the base.",
+        description="Type of the base, it can be a corvette and a normal planet base.",
         items = [
             ("PlayerShipBase", "Corvette", "show list of corvettes and freighters",'AUTO',0),
             ("HomePlanetBase", "Base", "show list of bases",'HOME',1),
@@ -75,6 +76,15 @@ class SaveManager(bpy.types.PropertyGroup):
         update = lambda self, context: self.on_base_type_selected(),
         options={'SKIP_SAVE'},
         default = 'PlayerShipBase'
+    )
+    
+    #these properties will store data of changes made in account and save slot
+    last_account_selected:bpy.props.StringProperty(
+        name="acocount_selected", default = "Default"
+    )
+    
+    last_slot_selected:bpy.props.StringProperty(
+        name="slot_selected", default = "Default"
     )
     
     # this section stores parameters for pinned base which will persist within a blend file
@@ -121,20 +131,46 @@ class SaveManager(bpy.types.PropertyGroup):
         name="galactic address", default = "1"
     )
     
+    # A toggle button at top of Save Editor section
+    check_also_update_name: bpy.props.BoolProperty(
+        name="Also update name",
+        description="Use 'Base Name' from Base Properties section as name for this.",
+        default=False,
+    )
+    
     
     #this is called after clicking enable save editor button
     def on_check_plugin_enabled(self):
         save_editor_dependencies.installDependencies()
         SaveManager.enum_accounts_list = self.get_accounts_enum_list()
-        self.nms_account_selected = "Default"
+        
+        # set value of accounts from values from last changes
+        # check if stored account is present in newly generated list, if yes updated current list's index to it
+        for account in SaveManager.enum_accounts_list:
+            if account[0] == self.last_account_selected:
+                self.nms_account_selected = self.last_account_selected
+                break
 
     #function runs after an account is selected
     def on_account_list_change(self):
         #store save slots list for easy access
         SaveManager.enum_save_slots_list = self.get_save_slots_list()
-        #clear any previous records
-        self.reset_save_slot()
-        self.reset_base_list()
+        
+        # these values being eaqual means changes has been made using UI and not due to loading of data
+        if self.last_account_selected != self.nms_account_selected :
+            #clear any previous records
+            self.reset_save_slot()
+            self.reset_base_list()
+        else :
+            # set value of save slot from values from last changes
+            # check if stored slot data is present in newly generated list, if yes updated current list's index to it
+            for slot in SaveManager.enum_save_slots_list:
+                if slot[0] == self.last_slot_selected:
+                    self.nms_save_slot = self.last_slot_selected
+                    break
+        
+        # store account selected so that it can be used as default values next time this feature is enabled
+        self.last_account_selected = self.nms_account_selected
         
     # function that generates list of accounts to populate UI
     # this is called when save editor is enabled
@@ -158,6 +194,8 @@ class SaveManager(bpy.types.PropertyGroup):
             SaveManager.enum_base_list = self.get_bases_enum_list(SaveManager.extracted_base_data)
             SaveManager.save_data_loaded = True
             self.nms_base_index = "Default"
+        
+        self.last_slot_selected = self.nms_save_slot 
             
     # Called when account is selected
     # creates List of data for UI of save slots
@@ -295,12 +333,12 @@ class SaveManager(bpy.types.PropertyGroup):
         return self.export_base(context, base_identifiers, current_slot_data["saves"])
         
     # collect data from scene and export it to save file
-    def export_base(self,context,  base_identifiers, save_links):
+    def export_base(self,context,  base_identifiers, save_links, new_base_name = None):
         # convert scene to json representing base data
         nms_tools = context.scene.nms_base_tool
         serialised_base_objects_data  = nms_tools.serialise(objects_only = True)
         # provide data to utils and return status string to calling function
-        return save_editor_utils.save_base_to_save_file(serialised_base_objects_data, base_identifiers, save_links)
+        return save_editor_utils.save_base_to_save_file(serialised_base_objects_data, base_identifiers, save_links, new_base_name)
       
     # This functin collects data realated to base so that it can be identified in save file
     # since there is no unique property to identify a base, we prepare a fingerprint of that base with collection of properties
@@ -337,17 +375,14 @@ class SaveManager(bpy.types.PropertyGroup):
         if SaveManager.enum_save_slots_list is not None:
             if len(SaveManager.enum_save_slots_list) > 0:
                 if len(SaveManager.enum_save_slots_list[0][0]) > 0:
-                    try:
-                        self.nms_save_slot = SaveManager.enum_save_slots_list[0][0]
-                    except:
-                        SaveManager.enum_save_slots_list = []
+                    self.nms_save_slot = "Default"
 
     # called to reset values for base list
     def reset_base_list(self):
-        SaveManager.enum_base_list = [("","","")]
-        if len(SaveManager.enum_base_list) > 0:
-            if len(SaveManager.enum_base_list[0][0]) > 0:
-                self.nms_base_index = SaveManager.enum_base_list[0][0]
+        if SaveManager.enum_base_list is not None:
+            if len(SaveManager.enum_base_list) > 0:
+                if len(SaveManager.enum_base_list[0][0]) > 0:
+                    self.nms_base_index = "Default"
     
     #called by ui to display type of base
     def get_base_type_string(self,base_type = None):
@@ -355,6 +390,37 @@ class SaveManager(bpy.types.PropertyGroup):
             return "Corvette" if self.nms_base_type == "PlayerShipBase" else "Base"
         else: 
             return "Corvette" if base_type == "PlayerShipBase" else "Base"
+        
+        
+    # called when update base name is checked
+    # To update name of base from 'Base Name' field in Base properties panel
+    def update_base_name(self, new_base_name):
+        
+        if not new_base_name:
+            return
+        
+        if not self.pinned_base_check:
+            return
+        
+        #update name of pinned base
+        old_base_name = self.pinned_base_name
+        self.pinned_base_name = new_base_name
+        
+        # update name of base in UI lists without reading save file again
+        # Changes made with this will be almost identical as reimporting bases list
+        # this will improve speed of updating base
+        t1 = (old_base_name, self.pinned_base_type, self.pinned_galactic_address)
+        if SaveManager.save_data_loaded:
+            base_type_key = "corvettes" if self.nms_base_type == "PlayerShipBase" else "bases"
+            base_list = SaveManager.extracted_base_data[base_type_key]
+            for base in base_list:
+                t2 = (base["base_name"],base["base_type"],base["galactic_address"])
+                if t1 == t2:
+                    base["base_name"] = new_base_name
+                    break
+            SaveManager.enum_base_list = self.get_bases_enum_list(SaveManager.extracted_base_data)
+        
+        
                 
     # called from operator to pin a base and save its metadata to persist within a blend file
     # it provides easy access to update button for users
@@ -395,9 +461,29 @@ class SaveManager(bpy.types.PropertyGroup):
     # called to save scene data to save file
     def export_pinned_base(self, context):
         base_identifiers = self.get_pinned_base_identifiers()
+        
         if base_identifiers is None:
             return "Pinned base identifiers are none"
-        return self.export_base(context, base_identifiers, base_identifiers["save_links"])
+        
+        # base name will not be udpated if it is None
+        new_base_name = None
+        
+        # check if export base name check box is checked
+        if self.check_also_update_name:
+            scene = context.scene
+            nms_tool = scene.nms_base_tool
+            string_base_name = nms_tool.string_base.strip()
+            # update of new base name after validating string base name
+            if string_base_name:
+                new_base_name = string_base_name
+        
+        result = self.export_base(context, base_identifiers, base_identifiers["save_links"], new_base_name)
+        
+        # upate base name if base name was sucessfully changed in save file
+        if result is not None and new_base_name is not None:
+            self.update_base_name(new_base_name)
+            
+        return result
         
     # collect data of pinned base and return it
     def get_pinned_base_identifiers(self):

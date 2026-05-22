@@ -173,7 +173,7 @@ def import_paticular_base_from_save(base_identifier,  save_slot):
     return save_translation.translate_to_eng_data(searched_base)
     
 #save a base to save file
-def save_base_to_save_file(objects_data, base_identifier,  save_slot, base_name_from_fields = None):
+def save_base_to_save_file(objects_data, base_identifier,  save_slot, new_base_name = None):
     save_file = get_save_file(save_slot)
     data = save_file.load()
     
@@ -186,9 +186,10 @@ def save_base_to_save_file(objects_data, base_identifier,  save_slot, base_name_
     # here update objects list with list provided
     in_base[SaveTranslation.objects] = save_translation.translate_to_obf_data(objects_data)
     
-    #other properties like name can also be changed here
-    if base_name_from_fields is not None:
-        in_base[SaveTranslation.base_name] = base_name_from_fields
+    
+    # update name of base if provided
+    if new_base_name is not None:
+        in_base[SaveTranslation.base_name] = new_base_name
     
     # save the file and make backup after update it
     save_file.make_backup()

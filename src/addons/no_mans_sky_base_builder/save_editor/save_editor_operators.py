@@ -5,6 +5,8 @@ import bpy
 class SelectSaveFolder(bpy.types.Operator):
     bl_idname = "object.nms_select_save_folder"
     bl_label = "Select Folder"
+    
+    bl_description = "Manually select location of save folder of NMS"
 
     directory: bpy.props.StringProperty(
         subtype='DIR_PATH'
@@ -33,6 +35,7 @@ class SelectSaveFolder(bpy.types.Operator):
 class ImportBaseFromSave(bpy.types.Operator):
     bl_idname = "object.nms_import_base_from_save"
     bl_label = "Import data from selected file"
+    bl_description = "Import base from save file while also pinning it on top"
 
     def execute(self, context):
         scene = context.scene
@@ -47,6 +50,7 @@ class ImportBaseFromSave(bpy.types.Operator):
 class ExportBaseToSave(bpy.types.Operator):
     bl_idname = "object.nms_export_base_to_save"
     bl_label = "Export data to save file"
+    bl_description = "Export base to save_file"
 
     def execute(self, context):
         scene = context.scene
@@ -60,6 +64,7 @@ class ExportBaseToSave(bpy.types.Operator):
 class PinBase(bpy.types.Operator):
     bl_idname = "object.nms_pin_base"
     bl_label = "Pin"
+    bl_description = "Pin this base at top of Save Editor for easy access to updating functionality and persistence"
     
     def execute(self, context):
         scene = context.scene
@@ -72,6 +77,7 @@ class UnpinBase(bpy.types.Operator):
     
     bl_idname = "object.nms_unpin_base"
     bl_label = "Unpin"
+    bl_description = "Unpin base from top of save editor"
     
     def execute(self, context):
         scene = context.scene
@@ -84,6 +90,11 @@ class ImportPinnedBase(bpy.types.Operator):
     bl_idname = "object.import_pinned_base"
     bl_label = "Import"
     
+    bl_description = (
+        "Import latest data from save file into scene, \n"
+        "replace all objects in scene with data imported"
+    )
+    
     def execute(self, context):
         scene = context.scene
         save_data = scene.nms_save_data
@@ -92,9 +103,16 @@ class ImportPinnedBase(bpy.types.Operator):
     
 # button to export data to save file from pinned base
 class ExoprtPinnedBase(bpy.types.Operator):
+    
     bl_idname = "object.export_pinned_base"
     bl_label = "Export"
-    
+    bl_description = (
+        "Update changes to save_file onto location that is pinned.\n"
+        "Only ['Objects'] are updated.\n"
+        "Check export base name to update name along with objects.\n"
+        "Base Name will be taken from 'Base Name' field in Base properties section"
+    )
+        
     def execute(self, context):
         scene = context.scene
         save_data = scene.nms_save_data

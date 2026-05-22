@@ -119,7 +119,27 @@ class ExoprtPinnedBase(bpy.types.Operator):
         result = save_data.export_pinned_base(context)
         if result is not None:
             self.report({'INFO'}, result)
-        else: print("result is none")
+        else: 
+            self.report({'ERROR'}, "Update Failed, repinning the base may resolve this issue ")
+            print("result is none")
+        return {"FINISHED"}
+    
+# a button to manually backup save files
+class MakeBackup(bpy.types.Operator):
+    
+    bl_idname = "object.make_savefile_backup"
+    bl_label = "Backup"
+    bl_description = (
+        "Backup save files liked to pinned base\n"
+        "backup folder with name 'nms_base_builder_backup' will be created in folder where save files are located. \n"
+        "To restore, rename the files by remove everything before '.hg.' and pasting them into their parent folder"
+    )
+        
+    def execute(self, context):
+        scene = context.scene
+        save_data = scene.nms_save_data
+        save_data.backup_save_files()
+        self.report({'INFO'}, "Backup created sucessfully")
         return {"FINISHED"}
 
 # these classes can be appened to classes list in __init__.py file with + operator  
@@ -130,5 +150,6 @@ classes = (
     PinBase,
     UnpinBase,
     ImportPinnedBase,
-    ExoprtPinnedBase
+    ExoprtPinnedBase,
+    MakeBackup
 )

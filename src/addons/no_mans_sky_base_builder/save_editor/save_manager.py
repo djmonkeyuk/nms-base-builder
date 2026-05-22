@@ -511,3 +511,9 @@ class SaveManager(bpy.types.PropertyGroup):
             return f"{self.pinned_save_slot_name}, acc: ...{self.pinned_save_account[-3:]}"
         return None
         
+    # for backup button operator to call, will make backup of pinned base/corvette
+    def backup_save_files(self):
+        save_1 = self.pinned_base_save_1
+        save_2 = self.pinned_base_save_2
+        save_links = [save_1,save_2]
+        save_editor_utils.backup_save_files(save_links)

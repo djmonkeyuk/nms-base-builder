@@ -2,8 +2,13 @@ import os
 import bpy
 import platform
 from pathlib import Path
+import shutil
+from datetime import datetime
+
+
 from . import save_translation
 from .save_translation import SaveTranslation
+
 
 # called to display messages/notificatoin
 def ShowMessageBox(message="", title="Message Box", icon="INFO"):
@@ -43,7 +48,7 @@ def get_accounts_list():
 # Returns list of save slot data that contains save name and save files lines
 def get_save_slots_list(account):
     
-    from .hg_save_file import HGFile
+    from .save_file import SaveFile
     
     # store list of all hg save files
     hg_files_list = []
@@ -64,7 +69,7 @@ def get_save_slots_list(account):
                 #slot number is always half of second save file's number
                 save_slot_number = number//2
                 saves_links = [str(prev_slot), str(file)]
-                save_file = HGFile(file)
+                save_file = SaveFile(file)
                 save_slot = {
                     "slot": save_slot_number,
                     "saves": saves_links,
@@ -132,8 +137,8 @@ def matches_base(base, identifier):
 # helper function that gives returns save file object for easier loading
 def get_save_file(save_slot):
     save_location = get_lastes_save_file_location(save_slot)
-    from .hg_save_file import HGFile
-    save_file = HGFile(save_location)
+    from .save_file import SaveFile
+    save_file = SaveFile(save_location)
     return save_file
 
 # first check if base exist at an index, if not check for in in bases list
@@ -166,7 +171,7 @@ def import_paticular_base_from_save(base_identifier,  save_slot):
     # fist see if base actially exists or not
     searched_base = search_base_with_identifier(data, base_identifier)
     if searched_base is None:
-        ShowMessageBox(message="Base/Corvette Not found", title="Import",icon = "X")
+        #ShowMessageBox(message="Base/Corvette Not found", title="Import",icon = "X")
         return None
         
     #return bases after translating it to engish
@@ -180,7 +185,11 @@ def save_base_to_save_file(objects_data, base_identifier,  save_slot, new_base_n
     # look for base in save file to see it it exist or not
     in_base = search_base_with_identifier(data, base_identifier)
     if in_base is None:
-        ShowMessageBox(message="Base couldn't be saved", title="Export", icon = "X")
+        message = (
+            "Base couldn't be saved, \n"
+            "Re-pinning may resolve this issue."
+        )
+        ShowMessageBox(message = message, title="Export Failed", icon = "WARNING_LARGE")
         return
     
     # here update objects list with list provided
@@ -195,5 +204,39 @@ def save_base_to_save_file(objects_data, base_identifier,  save_slot, new_base_n
     save_file.make_backup()
     save_file.save()
     return "Base/Corvette saved sucessfully"
-    #ShowMessageBox(message="Base/Corvette saved to save_file", title="Export", icon = "CHECKMARK")
-        
+
+# make backup of both save files linked to a save slot
+def backup_save_files(save_slot):
+    
+    save_1 = save_slot[0]
+    save_2 = save_slot[1]
+    
+    s1_name, s1_ext = os.path.splitext(os.path.basename(save_1))
+    s2_name, s2_ext = os.path.splitext(os.path.basename(save_2))
+    
+    # a folder within save_directory , where backups will be stored
+    folder = os.path.dirname(save_1)
+    backup_folder = os.path.join(
+        folder,"nms_base_builder_backup",
+    )
+    
+    #create backup folder if it doesnt exist
+    os.makedirs(backup_folder, exist_ok=True)
+    
+    # add date and time in bakcup file's name to make make manual searching easier
+    dat_and_time = datetime.now().strftime("d-%Y-%m-%d_t-%H-%M-%S-%f")[:-3]
+    
+    save_1_backup = os.path.join(
+        backup_folder,
+        f"{s1_name}{s1_ext}.{dat_and_time}.blender.bak"
+    )
+    save_2_backup = os.path.join(
+        backup_folder,
+        f"{s2_name}{s2_ext}.{dat_and_time}.blender.bak"
+    )
+    
+    #make exact copies of those sace files and just change names
+    shutil.copy2(save_1, save_1_backup)
+    shutil.copy2(save_2, save_2_backup)
+    
+    

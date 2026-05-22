@@ -9,7 +9,7 @@ MAGIC = 0xFEEDA1E5
 CHUNK_SIZE = 0x80000  # 524288 bytes
 
 # this handles loading, saving and backup of a hg save file with provided path
-class HGFile:
+class SaveFile:
     def __init__(self, path):
         self.path = Path(path)
         self.json_data = None

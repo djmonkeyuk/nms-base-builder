@@ -49,6 +49,10 @@ class NMS_PT_save_editor_panel(Panel):
             update_row = bookmark_col.row(align = True)
             update_row.scale_y = 1.2
             update_row.operator("object.export_pinned_base", icon="FILE_TICK", text = "Update Save")
+            update_row.separator()
+            update_col = update_row.column(align = True)
+            update_col.scale_x = 1.52
+            update_col.operator("object.make_savefile_backup",  icon = "COLLECTION_NEW", text = "")
             bookmark_col.prop(save_data,"check_also_update_name")
             
         

@@ -517,3 +517,6 @@ class SaveManager(bpy.types.PropertyGroup):
         save_2 = self.pinned_base_save_2
         save_links = [save_1,save_2]
         save_editor_utils.backup_save_files(save_links)
+        
+    def validate_save_folder(self,save_folder):
+        return save_editor_utils.validate_save_folder(save_folder)

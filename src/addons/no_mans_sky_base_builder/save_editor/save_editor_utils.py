@@ -240,3 +240,8 @@ def backup_save_files(save_slot):
     shutil.copy2(save_2, save_2_backup)
     
     
+def validate_save_folder(save_folder):
+    save_folder = Path(save_folder)
+    return save_folder.parts[-2:] == ("HelloGames", "NMS")
+    
+    

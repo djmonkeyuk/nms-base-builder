@@ -31,6 +31,12 @@ def get_root_save_folder():
     else:
         raise RuntimeError(f"Unsupported OS: {system}")
 
+#returns list of files with valid save file names within a given folder, parameter is string
+def get_hg_files_in_folder(folder):
+    hg_files_list = []
+    for file in Path(folder).glob("save*.hg"):
+        hg_files_list.append(file)
+    return hg_files_list
 
 #Returns all account folders
 def get_accounts_list():
@@ -41,9 +47,12 @@ def get_accounts_list():
             continue
         # Steam/Gamepass account folders
         if folder.name.startswith("st_"):
-            accounts_list.append(folder)
+            files_list = get_hg_files_in_folder(str(folder))
+            if files_list is not None:
+                if len(files_list) > 0:
+                    accounts_list.append(folder)
     return accounts_list
-
+    
 
 # Returns list of save slot data that contains save name and save files lines
 def get_save_slots_list(account):
@@ -51,9 +60,7 @@ def get_save_slots_list(account):
     from .save_file import SaveFile
     
     # store list of all hg save files
-    hg_files_list = []
-    for file in Path(account).glob("save*.hg"):
-        hg_files_list.append(file)
+    hg_files_list = get_hg_files_in_folder(account)
     
     # interate through each save file and record their pairs
     save_slots = []
@@ -92,18 +99,24 @@ def extract_bases_list_from_save(save_slot):
     
     #record only what is necessary rather than entire data about base
     for index,base in enumerate(obfuscated_persistent_base_data):
+        
+        in_base_type = base[SaveTranslation.base_type][SaveTranslation.persistent_base_types]
+        
+        if in_base_type == "ExternalPlanetBase":
+            break
+        
         base_data = {
             "base_index":index,
             "base_name":base[SaveTranslation.base_name],
             "user_data":base[SaveTranslation.user_data],
             "galactic_address": str(base[SaveTranslation.galactic_address]),
-            "base_type":base[SaveTranslation.base_type][SaveTranslation.persistent_base_types],
+            "base_type":in_base_type,
             "save_links":[ save_slot[0], save_slot[1] ]
         }
         #store list of corvettes and bases in their respective list
-        if base_data["base_type"] == "PlayerShipBase":
+        if in_base_type == "PlayerShipBase":
             corvettes.append(base_data)
-        elif base_data["base_type"] == "HomePlanetBase":
+        elif in_base_type == "HomePlanetBase":
             bases.append(base_data)
     
     # sort list of corvettes with restpect to their user_data, because user_data represents location of corvette in ship slots making it wasy to read
@@ -130,8 +143,17 @@ def get_lastes_save_file_location(save_slot):
 
 # since there is no unique identifier for a base, we can compare bases by matching their fingerprints
 def matches_base(base, identifier):
-    base_tuple = (base[SaveTranslation.base_name] ,base[SaveTranslation.base_type][SaveTranslation.persistent_base_types],str(base[SaveTranslation.galactic_address]))
-    identifier_tuple = (identifier["base_name"],identifier["base_type"],identifier["galactic_address"])
+    base_tuple = (
+        base[SaveTranslation.base_name] ,
+        base[SaveTranslation.base_type][SaveTranslation.persistent_base_types],
+        base[SaveTranslation.user_data]
+    )
+    identifier_tuple = (
+        identifier["base_name"],
+        identifier["base_type"],
+        identifier["user_data"]
+    )
+    
     return ( base_tuple == identifier_tuple)
     
 # helper function that gives returns save file object for easier loading
@@ -157,9 +179,33 @@ def search_base_with_identifier(data, base_identifier):
     if base_found:
         return in_base
     else:
+        # There can be multiple bases with same names and user_data,
+        # if base is not found on original index recorded try to search it on other places
+        # if multiple bases with same names are detected we ask user to repin the base to avoid writing over unintend base
+        in_bases_list = []
         for base in base_list:
+            
+            #break loop when ecternal bases start coming as the are always at bottom of list
+            if base[SaveTranslation.base_type][SaveTranslation.persistent_base_types] == "ExternalPlanetBase":
+                break
+            
             if matches_base(base, base_identifier):
-                return in_base
+                #since a corvette can be identified with user_data, we return on first match
+                if(base_identifier["base_type"] == "PlayerShipBase"):
+                    return base
+                else:
+                    in_bases_list.append(base)
+        if in_bases_list is not None:
+            if len(in_bases_list) == 1:
+                return in_bases_list[0]
+            elif len(in_bases_list) > 1 :
+                ShowMessageBox(message="Multiple bases.corvettes with same name found, try repinnig base/corvette")
+            else:
+                message = (
+                    "Base couldn't be saved, \n"
+                    "Re-pinning may resolve this issue."
+                )
+                ShowMessageBox(message = message, title="Export Failed", icon = "WARNING_LARGE")
     # reaching here means base doesnt exist
     return None
 
@@ -171,7 +217,6 @@ def import_paticular_base_from_save(base_identifier,  save_slot):
     # fist see if base actially exists or not
     searched_base = search_base_with_identifier(data, base_identifier)
     if searched_base is None:
-        #ShowMessageBox(message="Base/Corvette Not found", title="Import",icon = "X")
         return None
         
     #return bases after translating it to engish
@@ -185,11 +230,6 @@ def save_base_to_save_file(objects_data, base_identifier,  save_slot, new_base_n
     # look for base in save file to see it it exist or not
     in_base = search_base_with_identifier(data, base_identifier)
     if in_base is None:
-        message = (
-            "Base couldn't be saved, \n"
-            "Re-pinning may resolve this issue."
-        )
-        ShowMessageBox(message = message, title="Export Failed", icon = "WARNING_LARGE")
         return
     
     # here update objects list with list provided

@@ -53,7 +53,7 @@ class NMS_PT_save_editor_panel(Panel):
             update_row.separator()
             update_col = update_row.column(align = True)
             update_col.scale_x = 1.52
-            update_col.operator("object.make_savefile_backup",  icon = "COLLECTION_NEW", text = "")
+            update_col.operator("object.make_pinned_savefile_backup",  icon = "COLLECTION_NEW", text = "")
             pinned_col.prop(save_data,"check_also_update_name")
             
         
@@ -68,7 +68,7 @@ class NMS_PT_save_editor_panel(Panel):
             #button to choose path to save folder
             sf_enable_row.operator( "object.nms_select_save_folder", text="", icon='FILE_FOLDER')
         
-        # A button to enable save editor, this will also additional dependencies required when pressed
+        # A button to enable save editor, this will also install additional dependencies required when pressed
         sf_enable_row.separator()
         sf_enable_button_row = sf_enable_row.row(align = True)
         sf_enable_button_row.scale_x = 0.7 if not save_data.check_plugin_enabled else 1.0
@@ -101,17 +101,22 @@ class NMS_PT_save_editor_panel(Panel):
                     se_column.separator()
                     
                     #list of bases/corvettes
-                    base_index_row = se_column.row(align = True)
+                    base_index_row = se_column.row()
                     base_index_row.scale_y = 1.5
                     base_index_row.prop(save_data, "nms_base_index", text="", icon = "GEOMETRY_SET")
                     
                     #display buttons when a base is selected from list
                     if SaveManager.is_base_selected:
                         import_export_row = se_column.row(align=True)
-                        #Import button, this button will import base to scene and also pin it for easy access
-                        import_export_row.operator("object.nms_import_base_from_save", icon="IMPORT", text = "Import")
+                        #Import button, this button will import base to scene
+                        import_export_row.operator("object.nms_import_base_from_save", icon="IMPORT", text = "Import from Save")
+                        import_export_row.operator("object.nms_export_base_to_save", icon="EXPORT", text = "Export to Save")
+                        #se_column.separator()
+                        pin_backup_row = se_column.row(align=True)
                         #Pin button, pin a base without imorting it to scene, so that save data can be updated to location marked by it
-                        import_export_row.operator("object.nms_pin_base", icon="PINNED", text = "Pin")
+                        pin_backup_row.operator("object.nms_pin_base", icon="PINNED", text = "Pin for easy-access")
+                        pin_backup_row.operator("object.make_savefile_backup", icon="COLLECTION_NEW", text = "Backup Saves")
+                        pin_backup_row.operator("object.open_backup_folder", icon="FOLDER_REDIRECT", text = "Open Backup Folder")
                     
                     #layout.prop(context.scene, "nms_check_export_name")
         

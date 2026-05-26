@@ -41,7 +41,6 @@ class ImportBaseFromSave(bpy.types.Operator):
         scene = context.scene
         save_data = scene.nms_save_data
         result = save_data.import_base_from_save_file(context)
-        save_data.pin_base()
         if result is not None:
             self.report({'INFO'}, result)
         return {"FINISHED"}
@@ -125,9 +124,9 @@ class ExoprtPinnedBase(bpy.types.Operator):
         return {"FINISHED"}
     
 # a button to manually backup save files
-class MakeBackup(bpy.types.Operator):
+class MakeBackupPinned(bpy.types.Operator):
     
-    bl_idname = "object.make_savefile_backup"
+    bl_idname = "object.make_pinned_savefile_backup"
     bl_label = "Backup"
     bl_description = (
         "Backup save files liked to pinned base\n"
@@ -138,8 +137,42 @@ class MakeBackup(bpy.types.Operator):
     def execute(self, context):
         scene = context.scene
         save_data = scene.nms_save_data
+        save_data.backup_pinned_save_files()
+        self.report({'INFO'}, "Backup created sucessfully")
+        return {"FINISHED"}
+    
+    
+class MakeBackup(bpy.types.Operator):
+    
+    bl_idname = "object.make_savefile_backup"
+    bl_label = "Backup"
+    bl_description = (
+        "Backup currently selected save slot\n"
+        "backup folder with name 'nms_base_builder_backup' will be created in folder where save files are located. \n"
+        "To restore, rename the files by remove everything before '.hg.' and pasting them into their parent folder"
+    )
+        
+    def execute(self, context):
+        scene = context.scene
+        save_data = scene.nms_save_data
         save_data.backup_save_files()
         self.report({'INFO'}, "Backup created sucessfully")
+        return {"FINISHED"}
+    
+class OpenBackupFolder(bpy.types.Operator):
+    
+    bl_idname = "object.open_backup_folder"
+    bl_label = "Open save folder"
+    bl_description = (
+        "Backup currently selected save slot\n"
+        "backup folder with name 'nms_base_builder_backup' will be created in folder where save files are located. \n"
+        "To restore, rename the files by remove everything before '.hg.' and pasting them into their parent folder"
+    )
+        
+    def execute(self, context):
+        scene = context.scene
+        save_data = scene.nms_save_data
+        save_data.open_backup_folder_in_explorer()
         return {"FINISHED"}
 
 # these classes can be appened to classes list in __init__.py file with + operator  
@@ -151,5 +184,7 @@ classes = (
     UnpinBase,
     ImportPinnedBase,
     ExoprtPinnedBase,
-    MakeBackup
+    MakeBackupPinned,
+    MakeBackup,
+    OpenBackupFolder
 )

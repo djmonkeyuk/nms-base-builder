@@ -511,12 +511,26 @@ class SaveManager(bpy.types.PropertyGroup):
             return f"{self.pinned_save_slot_name}, acc: ...{self.pinned_save_account[-3:]}"
         return None
         
-    # for backup button operator to call, will make backup of pinned base/corvette
-    def backup_save_files(self):
+    # for pinned backup button operator to call, will make backup of pinned base/corvette
+    def backup_pinned_save_files(self):
         save_1 = self.pinned_base_save_1
         save_2 = self.pinned_base_save_2
         save_links = [save_1,save_2]
         save_editor_utils.backup_save_files(save_links)
         
+    # for backup button operator to call, will make backup of selected save slot
+    def backup_save_files(self):
+        save_slot = self.get_current_slot_data()
+        if save_slot is not None:
+            save_links = save_slot["saves"]
+            save_editor_utils.backup_save_files(save_links)
+            
+    def open_backup_folder_in_explorer(self):
+        save_slot = self.get_current_slot_data()
+        if save_slot is not None:
+            save_links = save_slot["saves"]
+            save_editor_utils.open_backup_folder_in_explorer(save_links)
+        
+    # called to check if savefolder path is valid or not 
     def validate_save_folder(self,save_folder):
         return save_editor_utils.validate_save_folder(save_folder)

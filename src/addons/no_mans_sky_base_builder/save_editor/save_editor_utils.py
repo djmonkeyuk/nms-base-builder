@@ -1,6 +1,8 @@
 import os
 import bpy
 import platform
+import subprocess
+import sys
 from pathlib import Path
 import shutil
 from datetime import datetime
@@ -245,26 +247,27 @@ def save_base_to_save_file(objects_data, base_identifier,  save_slot, new_base_n
     save_file.save()
     return "Base/Corvette saved sucessfully"
 
-# make backup of both save files linked to a save slot
-def backup_save_files(save_slot):
-    
-    save_1 = save_slot[0]
-    save_2 = save_slot[1]
-    
-    s1_name, s1_ext = os.path.splitext(os.path.basename(save_1))
-    s2_name, s2_ext = os.path.splitext(os.path.basename(save_2))
-    
-    # a folder within save_directory , where backups will be stored
-    folder = os.path.dirname(save_1)
+# a folder within save_directory , where backups will be stored
+def get_backups_folder(save_links):
+    folder = os.path.dirname(save_links[0])
     backup_folder = os.path.join(
         folder,"nms_base_builder_backup",
     )
-    
     #create backup folder if it doesnt exist
     os.makedirs(backup_folder, exist_ok=True)
-    
+    return backup_folder
+
+# make backup of both save files linked to a save slot
+def backup_save_files(save_links):
+    backup_folder = get_backups_folder(save_links)
     # add date and time in bakcup file's name to make make manual searching easier
     dat_and_time = datetime.now().strftime("d-%Y-%m-%d_t-%H-%M-%S-%f")[:-3]
+    
+    
+    save_1 = save_links[0]
+    save_2 = save_links[1]
+    s1_name, s1_ext = os.path.splitext(os.path.basename(save_1))
+    s2_name, s2_ext = os.path.splitext(os.path.basename(save_2))
     
     save_1_backup = os.path.join(
         backup_folder,
@@ -278,6 +281,21 @@ def backup_save_files(save_slot):
     #make exact copies of those sace files and just change names
     shutil.copy2(save_1, save_1_backup)
     shutil.copy2(save_2, save_2_backup)
+    
+# Open backup for each OS type
+def open_backup_folder_in_explorer(save_links):
+    backup_folder = Path(get_backups_folder(save_links))
+
+    if not backup_folder.exists():
+        print(f"Folder does not exist: {backup_folder}")
+        return
+
+    if sys.platform == "win32": #windows
+        os.startfile(backup_folder)
+    elif sys.platform == "darwin":  # macOS
+        subprocess.Popen(["open", str(backup_folder)])
+    else:  # Linux
+        subprocess.Popen(["xdg-open", str(backup_folder)])
     
     
 def validate_save_folder(save_folder):

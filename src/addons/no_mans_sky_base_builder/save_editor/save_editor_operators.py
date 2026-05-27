@@ -1,5 +1,6 @@
 import bpy
 
+from . import save_editor_utils
 
 # Operator for button to select save folder directory
 class SelectSaveFolder(bpy.types.Operator):
@@ -28,6 +29,8 @@ class SelectSaveFolder(bpy.types.Operator):
         return {'FINISHED'}
 
     def invoke(self, context, event):
+        save_root_folder = save_editor_utils.get_root_save_folder()
+        self.directory = str(save_root_folder)
         context.window_manager.fileselect_add(self)
         return {'RUNNING_MODAL'}
     

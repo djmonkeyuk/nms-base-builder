@@ -31,7 +31,8 @@ def get_root_save_folder():
         # Proton / Steam Play
         return (Path.home() / ".steam/steam/steamapps/compatdata" )
     else:
-        raise RuntimeError(f"Unsupported OS: {system}")
+        ShowMessageBox(message="Manually select save folder", title= "Default sve folder not found")
+        return Path.home()
 
 #returns list of files with valid save file names within a given folder, parameter is string
 def get_hg_files_in_folder(folder):

@@ -504,7 +504,7 @@ class SaveManager(bpy.types.PropertyGroup):
                 self.pinned_base_save_2 
             ]
         }
-        
+
     #function for UI to display metadata realated to pinned base
     def get_pinned_base_location_details(self):
         if self.pinned_base_check:

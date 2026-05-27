@@ -27,20 +27,16 @@ class NMS_PT_save_editor_panel(Panel):
             pinned_col = pinned_box.column(align = True)
             #make a row to display name of base, and buttons to import base data and unpin the base
             pinned_main_row = pinned_col.row(align = True)
-            #name of base
             pinned_main_left_col = pinned_main_row.column(align = True)
-            pinned_main_left_col.label(text = f"Pinned {pinned_base_type}")
-            pinned_main_left_col.label(text=save_data.pinned_base_name, icon="PINNED")
-            
-            #display metadata related to pinned base
-            bookmark_smaller_col = pinned_main_left_col.column(align = True)
-            bookmark_smaller_col.scale_y = 0.6
-            #display base type
-            bookmark_smaller_col.label(text = pinned_base_type, icon = "DOT")
+            #base type
+            pinned_main_left_col.label(text = f"Pinned {pinned_base_type}",  icon="PINNED")
+            #name of base
+            pinned_main_left_col.label(text=f"Name : {save_data.pinned_base_name}")
             #display save slot and last 3 digits of account number for easy recognition
-            bookmark_smaller_col.label(text = f"{save_data.pinned_save_slot_name}, (...{save_data.pinned_save_account[-3:]})", icon = "DOT")
+            pinned_main_left_col.label(text = f"{save_data.pinned_save_slot_name}, (...{save_data.pinned_save_account[-3:]})")
+            pinned_main_left_col.prop(save_data,"check_also_update_name")
             
-            
+            #column containing unpin, inport and backup button
             pinned_main_right_col = pinned_main_row.column(align = True)
             pinned_main_right_col.scale_x = 0.7
             pinned_main_right_col.operator("object.nms_unpin_base", icon="UNPINNED", text = f"Unpin {pinned_base_type}")
@@ -48,13 +44,10 @@ class NMS_PT_save_editor_panel(Panel):
             pinned_main_right_col.operator("object.import_pinned_base", icon="IMPORT", text = "Import from Save")
             pinned_main_right_col.operator("object.make_pinned_savefile_backup",  icon = "COLLECTION_NEW", text = "Backup Save files")
             
-            
-            # display a big update button as it is gong to be used alot
+            # display a big update button as it is going to be used alot
+            #update_row.scale_y = 1.2
             pinned_col.separator()
-            update_row = pinned_col.row(align = True)
-            update_row.scale_y = 1.2
-            update_row.operator("object.export_pinned_base", icon="FILE_TICK", text = "Export to Save")
-            pinned_col.prop(save_data,"check_also_update_name")
+            pinned_col.operator("object.export_pinned_base", icon="FILE_TICK", text = "Export to Save")
             
         #make a seprate section to display elements related to selecting bases
         save_folder_box = layout.box()
@@ -91,6 +84,7 @@ class NMS_PT_save_editor_panel(Panel):
                 #Section where bases can be selected to import/update/pin
                 #this section will only be visible when base list has been loaded
                 if is_base_data_loaded:
+                    #display backup buttons when a slot is selected
                     base_type = save_data.get_base_type_string(save_data.nms_base_type)
                     backup_row = sf_column.row(align = True)
                     backup_row.operator("object.make_savefile_backup", icon="COLLECTION_NEW", text = "Backup Saves")
@@ -108,17 +102,19 @@ class NMS_PT_save_editor_panel(Panel):
                     #list of bases/corvettes
                     se_column.label(text = f"{base_type} Selected")# icon = "ASSET_MANAGER"
                     
+                    #show base list in red when on base/corvette is selected
                     base_index_row = se_column.row(align = True)
                     if not SaveManager.is_base_selected:
                         base_index_row.alert = True
                     else: 
                         base_index_row.alert = False
-                    #base_index_row.scale_y = 1.5
+                        
+                    #list of bases for selection
                     base_index_row.prop(save_data, "nms_base_index", text="", icon = "GEOMETRY_SET")
                     
                     #display buttons when a base is selected from list
                     if SaveManager.is_base_selected:
-                        
+                        # show pin button and a base/corvette is selected
                         base_index_pin_row = base_index_row.row(align=True)
                         base_index_pin_row.scale_x = 0.6
                         #Pin button, pin a base without imorting it to scene, so that save data can be updated to location marked by it

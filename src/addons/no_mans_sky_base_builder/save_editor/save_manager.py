@@ -133,7 +133,7 @@ class SaveManager(bpy.types.PropertyGroup):
     
     # A toggle button at top of Save Editor section
     check_also_update_name: bpy.props.BoolProperty(
-        name="Also update name",
+        name=" Also update name",
         description="Use 'Base Name' from Base Properties section as name for this.",
         default=False,
     )

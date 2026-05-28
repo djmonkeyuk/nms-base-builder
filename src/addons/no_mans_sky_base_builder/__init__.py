@@ -814,7 +814,7 @@ class NMSSettings(PropertyGroup):
 
         source = None
         target = None
-        # If only one item is selected, see if it has a snapped_to variable to
+        # If only one item is selected, see if it has a snapped to variable to
         # use.
         if len(selected_objects) == 1:
             source = bpy.context.view_layer.objects.active

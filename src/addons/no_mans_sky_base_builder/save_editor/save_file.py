@@ -76,7 +76,7 @@ class SaveFile:
             for block in blocks:
                 f.write(block)
              
-    # make backup of save file that is changed into a /blender_backup folder
+    # make backup of save file that is changed into a /blender_backup folder which is different from /nms_base_builder_backup folder
     def make_backup(self, output_path = None):
         path  = self.path
         folder = os.path.dirname(path)

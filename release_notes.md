@@ -1,8 +1,9 @@
-release 6.4.0
+release 6.4.1
 -------------
 
 * Added parts for 6.4.0 - Swarm update.
 * Added a built-in Save Editor panel to import/export bases and corvettes to a save directly from the Blender extension itself. A big thanks to Kuma the Wizard who spent a few weeks building this feature out and the patience listening to feedback from myself and other community builders.
+* Fixed an error pop up when using the Duplicate Part button.
 
 
 release 6.3.0

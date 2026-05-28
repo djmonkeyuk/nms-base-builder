@@ -229,6 +229,11 @@ def darken_color(color, factor=0.6):
 
 
 def restore_material(item, user_data_value):
+    # Validate material+color index
+    try:
+        user_data_value = int(user_data_value)
+    except ValueError:
+        return
     col = userdata.get_colour(user_data_value)
     mat = userdata.get_material(user_data_value)
     assign_material(item, col, mat)

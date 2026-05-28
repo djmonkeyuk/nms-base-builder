@@ -77,6 +77,7 @@ class NMS_PT_save_editor_panel(Panel):
                 is_base_data_loaded = save_data.is_base_data_loaded()
                 sf_column.separator()
                 #display list of accounts, will display steam ids for recognition
+                sf_column.label(text = "Account / Save Slot")
                 sf_column.prop(save_data, "nms_account_selected", icon = "COMMUNITY")#USER
                 #display save slots present within an account
                 sf_column.prop(save_data, "nms_save_slot", icon = "LINENUMBERS_ON") #linenumbers_on SORTSIZE

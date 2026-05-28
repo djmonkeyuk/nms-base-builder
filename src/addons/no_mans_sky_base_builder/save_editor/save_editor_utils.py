@@ -6,6 +6,7 @@ import sys
 from pathlib import Path
 import shutil
 from datetime import datetime
+import re
 
 
 from . import save_translation
@@ -38,7 +39,8 @@ def get_root_save_folder():
 def get_hg_files_in_folder(folder):
     hg_files_list = []
     for file in Path(folder).glob("save*.hg"):
-        hg_files_list.append(file)
+        if re.fullmatch(r"save(\d+)?\.hg", file.name):
+            hg_files_list.append(file)
     return hg_files_list
 
 #Returns all account folders
@@ -59,35 +61,56 @@ def get_accounts_list():
 
 # Returns list of save slot data that contains save name and save files lines
 def get_save_slots_list(account):
-    
     from .save_file import SaveFile
     
+    # to validate correct save file name
+    pattern = re.compile(r"save(\d+)\.hg")
     # store list of all hg save files
     hg_files_list = get_hg_files_in_folder(account)
     
     # interate through each save file and record their pairs
     save_slots = []
-    # store previous hg file temporarily
-    prev_slot = None
-    for file in hg_files_list:
-        file_number = file.name[4]  # Assuming the format is "save*.hg"
-        if file_number.isdigit():
-            number = int(file_number)
-            # for eg save.hg and save2.hg are for save slot, same way save3.hg and save4.hg are for another
-            # we can record data when an even number is detected
-            if number%2 == 0:
-                #slot number is always half of second save file's number
-                save_slot_number = number//2
-                saves_links = [str(prev_slot), str(file)]
-                save_file = SaveFile(file)
-                save_slot = {
-                    "slot": save_slot_number,
-                    "saves": saves_links,
-                    #extract save's name from save file data by partially loading it, and increasing efficiency
-                    "save_name": save_file.search_property(SaveTranslation.save_name)
-                }
-                save_slots.append(save_slot)
-        prev_slot = file
+    for save_2 in hg_files_list:
+        
+        # save type is "Main" for normal save and "Season" for expeditiion
+        save_type = SaveFile(save_2).search_property(SaveTranslation.active_context)
+        if save_type != "Main":
+            continue
+        
+        # validate name of save file
+        match = pattern.fullmatch(save_2.name)
+        if not match:
+            continue
+        
+        #extract number from name of save file
+        file_number = int(match.group(1))
+        if file_number %2 == 1:
+            continue
+        
+        #name of linked save file
+        save_1_name = "save.hg" if file_number == 2 else f"save{file_number - 1}.hg"
+        save_1 = Path(save_2.parent / save_1_name )
+        #check if linked save file exits in save folder or not
+        save_1_found = next((p for p in hg_files_list if p == save_1), None)
+        if not save_1_found:
+            continue
+        
+        #slot number is always half of second save file's number
+        save_slot_number = file_number//2
+        #links to save files for this slot
+        saves_links = [str(save_1), str(save_2)]
+        #extract save's name from save file data by partially loading it, and increasing efficiency
+        save_name = SaveFile(save_2).search_property(SaveTranslation.save_name)
+        
+        save_slot = {
+            "slot": save_slot_number,
+            "saves": saves_links,
+            "save_name": save_name
+        }
+        save_slots.append(save_slot)
+        
+    #sort list according to slot number
+    save_slots.sort(key=lambda x: x["slot"])
     return save_slots  
 
 # returns list of data related to bses present in a save slot

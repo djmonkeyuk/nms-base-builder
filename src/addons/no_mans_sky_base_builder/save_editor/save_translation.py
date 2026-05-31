@@ -35,6 +35,7 @@ class SaveTranslation:
     user_data                   = eng_to_obf_translator("UserData")
     objects                     = eng_to_obf_translator("Objects")
     active_context              = eng_to_obf_translator("ActiveContext")
+    expedition_context          = eng_to_obf_translator("ExpeditionContext")
     
     
 # this function recursively replaces each key in object with respect to mapping provided by translator

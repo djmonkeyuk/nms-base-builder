@@ -110,8 +110,9 @@ class SaveFile:
             offset += comp_size
             chunk = lz4.block.decompress(comp_data,uncompressed_size=decomp_size)
             buffer += chunk.decode("utf-8", errors="ignore")
-            if property in buffer:
-                i = buffer.find(property)
+            key = '"'+property+'"'
+            if key in buffer:
+                i = buffer.find(key)
                 snippet = buffer[i:i+200]
                 try:
                     return snippet.split(":")[1].split('"')[1]

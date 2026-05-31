@@ -27,12 +27,20 @@ class SaveManager(bpy.types.PropertyGroup):
     is_base_selected = False
     is_base_list_load_first_time = True
     
+    
+    # for self.nms_base_type
+    # stores index of selected base in alternative tab when tabs are switched
+    selected_base_type_tabs = {
+        "PlayerShipBase" : "Default",
+        "HomePlanetBase": "Default"
+    }
+    
     # A toggle button at top of Save Editor section
     check_plugin_enabled: bpy.props.BoolProperty(
         name="Open save editor",
         description="Enable/disbale Plugin, \nClicking will check for dependencies, \nWill take few seconds to load for first time",
         default=False,
-        update = lambda self, context: self.on_check_plugin_enabled(),
+        update = lambda self, context: self.on_check_plugin_enabled(context),
         options={'SKIP_SAVE'}
     )
 
@@ -140,9 +148,9 @@ class SaveManager(bpy.types.PropertyGroup):
     
     
     #this is called after clicking enable save editor button
-    def on_check_plugin_enabled(self):
+    def on_check_plugin_enabled(self,context):
         save_editor_dependencies.installDependencies()
-        SaveManager.enum_accounts_list = self.get_accounts_enum_list()
+        SaveManager.enum_accounts_list = self.get_accounts_enum_list(context)
         
         # set value of accounts from values from last changes
         # check if stored account is present in newly generated list, if yes updated current list's index to it
@@ -174,10 +182,15 @@ class SaveManager(bpy.types.PropertyGroup):
         
     # function that generates list of accounts to populate UI
     # this is called when save editor is enabled
-    def get_accounts_enum_list(self):
+    def get_accounts_enum_list(self,context):
         default_account_list_item = ("Default", "Select Account", "No account selected")
-        accounts_list = save_editor_utils.get_accounts_list()
-        accounts_enum_list = [(str(account), account.name, "") for account in accounts_list]
+        accounts_list = save_editor_utils.get_accounts_list(context)
+        accounts_enum_list = []
+        for account in accounts_list:
+            folder = account["folder"]
+            steam_persona = account["steam_persona"]
+            label = folder.name if steam_persona is None else f"{steam_persona} ( {folder.name[-3:]} )"
+            accounts_enum_list.append((str(folder), label, ""))
         accounts_enum_list.insert(0, default_account_list_item)
         return accounts_enum_list
     
@@ -221,16 +234,14 @@ class SaveManager(bpy.types.PropertyGroup):
         return enum_save_slots_list
     
     # Called when radio buttons that represent base type are clicked
-    def on_base_type_selected(self):
-        #Reset values related to base selected
-        SaveManager.is_base_selected = False
-        if len(SaveManager.enum_base_list) > 0:
-            if len(SaveManager.enum_base_list[0][0]) > 0:
-                self.nms_base_index = SaveManager.enum_base_list[0][0]
-                
+    def on_base_type_selected(self):        
         # change bases list accourding to type of base in UI
         if not self.nms_save_slot == "Default":
             SaveManager.enum_base_list = self.get_bases_enum_list(SaveManager.extracted_base_data)
+            
+        if len(SaveManager.enum_base_list) > 0:
+            if len(SaveManager.enum_base_list[0][0]) > 0:
+                self.nms_base_index = SaveManager.selected_base_type_tabs[self.nms_base_type]
             
 
     # called either after base type is selected or save slot is changed
@@ -266,6 +277,7 @@ class SaveManager(bpy.types.PropertyGroup):
     # this is called when a base is selected from UI
     # this updates state values accourding to which element of list is selected
     def on_base_selected(self):
+        SaveManager.selected_base_type_tabs[self.nms_base_type] = self.nms_base_index
         if self.nms_base_index != "Default":
             SaveManager.is_base_selected = True
         else :
@@ -379,6 +391,12 @@ class SaveManager(bpy.types.PropertyGroup):
 
     # called to reset values for base list
     def reset_base_list(self):
+        
+        SaveManager.selected_base_type_tabs = {
+            "PlayerShipBase" : "Default",
+            "HomePlanetBase": "Default"
+        }
+        
         if SaveManager.enum_base_list is not None:
             if len(SaveManager.enum_base_list) > 0:
                 if len(SaveManager.enum_base_list[0][0]) > 0:

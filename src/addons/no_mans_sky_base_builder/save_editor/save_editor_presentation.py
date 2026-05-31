@@ -2,6 +2,8 @@ import bpy
 from bpy.types import Panel
 from .save_manager import SaveManager
 
+ADDON_ID = __package__.rsplit(".", 1)[0]
+
 # Save Editor Panel ---
 class NMS_PT_save_editor_panel(Panel):
     bl_idname = "NMS_PT_save_editor_panel"
@@ -18,6 +20,8 @@ class NMS_PT_save_editor_panel(Panel):
     def draw(self, context):
         layout = self.layout
         save_data = context.scene.nms_save_data
+        prefs = context.preferences.addons[ADDON_ID].preferences
+        save_folder_path = prefs.nms_save_folder_path
         
         #display data related to a pinned base on top if there is any withing a blend file
         if save_data.pinned_base_check:
@@ -56,7 +60,7 @@ class NMS_PT_save_editor_panel(Panel):
         sf_enable_row.label(text = "Select Save", icon = "DISK_DRIVE")
         
         #this row will contain a field where location of save folder is displayed
-        if save_data.check_plugin_enabled and save_data.validate_save_folder(context.scene.nms_save_folder_path):
+        if save_data.check_plugin_enabled and save_data.validate_save_folder(save_folder_path):
             #button to choose path to save folder
             sf_enable_row.operator( "object.nms_select_save_folder", text="", icon='FILE_FOLDER')
         
@@ -70,9 +74,16 @@ class NMS_PT_save_editor_panel(Panel):
         
          # Select Save
         if save_data.check_plugin_enabled:
-            if not save_data.validate_save_folder(context.scene.nms_save_folder_path):
+            if not save_data.validate_save_folder(save_folder_path):
                 sf_column.separator()
-                sf_column.operator( "object.nms_select_save_folder", text="Select Save Folder", icon='FILE_FOLDER')
+                select_folder_info_col = sf_column.column(align = True)
+                select_folder_info_col.scale_y = 0.8
+                select_folder_info_col.label(text = " Save Folder should end with")
+                select_folder_info_col.label(text = r' path like : "...\HelloGames\NMS"')
+                sf_column.separator()
+                select_folder_button_col = sf_column.column(align = True)
+                select_folder_button_col.alert = True
+                select_folder_button_col.operator( "object.nms_select_save_folder", text="Select Save Folder", icon='FILE_FOLDER')
             else:
                 is_base_data_loaded = save_data.is_base_data_loaded()
                 sf_column.separator()
@@ -126,4 +137,3 @@ class NMS_PT_save_editor_panel(Panel):
                         #Import button, this button will import base to scene
                         import_export_row.operator("object.nms_import_base_from_save", icon="IMPORT", text = "Import from Save")
                         import_export_row.operator("object.nms_export_base_to_save", icon="EXPORT", text = "Export to Save")
-        

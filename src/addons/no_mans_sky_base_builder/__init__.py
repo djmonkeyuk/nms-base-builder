@@ -44,6 +44,8 @@ GHOSTED_ITEMS = ghosted_reference["GHOSTED"]
 NICE_JSON = os.path.join(FILE_PATH, "resources", "nice_names.json")
 nice_name_dictionary = python_utils.load_dictionary(NICE_JSON)
 
+ADDON_ID = __package__
+
 
 # Setting Support Methods ---
 def ShowMessageBox(message="", title="Message Box", icon="INFO"):
@@ -2111,6 +2113,21 @@ def reset_save_editor_state(dummy):
     for scene in bpy.data.scenes:
         save_data = scene.nms_save_data
         save_data.check_plugin_enabled = False
+        
+
+class NMSAddonPreferences(bpy.types.AddonPreferences):
+    bl_idname = ADDON_ID
+
+    nms_save_folder_path: StringProperty(
+        name="Save Directory",
+        description="Folder where save files are stored",
+        subtype='DIR_PATH',
+        default = str(save_editor_utils.get_default_save_folder())
+    )
+
+    def draw(self, context):
+        layout = self.layout
+        layout.prop(self, "nms_save_folder_path")
 
 
 
@@ -2174,6 +2191,7 @@ classes = (
     NMS_PT_colour_panel,
     NMS_PT_logic_panel,
     NMS_PT_build_panel,
+    NMSAddonPreferences
 )
 
 classes = classes  + save_editor_operators.classes
@@ -2209,12 +2227,6 @@ def register():
     bpy.types.Scene.col = bpy.props.CollectionProperty(type=PartCollection)
     bpy.types.Scene.col_idx = bpy.props.IntProperty(default=0)
     bpy.types.Scene.nms_save_data = bpy.props.PointerProperty(type=SaveManager)
-    bpy.types.Scene.nms_save_folder_path = StringProperty(
-        name="Save Directory ",
-        description="Folder where save files are stored",
-        default = str(save_editor_utils.get_root_save_folder()) if not None else "/"
-    )
-    
     bpy.app.handlers.load_post.append(reset_save_editor_state)
 
 

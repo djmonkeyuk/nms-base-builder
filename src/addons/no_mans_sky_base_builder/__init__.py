@@ -3,6 +3,7 @@ import os
 import subprocess
 import sys
 import webbrowser
+import uuid
 
 import bpy
 import bpy.ops
@@ -22,7 +23,7 @@ from numpy import isin
 
 from . import builder, part, preset
 from .part_overrides import line
-from .utils import blend_utils, curve
+from .utils import blend_utils, curve, workspace
 from .utils import material as _material
 from .utils import python as python_utils
 
@@ -293,6 +294,10 @@ class NMSSettings(PropertyGroup):
 
     auto_power_setting: StringProperty(
         name="AutoPowerSetting", description="AutoPowerSetting.", default="UseDefault"
+    )
+    
+    is_workspace_cleaned: BoolProperty(
+        name="Is Workspace Cleaned", description="Check if workspace has been cleaned by user", default=False
     )
 
     room_vis_switch: IntProperty(name="room_vis_switch", default=0)
@@ -648,55 +653,45 @@ class NMSSettings(PropertyGroup):
 
         # Refresh the viewport.
         bpy.ops.wm.redraw_timer(type="DRAW_WIN_SWAP", iterations=1)
-
-    def snap(
-        self, next_source=False, prev_source=False, next_target=False, prev_target=False
-    ):
-        """Snaps one object to another based on selection."""
+    
+    
+    def select_same_colored_objects(self):
+        """Selects objects with same UserData, for easy experimentation with colors"""
+        
         selected_objects = bpy.context.selected_objects
-
-        source = None
-        target = None
-        # If only one item is selected, see if it has a snapped to variable to
-        # use.
-        if len(selected_objects) == 1:
-            source = bpy.context.view_layer.objects.active
-            if "snapped_to" in source:
-                target = bpy.data.objects[source["snapped_to"]]
-            else:
-                message = (
-                    "This item has not been snapped to anything. Please select "
-                    "the item you want to snap it to"
-                )
-                ShowMessageBox(message=message, title="Snap")
-                return {"FINISHED"}
-
-        # If 2 are selected, use them as the snapping items.
-        elif len(selected_objects) == 2:
-            target = bpy.context.view_layer.objects.active
-            source = [obj for obj in selected_objects if obj != target][0]
-
-        # If otherwise, we should skip and warn the user.
-        else:
-            message = (
-                "Make sure you have two items selected. Select the item you"
-                " want to snap to, then the item you want to snap."
+        
+        if not selected_objects:
+            ShowMessageBox(
+                message="Make sure you have an item selected.", title="Find Objects with same Color"
             )
-            ShowMessageBox(message=message, title="Snap")
             return {"FINISHED"}
-
-        # Perform Snap
-        source = BUILDER.get_builder_object_from_bpy_object(source)
-        target = BUILDER.get_builder_object_from_bpy_object(target)
-        if source and target:
-            source.snap_to(
-                target,
-                next_source=next_source,
-                prev_source=prev_source,
-                next_target=next_target,
-                prev_target=prev_target,
-            )
-
+        
+        #Gather unique keys from selected obejcts
+        keys_to_find = []
+        for obj in selected_objects:
+            if "ObjectID" not in obj:
+                continue
+            
+            obj_id = obj["ObjectID"]
+            user_data = obj["UserData"]
+            if (obj_id,user_data) not in keys_to_find:
+                keys_to_find.append((obj_id,user_data))
+        
+        #Iterate through all objects to collect matches with keys_to_find
+        found_matches = []
+        for obj in bpy.data.objects:
+            if "ObjectID" not in obj:
+                continue
+            
+            obj_id = obj["ObjectID"]
+            user_data = obj["UserData"]
+            if (obj_id, user_data) in keys_to_find:
+                found_matches.append(obj)
+        
+        if len(found_matches) > 0:
+            blend_utils.select(found_matches)
+            
+        return len(found_matches) - len(keys_to_find)
 
 # UI ---
 # File Buttons Panel ---
@@ -713,7 +708,11 @@ class NMS_PT_file_buttons_panel(Panel):
         return True
 
     def draw(self, context):
+        
         layout = self.layout
+        scene = context.scene
+        nms_tool = scene.nms_base_tool
+        
         file_box = layout.box()
         first_column = file_box.column(align=True)
         first_column.label(text="File")
@@ -738,6 +737,12 @@ class NMS_PT_file_buttons_panel(Panel):
         community_row = third_column.row(align=True)
         community_row.operator("object.nms_visit_guides", icon="WORLD_DATA")
         community_row.operator("object.nms_visit_community", icon="WORLD_DATA")
+        
+        if not nms_tool.is_workspace_cleaned:
+            workspace_box = layout.box()
+            fourth_column = workspace_box.column()
+            fourth_column.label(text = "Workspace")
+            fourth_column.operator("object.nms_cleanup_workspace", text = "Workspace Cleanup", icon = "WORKSPACE")
 
 
 # Base Property Panel ---
@@ -805,6 +810,8 @@ class NMS_PT_colour_panel(Panel):
                 icon_value=colour_icon.icon_id if colour_icon else 0,
             )
             op.colour_index = int(index)
+            
+        layout.operator("object.nms_select_same_colors", icon="MOD_SOFT", text = "Select same colour")
 
 
 # Colour Panel ---
@@ -1101,10 +1108,19 @@ class ExportObjectsData(bpy.types.Operator):
         nms_tool = scene.nms_base_tool
         nms_tool.export_nms_data(objects_only=True)
         return {"FINISHED"}
+    
+    
+class SwitchWorkspace(bpy.types.Operator):
+    """Switch to a simpler workspace"""
+    bl_idname = "object.nms_cleanup_workspace"
+    bl_label = "Switch workspace"
 
-
-
-
+    def execute(self, context):
+        scene = context.scene
+        nms_tool = scene.nms_base_tool
+        nms_tool.is_workspace_cleaned = True
+        workspace.cleanup_workspace(context)
+        return {"FINISHED"}
 
 class SaveAsPreset(bpy.types.Operator):
     """Save the current scene contents as a new Preset"""
@@ -1360,30 +1376,21 @@ class ApplyDefaultColour(bpy.types.Operator):
         nms_tool = scene.nms_base_tool
         nms_tool.apply_default_colour()
         return {"FINISHED"}
+    
 
+class SelectSameColoredObjects(bpy.types.Operator):
+    """Select objects with similar colors for easy experimentation."""
 
-class Snap(bpy.types.Operator):
-    """Snap the selected object to another selected object."""
-
-    bl_idname = "object.nms_snap"
-    bl_label = "Snap"
+    bl_idname = "object.nms_select_same_colors"
+    bl_label = "Select same colors"
     bl_options = {"UNDO", "REGISTER"}
-
-    next_source: BoolProperty()
-    prev_source: BoolProperty()
-    next_target: BoolProperty()
-    prev_target: BoolProperty()
 
     def execute(self, context):
         scene = context.scene
         nms_tool = scene.nms_base_tool
-        kwargs = {
-            "next_source": self.next_source,
-            "prev_source": self.prev_source,
-            "next_target": self.next_target,
-            "prev_target": self.prev_target,
-        }
-        nms_tool.snap(**kwargs)
+        
+        found_matches =  nms_tool.select_same_colored_objects()
+        self.report({'INFO'}, f"found {found_matches} matches")
         return {"FINISHED"}
 
 
@@ -1739,6 +1746,12 @@ class LogicBeatSwitch(bpy.types.Operator):
 # to reset toggle button of save editor
 @persistent
 def reset_save_editor_state(dummy):
+    
+    global previous_objects
+    previous_objects = set(bpy.data.objects)
+    
+    print(" previous objects are ", len(previous_objects))
+    
     for scene in bpy.data.scenes:
         save_data = scene.nms_save_data
         save_data.check_plugin_enabled = False
@@ -1746,18 +1759,22 @@ def reset_save_editor_state(dummy):
 
 last_active = None
 overlay_text = "No object selected"
+previous_objects = set()
 
 # keep track of active object to display or hide additional options related to that object
 @persistent
 def active_object_watcher(scene, depsgraph):
     global last_active
     global overlay_text
+    
     active = bpy.context.view_layer.objects.active
+    
     build_tool = scene.nms_build_tool
+    
     if active != last_active:
         last_active = active
         curve_obj = curve.get_curve_or_linked_curve(active)
-        if curve_obj:
+        if curve_obj is not None:
             build_tool.show_curve_edit_options(curve_obj)
         else: 
             build_tool.hide_curve_edit_options()
@@ -1765,6 +1782,9 @@ def active_object_watcher(scene, depsgraph):
 # Whenever a curve is modified, automatically update whatever duplicated objects are associated with that curve.
 @persistent
 def curve_duplicate_handler(scene, depsgraph):
+    
+    scene_watcher(scene, depsgraph)
+    
     updated_curves = set()
     for update in depsgraph.updates:
         id_data = update.id
@@ -1775,6 +1795,44 @@ def curve_duplicate_handler(scene, depsgraph):
         build_tool = scene.nms_build_tool
         new_radius_multiplier = build_tool.active_curve_radius_multiplier
         curve.update_curve_duplicates(curve_obj, new_radius_multiplier)
+
+def scene_watcher(scene, depsgraph):
+    global previous_objects
+    
+    current = set(bpy.data.objects)
+    new_objects = current - previous_objects
+    previous_curves = []
+    
+    for obj in previous_objects:
+        try:
+            if obj.get("has_linked_objects", False):
+                previous_curves.append(obj)
+        except ReferenceError:
+            pass
+    
+    if new_objects is None or len(new_objects) == 0:
+        previous_objects = current
+        return
+
+    if previous_curves is not None and len(previous_curves) > 0:
+        for new_curve in new_objects:
+            if "has_linked_objects" in new_curve and curve.is_bezier_or_nurbs_path(new_curve):
+                new_uuid = new_curve["unique_id"]
+                matching_curve = next(
+                    (o for o in previous_curves if o["unique_id"] == new_uuid),
+                    None
+                )
+                
+                if matching_curve is None:
+                    continue
+                
+                dup_obj_id = matching_curve.get("dup_ObjectID",None)
+                if dup_obj_id is None:
+                    continue
+                
+                curve.sync_curves(new_curve, matching_curve)
+
+    previous_objects = current
         
             
 
@@ -1801,7 +1859,6 @@ preview_collections = {}
 
 classes = (
     NMSSettings,
-    Snap,
     Point,
     Connect,
     Divide,
@@ -1817,6 +1874,7 @@ classes = (
     LogicBeatSwitch,
     ApplyColour,
     ApplyDefaultColour,
+    SelectSameColoredObjects,
     SaveAsPreset,
     LoadFancyUI,
     GetMorePresets,
@@ -1846,7 +1904,9 @@ classes = (
     NMS_PT_colour_panel,
     NMS_PT_logic_panel,
     NMS_PT_build_panel,
-    NMSAddonPreferences
+    NMSAddonPreferences,
+    
+    SwitchWorkspace
 )
 
 classes = classes  + save_editor_operators.classes + build_tool_operators.classes

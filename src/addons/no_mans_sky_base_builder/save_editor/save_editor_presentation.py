@@ -1,6 +1,7 @@
 import bpy
 from bpy.types import Panel
 from .save_manager import SaveManager
+from .save_editor_utils import BaseType
 
 ADDON_ID = __package__.rsplit(".", 1)[0]
 
@@ -103,7 +104,7 @@ class NMS_PT_save_editor_panel(Panel):
                     backup_row.operator("object.open_backup_folder", icon="FOLDER_REDIRECT", text = "Open Backup Folder")
                     
                     sf_column.separator()
-                    sf_column.separator()
+                    sf_column.label(text = f"Total Parts : {save_data.get_total_parts_count()}", icon = "COLLECTION_COLOR_04")
                     se_column = sf_column.column(align = True)
                     se_column.label(text = "Base Type selected")# icon = "MOD_BUILD"
                     #radio buttons to select type of base
@@ -121,19 +122,27 @@ class NMS_PT_save_editor_panel(Panel):
                     else: 
                         base_index_row.alert = False
                         
-                    #list of bases for selection
-                    base_index_row.prop(save_data, "nms_base_index", text="", icon = "GEOMETRY_SET")
-                    
-                    #display buttons when a base is selected from list
                     if SaveManager.is_base_selected:
-                        # show pin button and a base/corvette is selected
-                        base_index_pin_row = base_index_row.row(align=True)
-                        base_index_pin_row.scale_x = 0.6
-                        #Pin button, pin a base without imorting it to scene, so that save data can be updated to location marked by it
-                        base_index_pin_row.operator("object.nms_pin_base", icon="PINNED", text = " Pin for easy-access")
+                        
+                        #list of bases for selection
+                        base_index_row.prop(save_data, "nms_base_index", text="")
+                        
+                        #display buttons when a base is selected from list
+                        if save_data.nms_base_type != BaseType.EXTERNAL_BASE:
+                            # show pin button and a base/corvette is selected
+                            base_index_pin_row = base_index_row.row(align=True)
+                            base_index_pin_row.scale_x = 0.6
+                            #Pin button, pin a base without imorting it to scene, so that save data can be updated to location marked by it
+                            base_index_pin_row.operator("object.nms_pin_base", icon="PINNED", text = " Pin for easy-access")
                         
                         se_column.separator()
                         import_export_row = se_column.row(align=True)
                         #Import button, this button will import base to scene
                         import_export_row.operator("object.nms_import_base_from_save", icon="IMPORT", text = "Import from Save")
-                        import_export_row.operator("object.nms_export_base_to_save", icon="EXPORT", text = "Export to Save")
+                        
+                        if save_data.nms_base_type != BaseType.EXTERNAL_BASE:
+                            import_export_row.operator("object.nms_export_base_to_save", icon="EXPORT", text = "Export to Save")
+                            
+                    else :
+                        #list of bases for selection
+                        base_index_row.prop(save_data, "nms_base_index", text="", icon = "GEOMETRY_SET")

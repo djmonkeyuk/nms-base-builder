@@ -1,8 +1,9 @@
 import bpy
 import json
-from . import save_editor_utils
 from .. import builder
 from . import save_editor_dependencies
+from . import save_editor_utils
+from .save_editor_utils import BaseType
 
 BUILDER = builder.Builder()
 
@@ -31,8 +32,9 @@ class SaveManager(bpy.types.PropertyGroup):
     # for self.nms_base_type
     # stores index of selected base in alternative tab when tabs are switched
     selected_base_type_tabs = {
-        "PlayerShipBase" : "Default",
-        "HomePlanetBase": "Default"
+        BaseType.CORVETTE : "Default",
+        BaseType.BASE: "Default",
+        BaseType.EXTERNAL_BASE: "Default"
     }
     
     # A toggle button at top of Save Editor section
@@ -78,12 +80,13 @@ class SaveManager(bpy.types.PropertyGroup):
         name="base type",
         description="Type of the base, it can be a corvette and a normal planet base.",
         items = [
-            ("PlayerShipBase", "Corvette", "show list of corvettes and freighters",'AUTO',0),
-            ("HomePlanetBase", "Base", "show list of bases",'HOME',1),
+            (BaseType.CORVETTE, "Corvette", "show list of corvettes and freighters",'AUTO',0),
+            (BaseType.BASE, "Base", "show list of bases",'HOME',1),
+            (BaseType.EXTERNAL_BASE, "", "show list of External",'INTERNET',2),
         ],
         update = lambda self, context: self.on_base_type_selected(),
         options={'SKIP_SAVE'},
-        default = 'PlayerShipBase'
+        default = BaseType.CORVETTE
     )
     
     #these properties will store data of changes made in account and save slot
@@ -246,32 +249,42 @@ class SaveManager(bpy.types.PropertyGroup):
 
     # called either after base type is selected or save slot is changed
     def get_bases_enum_list(self, extracted_base_data):
-        
         # default item to represent top of list, also acts ac propmt for user to interact with
         default_base_list_item = (
             "Default", 
-            "Select Corvette" if self.nms_base_type == "PlayerShipBase" else "Select Base", 
+            "Select Corvette" if self.nms_base_type == BaseType.CORVETTE else "Select Base", 
             "No base selected"
         )
         
         enum_bases = []
-        base_type_key = "corvettes" if self.nms_base_type == "PlayerShipBase" else "bases"
+        base_type_key = self.get_base_type_key(self.nms_base_type)
+        
         # convert list of bases into list for UI
-        for base_data in extracted_base_data[base_type_key]:
+        for index, base_data in enumerate(extracted_base_data[base_type_key]):
             list_entry = ""
             base_name = base_data["base_name"]
             user_data = str(base_data["user_data"])
             base_index = str(base_data["base_index"])
-            if self.nms_base_type == "PlayerShipBase":
+            parts_count = str(base_data["parts_count"])
+            if self.nms_base_type == BaseType.CORVETTE:
                 # if base is a corvette, add user_data in front of its name that represents its ingame slot number
-                list_entry = f"{user_data.rjust(2)}. {base_name}"
+                list_entry = f"{user_data.rjust(2)}. {base_name}  [ {parts_count} parts ]"
             else :
-                list_entry = base_name
+                list_entry = f"{base_name}  [ {parts_count} parts ]"
             # base index is stored here to make it easier to traverse save file, it is index of base within persistent player bases array
             enum_bases.append((base_index, list_entry, " base desc"))
         
         #add a default value to top of the list
         enum_bases.insert(0, default_base_list_item)
+        
+        if self.nms_base_type == BaseType.CORVETTE and extracted_base_data["freighter"] is not None:
+            base_data = extracted_base_data["freighter"]
+            base_name = base_data["base_name"]
+            parts_count = str(base_data["parts_count"])
+            list_entry = f"{base_name} ( Freighter ) [ {parts_count} parts ] "
+            base_index = str(base_data["base_index"])
+            enum_bases.append((base_index, list_entry, " base desc"))
+        
         return enum_bases
     
     # this is called when a base is selected from UI
@@ -295,13 +308,16 @@ class SaveManager(bpy.types.PropertyGroup):
         # validate save slots
         current_slot_data = self.get_current_slot_data()
         if current_slot_data is None:
+            print("Current slot data is None")
             return
         
         # validate parameters that identify a base within savefile
         base_identifiers = self.get_current_base_identifiers()
         if base_identifiers is None:
+            print("Base Identifiers are None")
             return
         
+        print("importing base")
         return self.import_base(context,base_identifiers,current_slot_data["saves"])
         
     # called to import objects into scene after validating
@@ -362,9 +378,17 @@ class SaveManager(bpy.types.PropertyGroup):
         if int(base_index) < 0:return None
         
         # base type key to access data
-        base_type_key = "corvettes" if self.nms_base_type == "PlayerShipBase" else "bases"
+        base_type_key = self.get_base_type_key(self.nms_base_type)
         for base in SaveManager.extracted_base_data[base_type_key]:
             if base_index == str(base["base_index"]):
+                return base
+        
+        if self.nms_base_type == BaseType.CORVETTE:
+            if SaveManager.extracted_base_data["freighter"] is None:
+                print("Freighter is None")
+                return None
+            base = SaveManager.extracted_base_data["freighter"]
+            if str(base["base_index"]) == base_index:
                 return base
         
         return None
@@ -393,8 +417,9 @@ class SaveManager(bpy.types.PropertyGroup):
     def reset_base_list(self):
         
         SaveManager.selected_base_type_tabs = {
-            "PlayerShipBase" : "Default",
-            "HomePlanetBase": "Default"
+            BaseType.CORVETTE: "Default",
+            BaseType.BASE: "Default",
+            BaseType.EXTERNAL_BASE: "Default"
         }
         
         if SaveManager.enum_base_list is not None:
@@ -405,9 +430,9 @@ class SaveManager(bpy.types.PropertyGroup):
     #called by ui to display type of base
     def get_base_type_string(self,base_type = None):
         if base_type is None:
-            return "Corvette" if self.nms_base_type == "PlayerShipBase" else "Base"
-        else: 
-            return "Corvette" if base_type == "PlayerShipBase" else "Base"
+            base_type = self.nms_base_type
+            
+        return "Corvette" if base_type == BaseType.CORVETTE else "Base"
         
         
     # called when update base name is checked
@@ -429,7 +454,7 @@ class SaveManager(bpy.types.PropertyGroup):
         # this will improve speed of updating base
         t1 = (old_base_name, self.pinned_base_type, self.pinned_galactic_address)
         if SaveManager.save_data_loaded:
-            base_type_key = "corvettes" if self.nms_base_type == "PlayerShipBase" else "bases"
+            base_type_key = "corvettes" if self.nms_base_type == BaseType.CORVETTE else "bases"
             base_list = SaveManager.extracted_base_data[base_type_key]
             for base in base_list:
                 t2 = (base["base_name"],base["base_type"],base["galactic_address"])
@@ -552,3 +577,19 @@ class SaveManager(bpy.types.PropertyGroup):
     # called to check if savefolder path is valid or not 
     def validate_save_folder(self,save_folder):
         return save_editor_utils.validate_save_folder(save_folder)
+    
+    def get_base_type_key(self,base_type = None):
+        basetype = base_type if base_type is not None else self.nms_base_type
+        match basetype:
+            case BaseType.CORVETTE:
+                return "corvettes"
+            case BaseType.FREIGHTER:
+                return "corvettes"
+            case BaseType.BASE: 
+                return "bases"
+            case BaseType.EXTERNAL_BASE:
+                return "external"
+        return "bases"
+    
+    def get_total_parts_count(self):
+        return str(SaveManager.extracted_base_data["total_parts_count"])

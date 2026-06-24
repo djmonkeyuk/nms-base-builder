@@ -106,3 +106,35 @@ def update_obj_transformations(obj, curve_obj, segment_lengths, total_length):
     obj.scale.z = scale
     
     obj.location = (0.0, 0.0, 0.0)
+    
+def mirror_curve_data_x(curve_obj):
+    """
+    Purely mathematically mirrors a curve's points, handles, and tilt 
+    along the local X-axis without using modifiers or object-level scale.
+    """
+    if not curve_obj or curve_obj.type != 'CURVE':
+        raise TypeError("Please provide a valid curve object.")
+    
+    # We operate directly on the curve's datablock
+    curve_data = curve_obj.data
+    
+    for spline in curve_data.splines:
+        if spline.type == 'BEZIER':
+            for bp in spline.bezier_points:
+                # Mirror the main control point
+                bp.co.x *= -1.0
+                 
+                # Mirror the handles
+                bp.handle_left.x *= -1.0
+                bp.handle_right.x *= -1.0
+                
+                # Invert tilt to maintain geometric symmetry on swept paths
+                bp.tilt *= -1.0
+                
+                
+        elif spline.type in {'NURBS', 'POLY'}:
+            for pt in spline.points:
+                # NURBS/POLY points use a 4D vector (x, y, z, w) for co
+                pt.co.x *= -1.0
+                # Invert tilt
+                pt.tilt *= -1.0

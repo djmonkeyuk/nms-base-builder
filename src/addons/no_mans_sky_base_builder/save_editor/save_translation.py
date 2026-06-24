@@ -36,6 +36,8 @@ class SaveTranslation:
     objects                     = eng_to_obf_translator("Objects")
     active_context              = eng_to_obf_translator("ActiveContext")
     expedition_context          = eng_to_obf_translator("ExpeditionContext")
+    ship_ownership              = eng_to_obf_translator("ShipOwnership")
+    freighter_name              = eng_to_obf_translator("PlayerFreighterName")
     
     
 # this function recursively replaces each key in object with respect to mapping provided by translator

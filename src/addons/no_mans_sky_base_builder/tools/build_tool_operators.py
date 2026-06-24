@@ -238,6 +238,34 @@ class CreateCurve(bpy.types.Operator):
         return {"FINISHED"}
     
 
+class Snap(bpy.types.Operator):
+    """Snap the selected object to another selected object."""
+
+    bl_idname = "object.nms_snap"
+    bl_label = "Snap"
+    bl_options = {"UNDO", "REGISTER"}
+
+    next_source: bpy.props.BoolProperty()
+    prev_source: bpy.props.BoolProperty()
+    next_target: bpy.props.BoolProperty()
+    prev_target: bpy.props.BoolProperty()
+
+    def execute(self, context):
+        scene = context.scene
+        build_tool = scene.nms_build_tool
+        
+        
+        kwargs = {
+            "next_source": self.next_source,
+            "prev_source": self.prev_source,
+            "next_target": self.next_target,
+            "prev_target": self.prev_target,
+        }
+        build_tool.snap(**kwargs)
+        return {"FINISHED"}
+
+    
+
 class CurveBreakApart(bpy.types.Operator):
     """Break apart objects linked to curve."""
 
@@ -251,6 +279,38 @@ class CurveBreakApart(bpy.types.Operator):
         try:
             detached_count = curve.apply_curve_transforms_and_detach(active_object)
             self.report({'INFO'}, f"Created {detached_count} objects")
+        except TypeError as error_message:
+            self.report({'ERROR'}, str(error_message))
+        return {"FINISHED"}
+    
+
+class CurveDelete(bpy.types.Operator):
+    """Delete selected curve and objects linked to it"""
+
+    bl_idname = "object.nms_curve_delete"
+    bl_label = "Delete Curve"
+    bl_options = {"UNDO", "REGISTER"}
+
+    def execute(self, context):
+        active_object = bpy.context.active_object
+        try:
+            deleted_count = curve.delete_curve_and_children(active_object)
+            self.report({'INFO'}, f"Deleted curve and {deleted_count} objects linked to it")
+        except TypeError as error_message:
+            self.report({'ERROR'}, str(error_message))
+        return {"FINISHED"}
+    
+class CurveMirror(bpy.types.Operator):
+    """Mirror Curve along X-Axis"""
+
+    bl_idname = "object.nms_curve_mirror"
+    bl_label = "Mirror Curve"
+    bl_options = {"UNDO", "REGISTER"}
+
+    def execute(self, context):
+        active_object = bpy.context.active_object
+        try:
+            curve.create_mirrored_curve_copy(active_object)
         except TypeError as error_message:
             self.report({'ERROR'}, str(error_message))
         return {"FINISHED"}
@@ -322,7 +382,10 @@ classes = (
     Duplicate,
     DuplicateAlongCurve,
     CreateCurve,
+    CurveMirror,
     CurveBreakApart,
+    CurveDelete,
+    
     SelectObjectParentCurve,
     SelectChildrenOfCurve,
     ShowCurveToolInfo,
@@ -332,6 +395,7 @@ classes = (
     Flip,
     Turn,
     ToggleRoom,
+    Snap,
     
     SelectDuplicates,
     

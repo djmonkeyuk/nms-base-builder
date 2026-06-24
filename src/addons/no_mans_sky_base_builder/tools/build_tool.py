@@ -1,6 +1,7 @@
 from ..utils import mirror_utils
 import bpy
 import os
+import uuid
 from ..utils import blend_utils, curve
 from ..utils import python as python_utils
 from .. import builder, part
@@ -142,8 +143,8 @@ class BuildTool(bpy.types.PropertyGroup):
         if curve_obj is None: 
             return
         
-        original_object = curve_obj.get("original_object",None)
-        if curve_obj and original_object:
+        original_object_id = curve_obj.get("dup_ObjectID",None)
+        if curve_obj and original_object_id:
             curve.update_curve_duplicates(curve_obj, self.active_curve_radius_multiplier)
         
     def on_curve_parameter_change(self):
@@ -153,12 +154,11 @@ class BuildTool(bpy.types.PropertyGroup):
         if curve_obj is None: 
             return
         
-        original_object = curve_obj.get("original_object",None)
-        print(f"  {self.active_curve_number_of_objects},    {self.active_curve_radius_multiplier}")
-        if curve_obj and original_object:
+        original_object_id = curve_obj.get("dup_ObjectID",None)
+        if curve_obj and original_object_id:
             curve.duplicate_along_curve(
                 BUILDER, 
-                original_object,
+                None,
                 curve_obj,
                 self.active_curve_number_of_objects,
                 self.active_curve_radius_multiplier
@@ -298,6 +298,7 @@ class BuildTool(bpy.types.PropertyGroup):
             ShowMessageBox(message=message, title="Duplicate Along Curve")
             return {"FINISHED"}
         
+        curve_object["unique_id"] = str(uuid.uuid4())
         curve_object.show_in_front = True
         self.active_curve_radius_multiplier = radius_multiplier
         self.active_curve_number_of_objects = number_of_objects
@@ -371,15 +372,64 @@ class BuildTool(bpy.types.PropertyGroup):
         target = BUILDER.get_builder_object_from_bpy_object(target)
         new_item.snap_to(target)
         
-    def show_curve_edit_options(self,curve_obj):
-        self.show_gap_edit_field = True
+    def snap(
+        self, next_source=False, prev_source=False, next_target=False, prev_target=False
+    ):
+        """Snaps one object to another based on selection."""
+        selected_objects = bpy.context.selected_objects
+
+        source = None
+        target = None
+        # If only one item is selected, see if it has a snapped to variable to
+        # use.
+        if len(selected_objects) == 1:
+            source = bpy.context.view_layer.objects.active
+            if "snapped_to" in source:
+                target = bpy.data.objects[source["snapped_to"]]
+            else:
+                message = (
+                    "This item has not been snapped to anything. Please select "
+                    "the item you want to snap it to"
+                )
+                ShowMessageBox(message=message, title="Snap")
+                return {"FINISHED"}
+
+        # If 2 are selected, use them as the snapping items.
+        elif len(selected_objects) == 2:
+            target = bpy.context.view_layer.objects.active
+            source = [obj for obj in selected_objects if obj != target][0]
+
+        # If otherwise, we should skip and warn the user.
+        else:
+            message = (
+                "Make sure you have two items selected. Select the item you"
+                " want to snap to, then the item you want to snap."
+            )
+            ShowMessageBox(message=message, title="Snap")
+            return {"FINISHED"}
+
+        # Perform Snap
+        source = BUILDER.get_builder_object_from_bpy_object(source)
+        target = BUILDER.get_builder_object_from_bpy_object(target)
+        if source and target:
+            source.snap_to(
+                target,
+                next_source=next_source,
+                prev_source=prev_source,
+                next_target=next_target,
+                prev_target=prev_target,
+            )
         
+    def show_curve_edit_options(self,curve_obj):
+        #if not self.show_gap_edit_field:
+        self.show_gap_edit_field = True
         self.active_curve_name = curve_obj.name
         self.active_curve_number_of_objects = curve_obj.get("objects_count",10)
         self.active_curve_radius_multiplier = curve_obj.get("radius_multiplier",1.0)
         
 
     def hide_curve_edit_options(self):
+        #if not self.show_gap_edit_field:
         self.show_gap_edit_field = False
 
     

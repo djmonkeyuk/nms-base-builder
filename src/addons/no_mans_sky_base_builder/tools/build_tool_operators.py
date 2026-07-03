@@ -14,7 +14,7 @@ class MirrorAcrossX(bpy.types.Operator):
     def execute(self, context):
         scene = context.scene
         build_tool = scene.nms_build_tool
-        build_tool.mirror( axis = "X", center = Vector((0,0,0)))
+        build_tool.mirror( axis = "X", center = Vector((0,0,0)), auto_duplicate = False)
         return {"FINISHED"}
     
     
@@ -299,22 +299,6 @@ class CurveDelete(bpy.types.Operator):
         except TypeError as error_message:
             self.report({'ERROR'}, str(error_message))
         return {"FINISHED"}
-    
-class CurveMirror(bpy.types.Operator):
-    """Mirror Curve along X-Axis"""
-
-    bl_idname = "object.nms_curve_mirror"
-    bl_label = "Mirror Curve"
-    bl_options = {"UNDO", "REGISTER"}
-
-    def execute(self, context):
-        active_object = bpy.context.active_object
-        try:
-            curve.create_mirrored_curve_copy(active_object)
-        except TypeError as error_message:
-            self.report({'ERROR'}, str(error_message))
-        return {"FINISHED"}
-    
 
 class SelectObjectParentCurve(bpy.types.Operator):
     """Select parent curve of object selected"""
@@ -326,8 +310,8 @@ class SelectObjectParentCurve(bpy.types.Operator):
 
     def execute(self, context):
         scene = context.scene
-        build_tool = scene.nms_build_tool
-        build_tool.select_parent_curve()
+        properties = scene.nms_properties
+        properties.select_parent_curve()
         return {"FINISHED"}
     
 class SelectChildrenOfCurve(bpy.types.Operator):
@@ -340,8 +324,8 @@ class SelectChildrenOfCurve(bpy.types.Operator):
 
     def execute(self, context):
         scene = context.scene
-        build_tool = scene.nms_build_tool
-        build_tool.select_children_of_curve()
+        properties = scene.nms_properties
+        properties.select_children_of_curve()
         return {"FINISHED"}
     
 
@@ -382,7 +366,6 @@ classes = (
     Duplicate,
     DuplicateAlongCurve,
     CreateCurve,
-    CurveMirror,
     CurveBreakApart,
     CurveDelete,
     

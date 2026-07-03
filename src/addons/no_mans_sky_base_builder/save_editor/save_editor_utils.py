@@ -3,10 +3,11 @@ import bpy
 import platform
 import subprocess
 import sys
-from pathlib import Path
 import shutil
-from datetime import datetime
 import re
+
+from pathlib import Path
+from datetime import datetime
 
 from . import save_translation
 from .save_translation import SaveTranslation
@@ -19,7 +20,43 @@ class BaseType:
     BASE = "HomePlanetBase"
     FREIGHTER = "FreighterBase"
     EXTERNAL_BASE = "ExternalPlanetBase"
-
+    
+class BaseData:
+    
+    base_index: int
+    base_name: str
+    user_data: str
+    galactic_address: str
+    base_type: int
+    parts_count: int
+    save_slot = []
+    
+    
+    def __init__(self, index = None ,base = None, ship_ownership = None):
+        
+        if index is None or base is None:
+            return
+        
+        in_base_type = base[SaveTranslation.base_type][SaveTranslation.persistent_base_types]
+        parts_count = len(base[SaveTranslation.objects])
+        base_name = base[SaveTranslation.base_name]
+        user_data = base[SaveTranslation.user_data]
+        
+        if len(base_name.strip()) == 0:
+            base_name = "unknow_name"
+            
+        ship_ownership_entry = ship_ownership[user_data] if in_base_type == BaseType.CORVETTE else None
+        if ship_ownership_entry is not None and in_base_type == BaseType.CORVETTE and base_name == "Default":
+            base_name = ship_ownership_entry[SaveTranslation.base_name]
+        
+        self.base_index = index
+        self.base_name = base_name
+        self.user_data = user_data
+        self.galactic_address = str(base[SaveTranslation.galactic_address])
+        self.base_type = in_base_type
+        self.parts_count = parts_count
+        
+        
 # called to display messages/notificatoin
 def ShowMessageBox(message="", title="Message Box", icon="INFO"):
     def draw(self, context):
@@ -165,10 +202,9 @@ def extract_bases_list_from_save(save_slot):
     save_file = get_save_file(save_slot)
     data = save_file.load()
     
-    obfuscated_persistent_base_data = get_bases_list_pointer(data)
-    ship_ownsership = get_ship_ownership_pointer(data)
-    
-    freighter_name = get_freighter_name(data)
+    obfuscated_persistent_base_data = save_file.get_bases_list_pointer()
+    ship_ownsership = save_file.get_ship_ownership_pointer()
+    freighter_name = save_file.get_freighter_name()
     
     bases = []
     corvettes = []
@@ -180,46 +216,27 @@ def extract_bases_list_from_save(save_slot):
     #record only what is necessary rather than entire data about base
     for index,base in enumerate(obfuscated_persistent_base_data):
         
-        in_base_type = base[SaveTranslation.base_type][SaveTranslation.persistent_base_types]
-        
-        parts_count = len(base[SaveTranslation.objects])
-        base_name = base[SaveTranslation.base_name]
-        
-        if len(base_name.strip()) == 0:
-            base_name = "unknow_name"
-        
-        user_data = base[SaveTranslation.user_data]
-        if in_base_type == BaseType.CORVETTE and base_name == "Default":
-            base_name = ship_ownsership[user_data][SaveTranslation.base_name]
-        
-        base_data = {
-            "base_index":index,
-            "base_name":base_name,
-            "user_data":user_data,
-            "galactic_address": str(base[SaveTranslation.galactic_address]),
-            "base_type":in_base_type,
-            "parts_count": parts_count,
-            "save_links":[ save_slot[0], save_slot[1] ]
-        }
+        base_data = BaseData(index, base, ship_ownsership)
+        base_data.save_slot = save_slot
         
         #store list of corvettes and bases in their respective list
-        match in_base_type :
+        match base_data.base_type :
             case BaseType.CORVETTE:
                 corvettes.append(base_data)
             case BaseType.BASE:
                 bases.append(base_data)
             case BaseType.FREIGHTER:
-                base_data["base_name"] = freighter_name
+                base_data.base_name = freighter_name
                 freighter = base_data
             case BaseType.EXTERNAL_BASE:
-                if parts_count > 0:
+                if base_data.parts_count > 0:
                     external.append(base_data)
         
-        if in_base_type != BaseType.EXTERNAL_BASE:
-            total_parts_count += parts_count
+        if base_data.base_type != BaseType.EXTERNAL_BASE:
+            total_parts_count += base_data.parts_count
     
     # sort list of corvettes with restpect to their user_data, because user_data represents location of corvette in ship slots making it wasy to read
-    corvettes.sort(key=lambda x: x["user_data"])
+    corvettes.sort(key=lambda x: x.user_data)
     
     # return combined list in an object for easy search
     return {
@@ -242,28 +259,6 @@ def get_lastes_save_file_location(save_slot):
     
     # return the save file that was most recently modified
     return save_1 if m_time_save_1 > m_time_save_2 else save_2
-
-# since there is no unique identifier for a base, we can compare bases by matching their fingerprints
-def matches_base(base, identifier, data):
-    
-    if base[SaveTranslation.base_type][SaveTranslation.persistent_base_types] == BaseType.FREIGHTER:
-        base_name = get_freighter_name(data)
-    else:
-        base_name = base[SaveTranslation.base_name] 
-        
-    base_tuple = (
-        base_name ,
-        base[SaveTranslation.base_type][SaveTranslation.persistent_base_types],
-        base[SaveTranslation.user_data]
-    )
-
-    identifier_tuple = (
-        identifier["base_name"],
-        identifier["base_type"],
-        identifier["user_data"]
-    )
-    
-    return ( base_tuple == identifier_tuple)
     
 # helper function that gives returns save file object for easier loading
 def get_save_file(save_slot):
@@ -272,69 +267,6 @@ def get_save_file(save_slot):
     save_file = SaveFile(save_location)
     return save_file
 
-# Return pointer to PersistentPlayerBases List in save data
-def get_bases_list_pointer(data):
-    save_type = data[SaveTranslation.active_context]
-    key_base_list = SaveTranslation.base_context if save_type == "Main" else SaveTranslation.expedition_context
-    return data[key_base_list][SaveTranslation.player_state_data][SaveTranslation.persistent_player_bases]
-
-# Return pointer to ShipOwnership List in save data
-def get_ship_ownership_pointer(data):
-    save_type = data[SaveTranslation.active_context]
-    key_base_list = SaveTranslation.base_context if save_type == "Main" else SaveTranslation.expedition_context
-    return data[key_base_list][SaveTranslation.player_state_data][SaveTranslation.ship_ownership]
-
-# Return pointer to PlayerFreighterName in save data
-def get_freighter_name(data):
-    save_type = data[SaveTranslation.active_context]
-    key_base_list = SaveTranslation.base_context if save_type == "Main" else SaveTranslation.expedition_context
-    return data[key_base_list][SaveTranslation.player_state_data][SaveTranslation.freighter_name]
-
-# first check if base exist at an index, if not check for in in bases list
-def search_base_with_identifier(data, base_identifier):
-    base_list = get_bases_list_pointer(data)
-    
-    #try looking for base in bases list
-    try:
-        in_base = base_list[base_identifier["base_index"]]
-    except IndexError:
-        print("base not found")
-        return None
-    
-    # return base if base found or else iterate over each base to check if it exist somewhere else
-    base_found = matches_base(in_base,base_identifier, data)
-    if base_found:
-        return in_base
-    else:
-        # There can be multiple bases with same names and user_data,
-        # if base is not found on original index recorded try to search it on other places
-        # if multiple bases with same names are detected we ask user to repin the base to avoid writing over unintend base
-        in_bases_list = []
-        for base in base_list:
-            
-            #break loop when ecternal bases start coming as the are always at bottom of list
-            if base[SaveTranslation.base_type][SaveTranslation.persistent_base_types] == "ExternalPlanetBase":
-                break
-            
-            if matches_base(base, base_identifier, data):
-                #since a corvette can be identified with user_data, we return on first match
-                if(base_identifier["base_type"] == "PlayerShipBase"):
-                    return base
-                else:
-                    in_bases_list.append(base)
-        if in_bases_list is not None:
-            if len(in_bases_list) == 1:
-                return in_bases_list[0]
-            elif len(in_bases_list) > 1 :
-                ShowMessageBox(message="Multiple bases.corvettes with same name found, try repinnig base/corvette")
-            else:
-                message = (
-                    "Base couldn't be saved, \n"
-                    "Re-pinning may resolve this issue."
-                )
-                ShowMessageBox(message = message, title="Export Failed", icon = "WARNING_LARGE")
-    # reaching here means base doesnt exist
-    return None
 
 # impart a base from save file
 def import_paticular_base_from_save(base_identifier,  save_slot):
@@ -342,8 +274,12 @@ def import_paticular_base_from_save(base_identifier,  save_slot):
     data = save_file.load()
     
     # fist see if base actially exists or not
-    searched_base = search_base_with_identifier(data, base_identifier)
+    searched_base = save_file.search_base_with_identifier(base_identifier)
     if searched_base is None:
+        message = (
+            "Error importing base"
+        )
+        ShowMessageBox(message = message, title="Export Failed", icon = "WARNING_LARGE")
         return None
         
     #return bases after translating it to engish
@@ -355,7 +291,7 @@ def save_base_to_save_file(objects_data, base_identifier,  save_slot, new_base_n
     data = save_file.load()
     
     # look for base in save file to see it it exist or not
-    in_base = search_base_with_identifier(data, base_identifier)
+    in_base = save_file.search_base_with_identifier(base_identifier)
     if in_base is None:
         return
     
@@ -365,7 +301,7 @@ def save_base_to_save_file(objects_data, base_identifier,  save_slot, new_base_n
     
     # update name of base if provided
     if new_base_name is not None:
-        ship_ownsership = get_ship_ownership_pointer(data)
+        ship_ownsership = save_file.get_ship_ownership_pointer()
         in_base[SaveTranslation.base_name] = new_base_name
         ship_ownsership[base_identifier["user_data"]][SaveTranslation.base_name] = new_base_name
     

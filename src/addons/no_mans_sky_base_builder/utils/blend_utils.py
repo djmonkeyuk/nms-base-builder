@@ -197,8 +197,6 @@ def find_duplicates(decimals = 4):
         )
         
         scale = round(scale_vector.x, decimals)
-        
-
         object_key = (
             obj.get("ObjectID",obj.name),
             location,
@@ -217,3 +215,13 @@ def find_duplicates(decimals = 4):
 
     print(f"Selected {len(duplicates)} duplicate objects")
     return len(duplicates)
+
+def duplicate_part(target):
+    """ Duplicate an object and place it in same collection as original object
+        Return duplicated object
+    """
+    new_item = target.copy()
+    new_item.data = target.data.copy()
+    for collection in target.users_collection:
+        collection.objects.link(new_item)
+    return target

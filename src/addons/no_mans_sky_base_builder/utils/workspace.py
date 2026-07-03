@@ -24,6 +24,10 @@ def cleanup_workspace(context) -> None:
     # remove extra tabs from properties panel
     simplify_object_properties()
     
+    # hide status bar
+    for screen in bpy.data.screens:
+        screen.show_statusbar = False
+    
     
 def remove_timeline_area():
     win = bpy.context.window

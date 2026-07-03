@@ -61,13 +61,15 @@ def mirror_matrix_world(object_id, old_matrix_world, across_x=True):
 def reflect_point_across(source,origin):
     return (2 * origin) - source
 
-#This function mirrors matrix world across x axis
+# This function mirrors matrix world according to parameters passed
+# Axis has three possible string values : X, Y and Z
+# Center is a point across which mirroring will take place, it is a 3d Vector
 def mirror_matrix_world_universal(object_id, old_matrix_world, axis = None, center = None):
 
     #extract location,rotation and scale values from matrix world
     location, rotation_quaternion, scale = old_matrix_world.decompose()
 
-    #mirror location  if across x is selected
+    # mirror location according to axis
     if center is not None:
         location_x = reflect_point_across(location.x,center.x) if axis == "X" else location.x
         location_y = reflect_point_across(location.y,center.y) if axis == "Y" else location.y
@@ -78,7 +80,7 @@ def mirror_matrix_world_universal(object_id, old_matrix_world, axis = None, cent
         position_values = (location.x, location.y, location.z)
         position_matrix = Matrix.Translation(Vector(position_values))
 
-    #mirror rotation across x axis
+    # mirror rotation according to axis
     current_euler = rotation_quaternion.to_euler("XYZ")
     if axis == "X":
         rotation_values = (current_euler.x, -current_euler.y, -current_euler.z)
@@ -89,7 +91,6 @@ def mirror_matrix_world_universal(object_id, old_matrix_world, axis = None, cent
     else:
         rotation_values = (current_euler.x, -current_euler.y, -current_euler.z)
         
-    
     rotation_euler = Euler(rotation_values, "XYZ")
     rotation_matrix = rotation_euler.to_matrix().to_4x4()
 
@@ -100,12 +101,14 @@ def mirror_matrix_world_universal(object_id, old_matrix_world, axis = None, cent
     matrix_world = position_matrix @ rotation_matrix @ scale_matrix
     
     #correct anomalies in mirroring
-    matrix_world = mirror_correction(object_id, matrix_world)
+    if object_id is not None:
+        matrix_world = mirror_correction(object_id, matrix_world)
 
     return matrix_world
 
 
-#This function mirrors matrix world across x axis
+# This function changes orientation of object my adding 180 degree to its rotation value
+# This is useful when used on Corvette parts
 def change_orientation(object_id, old_matrix_world, axis = None, has_mirror_part = False):
     #mirror rotation across x axis
     local_rotation = Matrix.Rotation(0, 4, "X")
@@ -139,3 +142,4 @@ def mirror_correction(object_id, matrix_world):
         return matrix_world @ y_rot_180
 
     return matrix_world
+

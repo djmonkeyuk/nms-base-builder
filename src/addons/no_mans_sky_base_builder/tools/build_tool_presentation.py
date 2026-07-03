@@ -1,5 +1,5 @@
 import bpy
-from bpy.types import Panel, PropertyGroup
+from bpy.types import Panel
 
 # Snap Panel ---
 class NMS_PT_tools_panel(Panel):
@@ -89,39 +89,6 @@ class NMS_PT_tools_panel(Panel):
         delete_col = snap_column.box().column(align = True)
         delete_col.label(text="Delete")
         delete_col.operator("object.nms_delete", icon="TRASH")
-        
-        
-        #curve tools
-        if build_tool.show_gap_edit_field:
-            active_curve_box = layout.box().box()
-            active_curve_box_col = active_curve_box.column(align = False)
-            active_curve_box_col.label(text = "Edit Active-Curve parameters", icon = "NORMALIZE_FCURVES")
-            
-            active_curve_box_col_label_split = active_curve_box_col.split(factor = 0.8)
-            active_curve_box_col_label, active_curve_box_col_delete = (active_curve_box_col_label_split.column(), active_curve_box_col_label_split.column())
-            active_curve_box_col_label.label(text = f"Target : {build_tool.active_curve_name}")
-            #active_curve_box_col.separator()
-            
-            if build_tool.selected_curve_object_is_parent:
-                curve_params_split = active_curve_box_col.split(factor=0.5)
-                curve_gap_row, curve_radius_row = (curve_params_split.column(align = True), curve_params_split.column(align = True))
-                curve_gap_row.label(text = "Number of Objects")
-                curve_gap_row.label(text = "Objects Size")
-                curve_radius_row.alert = True
-                #Text fields for editing curv related params
-                curve_radius_row.prop(build_tool,"active_curve_number_of_objects",text = "")
-                curve_radius_row.prop(build_tool,"active_curve_radius_multiplier",text = "")
-                active_curve_box_col.separator()
-                show_box_buttons_row = active_curve_box_col.row(align = True)
-                show_box_buttons_row.operator("object.nms_curve_break_apart", icon="UNLINKED",text = "Unlink Curve")
-                show_box_buttons_row.operator("object.nms_select_children_of_curve", icon="MOD_OUTLINE",text = "Select Children")
-                show_box_morror_delete_row = active_curve_box_col.row(align = True)
-                show_box_morror_delete_row.operator("object.nms_curve_delete", icon="TRASH",text = "Delete Curve and Children")
-                show_box_morror_delete_row.operator("object.nms_curve_mirror", icon="MOD_MIRROR",text = "Mirror Curve")
-                
-            else :
-                show_box_buttons_row = active_curve_box_col.row(align = True)
-                show_box_buttons_row.operator("object.nms_selecte_object_parent_curve", icon="MOD_ENVELOPE",text = "Select Parent")
                     
         # Mirroring tools
         mirroring_box = layout.box()
@@ -188,3 +155,5 @@ class NMS_PT_tools_panel(Panel):
         snap_source_next.next_source = True
         snap_source_next.prev_target = False
         snap_source_next.next_target = False
+        
+                        

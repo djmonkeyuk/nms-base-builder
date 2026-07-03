@@ -3,7 +3,7 @@ import json
 from .. import builder
 from . import save_editor_dependencies
 from . import save_editor_utils
-from .save_editor_utils import BaseType
+from .save_editor_utils import BaseType, BaseData
 
 BUILDER = builder.Builder()
 
@@ -261,11 +261,14 @@ class SaveManager(bpy.types.PropertyGroup):
         
         # convert list of bases into list for UI
         for index, base_data in enumerate(extracted_base_data[base_type_key]):
+            
+            base_data: BaseData
+            
             list_entry = ""
-            base_name = base_data["base_name"]
-            user_data = str(base_data["user_data"])
-            base_index = str(base_data["base_index"])
-            parts_count = str(base_data["parts_count"])
+            base_name = base_data.base_name
+            user_data = str(base_data.user_data)
+            base_index = str(base_data.base_index)
+            parts_count = str(base_data.parts_count)
             if self.nms_base_type == BaseType.CORVETTE:
                 # if base is a corvette, add user_data in front of its name that represents its ingame slot number
                 list_entry = f"{user_data.rjust(2)}. {base_name}  [ {parts_count} parts ]"
@@ -279,10 +282,12 @@ class SaveManager(bpy.types.PropertyGroup):
         
         if self.nms_base_type == BaseType.CORVETTE and extracted_base_data["freighter"] is not None:
             base_data = extracted_base_data["freighter"]
-            base_name = base_data["base_name"]
-            parts_count = str(base_data["parts_count"])
+            
+            base_data: BaseData
+            base_name = base_data.base_name
+            parts_count = str(base_data.parts_count)
             list_entry = f"{base_name} ( Freighter ) [ {parts_count} parts ] "
-            base_index = str(base_data["base_index"])
+            base_index = str(base_data.base_index)
             enum_bases.append((base_index, list_entry, " base desc"))
         
         return enum_bases
@@ -380,15 +385,16 @@ class SaveManager(bpy.types.PropertyGroup):
         # base type key to access data
         base_type_key = self.get_base_type_key(self.nms_base_type)
         for base in SaveManager.extracted_base_data[base_type_key]:
-            if base_index == str(base["base_index"]):
+            base:BaseData
+            if base_index == str(base.base_index):
                 return base
         
         if self.nms_base_type == BaseType.CORVETTE:
             if SaveManager.extracted_base_data["freighter"] is None:
                 print("Freighter is None")
                 return None
-            base = SaveManager.extracted_base_data["freighter"]
-            if str(base["base_index"]) == base_index:
+            base: BaseData = SaveManager.extracted_base_data["freighter"]
+            if str(base.base_index) == base_index:
                 return base
         
         return None
@@ -457,9 +463,10 @@ class SaveManager(bpy.types.PropertyGroup):
             base_type_key = "corvettes" if self.nms_base_type == BaseType.CORVETTE else "bases"
             base_list = SaveManager.extracted_base_data[base_type_key]
             for base in base_list:
-                t2 = (base["base_name"],base["base_type"],base["galactic_address"])
+                base:BaseData
+                t2 = (base.base_name,base.base_type,base.galactic_address)
                 if t1 == t2:
-                    base["base_name"] = new_base_name
+                    base.base_name= new_base_name
                     break
             SaveManager.enum_base_list = self.get_bases_enum_list(SaveManager.extracted_base_data)
         
@@ -478,11 +485,11 @@ class SaveManager(bpy.types.PropertyGroup):
         identifiers = self.get_current_base_identifiers()
         save_slot = self.get_current_slot_data()
         self.pinned_base_check = True
-        self.pinned_base_name = identifiers["base_name"]
-        self.pinned_base_index = identifiers["base_index"]
-        self.pinned_base_user_data = identifiers["user_data"]
-        self.pinned_base_type = identifiers["base_type"]
-        self.pinned_galactic_address = str(identifiers["galactic_address"])
+        self.pinned_base_name = identifiers.base_name
+        self.pinned_base_index = identifiers.base_index
+        self.pinned_base_user_data = identifiers.user_data
+        self.pinned_base_type = identifiers.base_type
+        self.pinned_galactic_address = str(identifiers.galactic_address)
         self.pinned_save_account = self.nms_account_selected
         self.pinned_save_slot_name = save_slot_name
         self.pinned_base_save_1 = save_slot["saves"][0]
@@ -499,7 +506,7 @@ class SaveManager(bpy.types.PropertyGroup):
         if base_identifiers is None:
             print("Pinned base identifiers are none")
             return
-        self.import_base(context,base_identifiers, base_identifiers["save_links"])
+        self.import_base(context,base_identifiers, base_identifiers.save_slot)
     
     # called to save scene data to save file
     def export_pinned_base(self, context):
@@ -520,7 +527,7 @@ class SaveManager(bpy.types.PropertyGroup):
             if string_base_name:
                 new_base_name = string_base_name
         
-        result = self.export_base(context, base_identifiers, base_identifiers["save_links"], new_base_name)
+        result = self.export_base(context, base_identifiers, base_identifiers.save_slot, new_base_name)
         
         # upate base name if base name was sucessfully changed in save file
         if result is not None and new_base_name is not None:
@@ -536,17 +543,20 @@ class SaveManager(bpy.types.PropertyGroup):
         if self.pinned_base_name == "None":
             return None
         
-        return {
-            "base_index":self.pinned_base_index,
-            "base_name":self.pinned_base_name,
-            "user_data":int(self.pinned_base_user_data),
-            "galactic_address": self.pinned_galactic_address,
-            "base_type":self.pinned_base_type,
-            "save_links":[ 
-                self.pinned_base_save_1, 
-                self.pinned_base_save_2 
-            ]
-        }
+        save_links = [ 
+            self.pinned_base_save_1, 
+            self.pinned_base_save_2 
+        ]
+        
+        base_data = BaseData()
+        base_data.base_index = self.pinned_base_index
+        base_data.base_name = self.pinned_base_name
+        base_data.user_data = int(self.pinned_base_user_data)
+        base_data.galactic_address = self.pinned_galactic_address
+        base_data.base_type = self.pinned_base_type
+        base_data.save_slot = save_links
+        
+        return base_data
 
     #function for UI to display metadata realated to pinned base
     def get_pinned_base_location_details(self):

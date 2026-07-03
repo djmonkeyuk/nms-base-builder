@@ -21,14 +21,20 @@ class NMS_PT_tools_panel(Panel):
         build_tool = context.scene.nms_build_tool
 
         # Split into two columns of equal widths.
-        split = layout.split(factor=0.5)
-        tools_column, snap_column = (split.column(), split.column())
+        #split = layout.split(factor=0.5)
+        #tools_column, snap_column = (split.column(align = True), split.column(align = True))
+        build_tools_col = layout.column(align = True)
+        tools_row = build_tools_col.row(align = True)
+        tools_column = tools_row.column(align = True)
+        tools_column.scale_x = 1.3333
+        snap_column = tools_row.column(align = True)
 
         # Create Part Count Box.
         part_box = tools_column.box()
         splitter = part_box.split(factor=0.7)
         splitter.label(text="Part Count:" )# , icon = "GEOMETRY_NODES"
         part_count = len([obj for obj in bpy.data.objects if "ObjectID" in obj])
+        splitter.alert = True
         splitter.label(text="{}".format(part_count))
 
         tools_box = tools_column.box()
@@ -81,7 +87,7 @@ class NMS_PT_tools_panel(Panel):
         # Object orientation for corvette parts, mirror can work for non corvette parts too
         orientation_box = snap_column.box()
         mirror_col = orientation_box.column(align=True)
-        mirror_col.label(text="Orientation", icon = "ORIENTATION_GIMBAL")
+        mirror_col.label(text="Orientation") # icon = "ORIENTATION_GIMBAL"
         mirror_col.operator("object.nms_mirror", icon="ARROW_LEFTRIGHT")
         mirror_col.operator("object.nms_flip", icon="DECORATE_OVERRIDE")
         #mirror_col.operator("object.nms_turn", icon="GESTURE_ROTATE")
@@ -91,7 +97,7 @@ class NMS_PT_tools_panel(Panel):
         delete_col.operator("object.nms_delete", icon="TRASH")
                     
         # Mirroring tools
-        mirroring_box = layout.box()
+        mirroring_box = build_tools_col.box()
         mirroring_box_column = mirroring_box.column(align = True)
         mirroring_box_column_label_row = mirroring_box_column.row(align = True)
         mirroring_box_column_label_row.label(text = "Mirroring", icon = "MOD_MIRROR")

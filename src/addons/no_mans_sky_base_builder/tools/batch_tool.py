@@ -2,7 +2,7 @@ from ..utils import mirror_utils
 import bpy
 import os
 import uuid
-from ..utils import blend_utils, curve
+from ..utils import blend_utils, curve, material
 from ..utils import python as python_utils
 from .. import builder, part
 from ..utils.mirror_utils import ShowMessageBox
@@ -42,6 +42,27 @@ class BatchTool(bpy.types.PropertyGroup):
         options={'SKIP_SAVE'},
         description = "This object's origin will be take in to account for center of reflection"
     )
+    
+    color_picker: bpy.props.PointerProperty(
+        name="Colour Picker",
+        type=bpy.types.Object,
+        options={'SKIP_SAVE'},
+        description = "Pick an object to use are reference for colouring",
+        update = lambda self, context: self.on_color_picked()
+    )
+    
+    def on_color_picked(self):
+        target_object = self.color_picker
+        if target_object is None:
+            return
+        
+        if "UserData" in target_object:
+            target_userdata = target_object["UserData"]
+            selected_objects = bpy.context.selected_objects
+            for obj in selected_objects:
+                material.restore_material(obj, target_userdata)
+        self.color_picker = None
+        
 
     def batch_replace_with_target_object(self):
         """Replace all selected objects with duplicates of the target object."""

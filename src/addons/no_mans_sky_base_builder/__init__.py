@@ -24,7 +24,7 @@ from numpy import isin
 
 from . import builder, part, preset
 from .part_overrides import line
-from .utils import blend_utils, curve, curve_utils, workspace, collection_utils
+from .utils import blend_utils, curve, curve_utils, workspace, collection_utils, icon_utils
 from .utils import material as _material
 from .utils import python as python_utils
 
@@ -83,13 +83,15 @@ def get_line_type_from_enum(context):
     line_object = "U_POWERLINE"
     scene = context.scene
     nms_tool = scene.nms_base_tool
-    line_value = list(nms_tool.line_switch)[0]
+    line_value = nms_tool.line_switch
     if line_value == "TELEPORT":
         line_object = "U_PORTALLINE"
     elif line_value == "PIPE":
         line_object = "U_PIPELINE"
     elif line_value == "BYTEBEAT":
         line_object = "U_BYTEBEATLINE"
+        
+    print("line value is :", line_value)
     return line_object
 
 
@@ -310,6 +312,15 @@ class NMSSettings(PropertyGroup):
     )
 
     room_vis_switch: IntProperty(name="room_vis_switch", default=0)
+    
+    
+    color_picker: bpy.props.PointerProperty(
+        name="Colour Picker",
+        type=bpy.types.Object,
+        options={'SKIP_SAVE'},
+        description = "Pick an object to use are reference for colouring",
+        update = lambda self, context: self.on_color_picked()
+    )
 
     def deserialise_from_data(self, nms_data):
         # Start new file
@@ -670,12 +681,92 @@ class NMSSettings(PropertyGroup):
 
         # Refresh the viewport.
         bpy.ops.wm.redraw_timer(type="DRAW_WIN_SWAP", iterations=1)
+        
+    # update materials of selected objects depending on material picked using picker
+    def on_color_picked(self):
+        target_object = self.color_picker
+        if target_object is None:
+            return 
+        
+        if "UserData" in target_object:
+            target_userdata = target_object["UserData"]
+            selected_objects = bpy.context.selected_objects
+            for obj in selected_objects:
+                _material.restore_material(obj, target_userdata)
+        
+        def clear_picker():
+            self.color_picker = None
+            return None
+
+        bpy.app.timers.register(clear_picker, first_interval=0.0)
+        
 
 # UI ---
+
+# File Buttons Panel ---
+class NMS_PT_hero_panel(Panel):
+    bl_idname = "NMS_PT_hero_panel"
+    bl_label = "No Man's Sky Base Builder"
+    bl_space_type = "VIEW_3D"
+    bl_region_type = "UI"
+    bl_category = "No Mans Sky Base Builder"
+    bl_context = "objectmode"
+
+    @classmethod
+    def poll(self, context):
+        return True
+
+    def draw(self, context):
+        
+        layout = self.layout
+        
+        pcoll = preview_collections["icon"]
+        plugin_icon = pcoll["plugin_icon"]
+        
+        icon_pcoll = preview_collections["ui_icons"]
+        pateron_icon = icon_pcoll["patreon"]
+        discord_icon = icon_pcoll["discord"]
+        
+        
+        
+        icon_row = layout.row(align = True)
+        icon_split = icon_row.split(factor = 0.35)
+        icon_holder = icon_split.column(align = True)
+        icon_holder.scale_y = 0.8
+        icon_holder.template_icon(
+            icon_value= plugin_icon.icon_id,
+            scale=4
+        )
+        
+        icon_text_column = icon_split.column(align = True)
+        icon_text_column.scale_y = 0.6
+        icon_text_column.label(text = "")
+        icon_text_column.label(text = "No Man's Sky")
+        icon_text_column.label(text = "Base and Corvette Builder")
+        icon_text_column.separator()
+        icon_text_sec = icon_text_column.column(align = True)
+        icon_text_sec.alert = True
+        #icon_text_sec.scale_y = 0.4
+        icon_text_sec.label(text = "by DjMonkey", icon = "MONKEY")
+        
+        community_row = layout.row(align=True)
+        communuity_box = community_row.box()
+        third_column = communuity_box.column(align=True)
+        third_column.label(text="Commmunity")
+        third_column.operator("object.nms_visit_guides", icon="WORLD_DATA")
+        third_column.operator("object.nms_visit_community", icon_value = discord_icon.icon_id)
+        
+        support_box = community_row.box()
+        fourth_column = support_box.column(align = True)
+        fourth_column.label(text = "Support Me")
+        fourth_column.operator("object.nms_cleanup_workspace", text = "Patreon", icon_value = pateron_icon.icon_id)
+        fourth_column.operator("object.nms_cleanup_workspace", text = "Buy me a Coffee")
+
+
 # File Buttons Panel ---
 class NMS_PT_file_buttons_panel(Panel):
     bl_idname = "NMS_PT_file_buttons_panel"
-    bl_label = "No Man's Sky Base Builder"
+    bl_label = "Import/Export"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
     bl_category = "No Mans Sky Base Builder"
@@ -694,7 +785,7 @@ class NMS_PT_file_buttons_panel(Panel):
         file_row = layout.row(align=True)
         file_box = file_row.box()
         first_column = file_box.column(align=True)
-        first_column.label(text="File")
+        first_column.label(text="File")# icon = "COLLECTION_COLOR_04"
         first_column.operator("object.nms_new_file")
         first_column.separator()
         first_column.operator("object.nms_save_data", icon="FILE_TICK")
@@ -707,21 +798,15 @@ class NMS_PT_file_buttons_panel(Panel):
         second_column.separator()
         second_column.operator("object.nms_export_nms_data", icon="COPYDOWN")
         second_column.operator("object.nms_export_nms_data_objects", icon="COPYDOWN")
-
-        community_row = layout.row(align=True)
-        communuity_box = community_row.box()
-        third_column = communuity_box.column(align=True)
-        third_column.label(text="Commmunity")
-        third_column.operator("object.nms_visit_guides", icon="WORLD_DATA")
-        third_column.operator("object.nms_visit_community", icon="WORLD_DATA")
         
         if not nms_tool.is_workspace_cleaned:
+            community_row = layout.row(align=True)
             workspace_box = community_row.box()
             fourth_column = workspace_box.column()
             fourth_column.label(text = "Workspace")
             fourth_column.operator("object.nms_cleanup_workspace", text = "Workspace Cleanup", icon = "WORKSPACE")
-        else:
             community_row.label(text = "")
+            
 
 
 # Colour Panel ---
@@ -741,14 +826,20 @@ class NMS_PT_colour_panel(Panel):
         layout = self.layout
         scene = context.scene
         nms_tool = scene.nms_base_tool
+        batch_tool = scene.nms_batch_tool
         colours = _material.get_colours_from_palette(nms_tool.material_switch)
         pcoll = preview_collections["main"]
         
+        icons_pcoll = preview_collections["ui_icons"]
+        palette_icon = icons_pcoll["palette"]
+        
         
         colour_area = layout.box().column(align=False)
-        material_column = colour_area.row(align = True)
-        #material_column.label(text = "Palette") # icon = "NODE_MATERIAL"
-        material_column.prop(nms_tool, "material_switch",text = "Palette", icon = "BRUSH_DATA")
+        material_row = colour_area.row(align = True)
+        #material_row.label(text="", icon = "COLLECTION_COLOR_07")
+        #material_row.label(text = "Palette") # icon = "NODE_MATERIAL"
+        
+        material_row.prop(nms_tool, "material_switch",text = "Palette", icon_value = palette_icon.icon_id)
         colour_area.separator()
         grid = colour_area.grid_flow(columns=8, even_columns=True, align = True)
         for row in colours:
@@ -766,7 +857,7 @@ class NMS_PT_colour_panel(Panel):
             op.colour_index = int(index)
             op.colour_name = name
             
-        #layout.operator("object.nms_select_same_colors", icon="MOD_SOFT", text = "Select same colour")
+        grid.prop(nms_tool,"color_picker", icon = "BLANK1", text = "")
 
 
 # Colour Panel ---
@@ -792,8 +883,8 @@ class NMS_PT_logic_panel(Panel):
         col = box.column(align = True)
         #col.label(text="Cable type", icon = "PLUGIN")
         enum_row = col.row(align = True)
-        enum_row.label(text="", icon = "PLUGIN")
-        enum_row.prop(nms_tool, "line_switch", text = "Cable", icon="IPO_LINEAR")
+        #enum_row.label(text="", icon = "COLLECTION_COLOR_05")
+        enum_row.prop(nms_tool, "line_switch", text = "Cable", icon="PLUGIN")#IPO_LINEAR
         
         col.separator()
         col.label(text = "Operations")# , icon = "CON_CHILDOF"
@@ -1371,6 +1462,8 @@ class ApplyDefaultColour(bpy.types.Operator):
         nms_tool.apply_default_colour()
         return {"FINISHED"}
 
+
+
 # Logic Operators ---
 class Point(bpy.types.Operator):
     """Create a new point controller used to create logic cables.\nSelect this twice to create a cables between 2 points."""
@@ -1752,20 +1845,20 @@ class SplitPreset(bpy.types.Operator):
         self.report({"INFO"}, f"Presets split: {len(names)}, parts: {total}")
         return {"FINISHED"}
     
+    
+
+    
 
 _draw_handler = None
-
 def draw_text():
     
     base_tools = bpy.context.scene.nms_base_tool
     part_count = len([obj for obj in bpy.data.objects if "ObjectID" in obj])
     text_string = f"Part count : {part_count}"
-    
     font_id = 0
 
     blf.size(font_id, 14)
     blf.color(font_id, 1.0, 1.0, 1.0, 1.0)
-
     # Bottom-left corner (20 px from left, 20 px from bottom)
     blf.position(font_id, 20, 60, 0)
 
@@ -1800,29 +1893,31 @@ def unregister_draw():
             area.tag_redraw()    
 
 
+# --- OPTIMIZED TRACKING REGISTRY ---
+# Track ONLY curve objects instead of thousands of individual scene mesh parts
+known_curves = set()
 
-# to reset toggle button of save editor
+# To reset toggle button of save editor and initialize curve registry
 @persistent
 def reset_save_editor_state(dummy):
-    
-    global previous_objects
-    previous_objects = set(bpy.data.objects)
+    global known_curves
+    known_curves = set(
+        obj for obj in bpy.data.objects 
+        if obj.type == 'CURVE' and obj.get("has_linked_objects", False)
+    )
     
     for scene in bpy.data.scenes:
         save_data = scene.nms_save_data
         save_data.check_plugin_enabled = False
-        
+
 
 last_active = None
 overlay_text = "No object selected"
-previous_objects = set()
-known_curves = set()
 
-# keep track of active object to display or hide additional options related to that object
+# Keep track of active object to display or hide additional options related to that object
 @persistent
 def active_object_watcher(scene, depsgraph):
     global last_active
-    global overlay_text
     
     active = bpy.context.view_layer.objects.active
     properties = scene.nms_properties
@@ -1834,86 +1929,100 @@ def active_object_watcher(scene, depsgraph):
 # Whenever a curve is modified, automatically update whatever duplicated objects are associated with that curve.
 @persistent
 def curve_udpate_handler(scene, depsgraph):
-    
-    # this function will keep track of newly duplicated or deleted curves
+    # This function keeps track of newly duplicated or deleted curves cleanly
     curves_watcher(scene, depsgraph)
     
     updated_curves = set()
     for update in depsgraph.updates:
         id_data = update.id
         if isinstance(id_data, bpy.types.Object) and id_data.type == 'CURVE':
-            updated_curves.add(id_data)
+            # FIX: Fetch the clean original object from the main database
+            orig_obj = bpy.data.objects.get(id_data.name)
+            if orig_obj:
+                updated_curves.add(orig_obj)
     
-    # update curve's childrens according to manipulations done by user.
+    # Update curve's children according to manipulations done by user.
     for curve_obj in updated_curves:
         properties = scene.nms_properties
-        if curve_obj.name == properties.active_curve_name:
-            new_radius_multiplier = properties.active_curve_radius_multiplier
-        elif "radius_multiplier" in curve_obj:
-            new_radius_multiplier = curve_obj["radius_multiplier"]
-        else:
-            return
-        curve.update_curve_duplicates(curve_obj, new_radius_multiplier)
+        try:
+            if curve_obj.name == properties.active_curve_name:
+                new_radius_multiplier = properties.active_curve_radius_multiplier
+            elif "radius_multiplier" in curve_obj:
+                new_radius_multiplier = curve_obj["radius_multiplier"]
+            else:
+                continue
+            curve.update_curve_duplicates(curve_obj, new_radius_multiplier)
+        except ReferenceError:
+            continue
         
-# This function keeps track of objects and detects if curves have been duplicated or deleted and updates scene accourdinly ly
+# OPTIMIZED: Uses depsgraph updates and selectively sweeps deletions 
 def curves_watcher(scene, depsgraph):
-    global previous_objects
+    global known_curves
     
-    current = set(bpy.data.objects)
-    new_objects = current - previous_objects
+    # 1. Quick-scan for currently active curves in database
+    current_curves = set(
+        obj for obj in bpy.data.objects 
+        if obj.type == 'CURVE' and obj.get("has_linked_objects", False)
+    )
     
-    # collect curves that were present in last update
-    # also detect if an curve as been deleted by checking "curve" parent property
-    previous_curves = []
-    for obj in previous_objects:
+    # 2. Detect if a curve was deleted by comparing curve sets
+    dead_curves = known_curves - current_curves
+    
+    if dead_curves:
+        # Only loop through objects to clean up children WHEN a curve is actually deleted
+        for obj in list(bpy.data.objects):
+            try:
+                if "curve_parent" in obj:
+                    parent_curve = bpy.data.objects.get(obj["curve_parent"])
+                    if parent_curve is None:
+                        parent_collection = obj.get("parent_col")
+                        if parent_collection is not None:
+                            collection_utils.delete_collection(parent_collection)
+                        else:
+                            bpy.data.objects.remove(obj, do_unlink=True)
+                    elif not parent_curve.get("parent_selected", True):
+                        obj["base_scale"] = curve.calculate_base_scale(parent_curve, obj)
+            except ReferenceError:
+                pass
         
-        try:
-            if obj.get("has_linked_objects", False) and curve.is_bezier_or_nurbs_path(obj):
-                previous_curves.append(obj)
-        except ReferenceError:
-            pass
-        
-        # delete all objects that have same curve_parent if their parent curve has been deleted
-        try:
-            if "curve_parent" in obj:
-                parent_curve = bpy.data.objects.get(obj["curve_parent"])
-                if parent_curve is None:
-                    parent_collection = obj.get("parent_col")
-                    if parent_collection is not None:
-                        # all children of curve are stored in a unique collection
-                        collection_utils.delete_collection(parent_collection)
-                    else :
-                        # or remove them manually if their parent collection is not unique
-                        bpy.data.objects.remove(obj, do_unlink=True)
-                elif not parent_curve.get("parent_selected", True):
-                    # update base scale of all object
-                    obj["base_scale"] = curve.calculate_base_scale(parent_curve, obj)
-                    pass
-        except ReferenceError:
-            pass
+        known_curves.difference_update(dead_curves)
     
-    if new_objects is None or len(new_objects) == 0:
-        previous_objects = current
-        return
-    
-    # here we detect if a new curve has been duplicated in scene with Shift+D,
-    # each curve has a unique ID, when duplicating, their Unique IDs will also get duplicated
-    if previous_curves is not None and len(previous_curves) > 0:
-        for new_curve in new_objects:
-            if "has_linked_objects" in new_curve and curve.is_bezier_or_nurbs_path(new_curve):
-                new_uuid = new_curve["unique_id"]
-                
-                matching_curve = next((o for o in previous_curves if o["unique_id"] == new_uuid), None)
-                if matching_curve is None:
+    # 3. Use depsgraph.updates to identify new curves, but force retrieval of the ORIGINAL object
+    new_curves_detected = []
+    for update in depsgraph.updates:
+        if isinstance(update.id, bpy.types.Object):
+            # FIX: Convert the evaluated update pointer back into the real scene object block
+            orig_obj = bpy.data.objects.get(update.id.name)
+            if orig_obj and orig_obj.type == 'CURVE' and orig_obj.get("has_linked_objects", False):
+                if orig_obj not in known_curves and orig_obj not in new_curves_detected:
+                    new_curves_detected.append(orig_obj)
+                    
+    # 4. Handle duplication syncing using strictly original objects
+    if new_curves_detected and known_curves:
+        for new_curve in new_curves_detected:
+            try:
+                new_uuid = new_curve.get("unique_id")
+                if not new_uuid:
                     continue
                 
-                dup_obj_id = matching_curve.get("dup_ObjectID",None)
-                if dup_obj_id is None:
-                    continue
+                # Look for matching source configuration inside our narrow curve registry
+                matching_curve = next(
+                    (c for c in known_curves if c.get("unique_id") == new_uuid and c != new_curve), 
+                    None
+                )
                 
-                # match duplicated curves, and copy scale, rotation and location of original objects to duplicated objects on curve
-                curve.sync_curves(new_curve, matching_curve)
-    previous_objects = current
+                if matching_curve and matching_curve.get("dup_ObjectID") is not None:
+                    # Both parameters are now safe, original database objects again
+                    curve.sync_curves(new_curve, matching_curve)
+            except ReferenceError:
+                continue
+
+    # Sync back down to the global tracking set 
+    known_curves = current_curves
+    
+        
+        
+    
             
 
 class NMSAddonPreferences(bpy.types.AddonPreferences):
@@ -1979,6 +2088,7 @@ classes = (
     BatchTool,
     
     NMS_UL_actions_list,
+    NMS_PT_hero_panel,
     NMS_PT_file_buttons_panel,
     NMS_PT_save_editor_panel,
     NMS_PT_base_prop_panel,
@@ -2019,8 +2129,18 @@ def register():
             os.path.join(colours_dir, colour_file),
             "IMAGE",
         )
-
     preview_collections["main"] = pcoll
+    
+    
+    
+    icon_pcoll = bpy.utils.previews.new()
+    icon_dir = os.path.join(os.path.dirname(__file__), "images","plugin_icon.png")
+    icon_pcoll.load("plugin_icon", icon_dir, 'IMAGE')
+    preview_collections["icon"] = icon_pcoll
+    
+    icon_utils.load_custom_icons(preview_collections)
+    
+    
 
     # Register Plugin
     for _class in classes:

@@ -75,6 +75,8 @@ def duplicate_along_curve( object, curve, number_of_duplicates=10, radius_multip
         
         curve_col = collection_utils.move_curve_to_collection(curve)
         
+        mater_col = curve["master_col"]
+        parent_col = curve["parent_col"]
         
         
         for _ in range(number_of_duplicates - current_count):
@@ -105,22 +107,12 @@ def duplicate_along_curve( object, curve, number_of_duplicates=10, radius_multip
                 for col in list(new_obj.users_collection):
                     if col != curve_col:
                         col.objects.unlink(new_obj)
-                        
-                new_obj["master_col"] = curve["master_col"]
-                new_obj["parent_col"] = curve["parent_col"]
-                new_obj["child_col"] = curve_col
-                
+
                 material.restore_material(new_obj, user_data)
                 
             else :
-                
-                last_object = existing_objs[-1]
-                current_collection = last_object["child_col"]
-                
                 new_obj = existing_objs[-1].copy()
-                #new_obj.data = last_object.data.copy()
-                
-                current_collection.objects.link(new_obj)
+                parent_col.objects.link(new_obj)
                 
             
             existing_objs.append(new_obj)
@@ -206,7 +198,8 @@ def apply_curve_transforms_and_detach(curve):
                 # Re-apply the matrix so the object doesn't physically move when the constraint drops
                 obj.matrix_world = baked_matrix
                 detached_count += 1
-                
+            
+            obj.data = obj.data.copy()
             obj.hide_select = False
             obj.lock_location = (False, False, False)
             duplicates.append(obj)
@@ -232,7 +225,7 @@ def apply_curve_transforms_and_detach(curve):
         
     if "parent_col" in curve:
         parent_col = curve["parent_col"]
-        parent_col.name = f"(unlinked) {parent_col.name}"
+        collection_utils.rename_to_unliked(parent_col)
         del curve["parent_col"]
         
     if "master_col" in curve:

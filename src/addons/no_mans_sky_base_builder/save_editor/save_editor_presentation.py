@@ -58,7 +58,7 @@ class NMS_PT_save_editor_panel(Panel):
         save_folder_box = layout.box()
         sf_column = save_folder_box.column(align=True)
         sf_enable_row = sf_column.row(align = True)
-        sf_enable_row.label(text = "Select Save", icon = "DISK_DRIVE")
+        sf_enable_row.label(text = "Select Save", icon = "COLLECTION_COLOR_01")#DISK_DRIVE
         
         #this row will contain a field where location of save folder is displayed
         if save_data.check_plugin_enabled and save_data.validate_save_folder(save_folder_path):
@@ -104,7 +104,7 @@ class NMS_PT_save_editor_panel(Panel):
                     backup_row.operator("object.open_backup_folder", icon="FOLDER_REDIRECT", text = "Open Backup Folder")
                     
                     sf_column.separator()
-                    sf_column.label(text = f"Total Parts : {save_data.get_total_parts_count()}", icon = "COLLECTION_COLOR_04")
+                    sf_column.label(text = f"Total Parts : {save_data.get_total_parts_count()}", icon = "COLLECTION_COLOR_01")
                     se_column = sf_column.column(align = True)
                     se_column.label(text = "Base Type selected")# icon = "MOD_BUILD"
                     #radio buttons to select type of base

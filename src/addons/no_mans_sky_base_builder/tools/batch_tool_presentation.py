@@ -29,7 +29,7 @@ class NMS_PT_batch_tools_panel(Panel):
         select_col.operator("object.nms_select_same_objects", text = "Same ObjectID", icon = "CON_SIZELIKE")
         
         more_options_box =  top_row.box()
-        more_options_box.label(text = "More Options",)
+        more_options_box.label(text = "Selection Tools",)
         more_options_column = more_options_box.column(align = True)
         more_options_column.operator("object.nms_select_duplicates", text = "Find Duplicates", icon = "BRUSH_DATA")
         more_options_column.operator("object.nms_batch_select_random", text = "Select Random", icon = "MOD_NOISE")

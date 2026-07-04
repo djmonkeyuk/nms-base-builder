@@ -17,6 +17,7 @@ def load_mirror_corrections():
 
 MIRROR_CORRECTIONS = load_mirror_corrections()
 LOCAL_Y_180_ROTATION_PARTS = set(MIRROR_CORRECTIONS["local_y_180_rotation_parts"])
+LOCAL_Y_90_ROTATION_PARTS = set(MIRROR_CORRECTIONS["local_y_90_rotation_parts"])
 MIRROR_Z_180_IDENTIFIERS = set(MIRROR_CORRECTIONS["mirror_z_180_identifiers"])
 POSITION_OFFSETS = {
     part: Vector(offset)
@@ -140,6 +141,12 @@ def mirror_correction(object_id, matrix_world):
         angle = math.pi  #180 degrees
         y_rot_180 = Matrix.Rotation(angle, 4, "Y")
         return matrix_world @ y_rot_180
+    
+    #Parts that need rotation by 90 on local Y axis
+    if object_id in LOCAL_Y_90_ROTATION_PARTS:
+        angle = math.pi/2  #90 degrees
+        y_rot_90 = Matrix.Rotation(angle, 4, "Y")
+        return matrix_world @ y_rot_90
 
     return matrix_world
 

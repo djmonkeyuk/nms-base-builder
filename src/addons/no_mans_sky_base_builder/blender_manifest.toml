@@ -3,7 +3,7 @@ schema_version = "1.0.0"
 # Example of manifest file for a Blender extension
 # Change the values according to your extension
 id = "no_mans_sky_base_builder"
-version = "16.4.5"
+version = "16.4.7"
 name = "No Man's Sky Base Builder"
 tagline = "A tool to assist with base building in No Mans Sky"
 maintainer = "DjMonkey <@djmonkeyuk>"

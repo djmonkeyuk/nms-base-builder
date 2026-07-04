@@ -1,5 +1,6 @@
 import bpy
 from bpy.types import Panel
+from .. import icons
 
 # Base Property Panel ---
 class NMS_PT_base_prop_panel(Panel):
@@ -21,11 +22,13 @@ class NMS_PT_base_prop_panel(Panel):
         
         #properties = context.scene.nms_properties
         properties = context.scene.nms_properties
+        icon_pcroll = icons.get_icons_pscroll()
+        home_icon = icon_pcroll["house"]
+        curve_icon = icon_pcroll["curve"]
         
         properties_box = layout.box()
-        
         properties_column = properties_box.column(align=True)
-        properties_column.label(text = "Base Properties")
+        properties_column.label(text = "Base Properties", icon_value = home_icon.icon_id)
         base_prop_split = properties_column.split(factor = 0.3)
         base_label_col = base_prop_split.column(align = True)
         base_label_col.label(text = "Base Name :")
@@ -42,7 +45,7 @@ class NMS_PT_base_prop_panel(Panel):
         if properties.show_gap_edit_field: # and properties.active_curve_is_highlighted()
             active_curve_box = layout.box()
             active_curve_box_col = active_curve_box.column(align = False)
-            active_curve_box_col.label(text = "Edit Active-Curve parameters", icon = "NORMALIZE_FCURVES")
+            active_curve_box_col.label(text = "Edit Active-Curve parameters", icon_value = curve_icon.icon_id) # icon = "NORMALIZE_FCURVES"
             
             active_curve_box_col_label_split = active_curve_box_col.split(factor = 0.7)
             active_curve_box_col_label, active_curve_box_col_delete = (active_curve_box_col_label_split.column(), active_curve_box_col_label_split.column())

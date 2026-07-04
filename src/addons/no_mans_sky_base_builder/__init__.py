@@ -22,7 +22,7 @@ from bpy.types import Panel, PropertyGroup
 from bpy.app.handlers import persistent
 from numpy import isin
 
-from . import builder, part, preset
+from . import builder, part, preset, icons
 from .part_overrides import line
 from .utils import blend_utils, curve, curve_utils, workspace, collection_utils, icon_utils
 from .utils import material as _material
@@ -720,12 +720,10 @@ class NMS_PT_hero_panel(Panel):
         
         layout = self.layout
         
-        pcoll = preview_collections["icon"]
+        pcoll = icons.get_icons_pscroll()
         plugin_icon = pcoll["plugin_icon"]
-        
-        icon_pcoll = preview_collections["ui_icons"]
-        pateron_icon = icon_pcoll["patreon"]
-        discord_icon = icon_pcoll["discord"]
+        pateron_icon = pcoll["patreon"]
+        discord_icon = pcoll["discord"]
         
         
         
@@ -830,7 +828,7 @@ class NMS_PT_colour_panel(Panel):
         colours = _material.get_colours_from_palette(nms_tool.material_switch)
         pcoll = preview_collections["main"]
         
-        icons_pcoll = preview_collections["ui_icons"]
+        icons_pcoll = icons.get_icons_pscroll()
         palette_icon = icons_pcoll["palette"]
         
         
@@ -841,7 +839,9 @@ class NMS_PT_colour_panel(Panel):
         
         material_row.prop(nms_tool, "material_switch",text = "Palette", icon_value = palette_icon.icon_id)
         colour_area.separator()
-        grid = colour_area.grid_flow(columns=8, even_columns=True, align = True)
+        grid = colour_area.grid_flow(columns=12, even_columns=True, align = True)
+        grid.scale_x = 0.6
+        grid.scale_y = 1.0
         for row in colours:
             index = row[3]
             name = row[5]
@@ -877,14 +877,18 @@ class NMS_PT_logic_panel(Panel):
         layout = self.layout
         scene = context.scene
         nms_tool = scene.nms_base_tool
-
         layout = self.layout
+        
+        icons_pcoll = icons.get_icons_pscroll()
+        plug_icon = icons_pcoll["plug"]
+        
+        
         box = layout.box()
         col = box.column(align = True)
         #col.label(text="Cable type", icon = "PLUGIN")
         enum_row = col.row(align = True)
         #enum_row.label(text="", icon = "COLLECTION_COLOR_05")
-        enum_row.prop(nms_tool, "line_switch", text = "Cable", icon="PLUGIN")#IPO_LINEAR
+        enum_row.prop(nms_tool, "line_switch", text = "Cable", icon_value = plug_icon.icon_id)#IPO_LINEAR
         
         col.separator()
         col.label(text = "Operations")# , icon = "CON_CHILDOF"
@@ -929,10 +933,15 @@ class NMS_PT_build_panel(Panel):
         layout = self.layout
         scene = context.scene
         nms_tool = scene.nms_base_tool
+        
+        icons_pcoll = icons.get_icons_pscroll()
+        box_archive_icon = icons_pcoll["box_archive"]
+        
+        
         main_col = layout.box().column(align = True)
         col = main_col.column(align=True)
         col.label(text = "Asset Browser")
-        col.operator("object.nms_launch_asset_browser", icon="COLLECTION_COLOR_03")
+        col.operator("object.nms_launch_asset_browser", icon_value = box_archive_icon.icon_id )# icon="COLLECTION_COLOR_03"
         
         presets_box = main_col.column(align = True)
         presets_box.label(text = "Presets")
@@ -1845,56 +1854,9 @@ class SplitPreset(bpy.types.Operator):
         self.report({"INFO"}, f"Presets split: {len(names)}, parts: {total}")
         return {"FINISHED"}
     
-    
-
-    
-
-_draw_handler = None
-def draw_text():
-    
-    base_tools = bpy.context.scene.nms_base_tool
-    part_count = len([obj for obj in bpy.data.objects if "ObjectID" in obj])
-    text_string = f"Part count : {part_count}"
-    font_id = 0
-
-    blf.size(font_id, 14)
-    blf.color(font_id, 1.0, 1.0, 1.0, 1.0)
-    # Bottom-left corner (20 px from left, 20 px from bottom)
-    blf.position(font_id, 20, 60, 0)
-
-    blf.draw(font_id, text_string)
-    
-
-def register_draw():
-    global _draw_handler
-
-    if _draw_handler is None:
-        _draw_handler = bpy.types.SpaceView3D.draw_handler_add(
-            draw_text,
-            (),
-            'WINDOW',
-            'POST_PIXEL'
-        )
-
-    for area in bpy.context.screen.areas:
-        if area.type == 'VIEW_3D':
-            area.tag_redraw()
 
 
-def unregister_draw():
-    global _draw_handler
-
-    if _draw_handler:
-        bpy.types.SpaceView3D.draw_handler_remove(_draw_handler, 'WINDOW')
-        _draw_handler = None
-
-    for area in bpy.context.screen.areas:
-        if area.type == 'VIEW_3D':
-            area.tag_redraw()    
-
-
-# --- OPTIMIZED TRACKING REGISTRY ---
-# Track ONLY curve objects instead of thousands of individual scene mesh parts
+# Track  curve objects
 known_curves = set()
 
 # To reset toggle button of save editor and initialize curve registry
@@ -1910,11 +1872,62 @@ def reset_save_editor_state(dummy):
         save_data = scene.nms_save_data
         save_data.check_plugin_enabled = False
 
+_pending_curve_syncs = []
+_curve_sync_timer_scheduled = False
+
+def _restore_selection(prev_selected_names, prev_active_name):
+    """Best-effort reselect. Safe to call more than once."""
+    try:
+        for obj in bpy.context.view_layer.objects:
+            obj.select_set(False)
+        for name in prev_selected_names:
+            obj = bpy.data.objects.get(name)
+            if obj is not None:
+                obj.select_set(True)
+        if prev_active_name:
+            active_obj = bpy.data.objects.get(prev_active_name)
+            if active_obj is not None:
+                bpy.context.view_layer.objects.active = active_obj
+    except ReferenceError:
+        pass
+    return None
+
+
+def _flush_pending_curve_syncs():
+    """Runs outside the depsgraph handler context. Safe to call operators here."""
+    global _curve_sync_timer_scheduled
+
+    pending = _pending_curve_syncs[:]
+    _pending_curve_syncs.clear()
+
+    # Capture the selection here and restore it once the sync is done.
+    prev_selected_names = [obj.name for obj in bpy.context.selected_objects]
+    active_obj = bpy.context.view_layer.objects.active
+    prev_active_name = active_obj.name if active_obj is not None else None
+
+    for new_curve, matching_curve in pending:
+        try:
+            # Objects may have been removed/undo'd between queuing and now.
+            if new_curve.name not in bpy.data.objects or matching_curve.name not in bpy.data.objects:
+                continue
+            curve.sync_curves(new_curve, matching_curve)
+        except ReferenceError:
+            continue
+
+    _restore_selection(prev_selected_names, prev_active_name)
+
+    # Shift+D immediately starts a modal Grab/Translate operator.
+    bpy.app.timers.register(
+        lambda: _restore_selection(prev_selected_names, prev_active_name),
+        first_interval=0.3,
+    )
+
+    _curve_sync_timer_scheduled = False
+    return None  # a new timer is scheduled next time work is queued
+
 
 last_active = None
-overlay_text = "No object selected"
-
-# Keep track of active object to display or hide additional options related to that object
+# keep track of active object to display or hide additional options related to that object
 @persistent
 def active_object_watcher(scene, depsgraph):
     global last_active
@@ -1955,9 +1968,9 @@ def curve_udpate_handler(scene, depsgraph):
         except ReferenceError:
             continue
         
-# OPTIMIZED: Uses depsgraph updates and selectively sweeps deletions 
+# Uses depsgraph updates and selectively sweeps deletions 
 def curves_watcher(scene, depsgraph):
-    global known_curves
+    global known_curves, _curve_sync_timer_scheduled
     
     # 1. Quick-scan for currently active curves in database
     current_curves = set(
@@ -2012,14 +2025,21 @@ def curves_watcher(scene, depsgraph):
                 )
                 
                 if matching_curve and matching_curve.get("dup_ObjectID") is not None:
-                    # Both parameters are now safe, original database objects again
-                    curve.sync_curves(new_curve, matching_curve)
+                    # IMPORTANT: don't call curve.sync_curves() directly here.
+                    # It can end up calling bpy.ops.import_scene.fbx (via
+                    # BUILDER.add_part) when the new curve has no linked
+                    # objects yet, and Blender doesn't support running
+                    # operators from inside a depsgraph_update_post handler.
+                    # Queue the work and flush it on a timer instead.
+                    _pending_curve_syncs.append((new_curve, matching_curve))
+                    if not _curve_sync_timer_scheduled:
+                        _curve_sync_timer_scheduled = True
+                        bpy.app.timers.register(_flush_pending_curve_syncs, first_interval=0.0)
             except ReferenceError:
                 continue
 
     # Sync back down to the global tracking set 
     known_curves = current_curves
-    
         
         
     
@@ -2129,16 +2149,10 @@ def register():
             os.path.join(colours_dir, colour_file),
             "IMAGE",
         )
+        
     preview_collections["main"] = pcoll
     
-    
-    
-    icon_pcoll = bpy.utils.previews.new()
-    icon_dir = os.path.join(os.path.dirname(__file__), "images","plugin_icon.png")
-    icon_pcoll.load("plugin_icon", icon_dir, 'IMAGE')
-    preview_collections["icon"] = icon_pcoll
-    
-    icon_utils.load_custom_icons(preview_collections)
+    icons.register_icons()
     
     
 
@@ -2163,14 +2177,13 @@ def register():
         bpy.app.handlers.depsgraph_update_post.append(curve_udpate_handler)
         
         
-    #register_draw()
-        
     
 
 def unregister():
     for pcoll in preview_collections.values():
         bpy.utils.previews.remove(pcoll)
     preview_collections.clear()
+    icons.unregister_icons()
 
     for _class in reversed(classes):
         bpy.utils.unregister_class(_class)
@@ -2190,8 +2203,6 @@ def unregister():
     if curve_udpate_handler in bpy.app.handlers.depsgraph_update_post:
         bpy.app.handlers.depsgraph_update_post.remove(curve_udpate_handler)
         
-    
-    #unregister_draw()
         
 
 

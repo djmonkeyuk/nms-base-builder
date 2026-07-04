@@ -106,13 +106,10 @@ def update_obj_transformations(obj, curve_obj, eval_data, total_length):
         return
     
     curve_scale_multiplier = curve_obj.scale.x/curve_obj["initial_curve_scale"]
-        
     radius_multiplier = curve_obj.get("radius_multiplier", 1.0)
     
-    # 1. Get accurate radius and tilt from our new high-res map
+    # Get accurate radius and tilt from our new high-res map
     radius, tilt = get_exact_radius_tilt(eval_data, total_length, factor)
-    
-    # 2. Reverted to strict dictionary access (matches your original code exactly)
     
     if curve_obj.get("parent_selected",True):
         base_scale = obj["base_scale"]
@@ -128,17 +125,12 @@ def update_obj_transformations(obj, curve_obj, eval_data, total_length):
         obj.scale.x = scale
         obj.scale.y = scale
         obj.scale.z = scale
-    #else:
-        #obj["base_scale"] = obj.scale.x/(radius * radius_multiplier)
-    
-    # Keep local location zeroed (assuming a Follow Path constraint or Curve Mod handles actual position)
-    #obj.location = (0.0, 0.0, 0.0)
     
     
 def mirror_curve_data(curve_obj, axis='X'):
     """
-    mirrors a curve's points, handles, and tilt 
-    along the specified local axis ('X', 'Y', or 'Z')
+    Mirrors a curve's points, handles, and tilt 
+    along the specified local axis ('X', 'Y', or 'Z').
     """
     if not curve_obj or curve_obj.type != 'CURVE':
         raise TypeError("Please provide a valid curve object.")
@@ -150,27 +142,38 @@ def mirror_curve_data(curve_obj, axis='X'):
     
     axis_idx = {'X': 0, 'Y': 1, 'Z': 2}[axis]
     
-    # operate on the curve's datablock
+    # Operate on the curve's datablock
     curve_data = curve_obj.data
     
     for spline in curve_data.splines:
         if spline.type == 'BEZIER':
+            # Store original handle types and force them to FREE
+            stored_types = []
             for bp in spline.bezier_points:
-                # Mirror the main control point using the axis index
+                stored_types.append({
+                    'left': bp.handle_left_type,
+                    'right': bp.handle_right_type
+                })
+                bp.handle_left_type = 'FREE'
+                bp.handle_right_type = 'FREE'
+                
+            #  Mirror the coordinates, handles, and tilt safely
+            for bp in spline.bezier_points:
                 bp.co[axis_idx] *= -1.0
-                 
-                # Mirror the handles
                 bp.handle_left[axis_idx] *= -1.0
                 bp.handle_right[axis_idx] *= -1.0
-                
-                # Invert tilt to maintain geometric symmetry on swept paths
                 bp.tilt *= -1.0
+                
+            # Restore the original handle types
+            # will allow Blender to rebuild them with perfect symmetry.
+            for bp, orig_type in zip(spline.bezier_points, stored_types):
+                bp.handle_left_type = orig_type['left']
+                bp.handle_right_type = orig_type['right']
                 
         elif spline.type in {'NURBS', 'POLY'}:
             for pt in spline.points:
+                # NURBS/POLY points are stored as 4D vectors (x, y, z, w)
                 pt.co[axis_idx] *= -1.0
-                
-                # Invert tilt
                 pt.tilt *= -1.0
                 
 
@@ -193,20 +196,28 @@ def normalise_curve_scale(curve_obj):
         # Handle Bezier curves
         if spline.type == 'BEZIER':
             for point in spline.bezier_points:
-                # 1. Scale the main control point
+                left_type = point.handle_left_type
+                right_type = point.handle_right_type
+                point.handle_left_type = 'FREE'
+                point.handle_right_type = 'FREE'
+
+                # Scale the main control point
                 point.co.x *= scale_x
                 point.co.y *= scale_y
                 point.co.z *= scale_z
                 
-                # 2. CRITICAL FIX: Scale the left handle
+                # Scale the left handle
                 point.handle_left.x *= scale_x
                 point.handle_left.y *= scale_y
                 point.handle_left.z *= scale_z
                 
-                # 3. CRITICAL FIX: Scale the right handle
+                # Scale the right handle
                 point.handle_right.x *= scale_x
                 point.handle_right.y *= scale_y
                 point.handle_right.z *= scale_z
+
+                point.handle_left_type = left_type
+                point.handle_right_type = right_type
                 
         # Handle NURBS and Poly curves
         else:
@@ -220,5 +231,5 @@ def normalise_curve_scale(curve_obj):
     # Reset object scale to 1
     curve_obj.scale = (1, 1, 1)
 
-# --- Example Usage ---
-# normalise_curve_scale(bpy.context.active_object)
+    if "initial_curve_scale" in curve_obj and scale_x != 0:
+        curve_obj["initial_curve_scale"] = curve_obj["initial_curve_scale"] / scale_x

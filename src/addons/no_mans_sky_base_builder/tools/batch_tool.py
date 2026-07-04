@@ -110,20 +110,22 @@ class BatchTool(bpy.types.PropertyGroup):
             if source_object == target_object:
                 continue
             
-            # This create a linked duplicate
-            replaced_object = target_object.copy()
-            
-            if replaced_object.data:
-                replaced_object.data = replaced_object.data.copy()
+            if "ObjectID" in source_object:
+                # This create a linked duplicate
+                replaced_object = target_object.copy()
+                if replaced_object.data:
+                    replaced_object.data = replaced_object.data.copy()
 
-            # Copy transforms
-            replaced_object.matrix_world = source_object.matrix_world.copy()
-    
-            # Link the new object to the scene
-            current_collection.objects.link(replaced_object)
-            
-            replaced_objects_list.append(replaced_object)
-            objects_to_delete.append(source_object)
+                # Copy transforms
+                replaced_object.matrix_world = source_object.matrix_world.copy()
+                # Link the new object to the scene
+                current_collection.objects.link(replaced_object)
+                
+                replaced_objects_list.append(replaced_object)
+                objects_to_delete.append(source_object)
+            elif "has_linked_objects" in source_object and source_object.get("has_linked_objects", False):
+                source_object = curve.replace_curve_object(source_object, target_object)
+                replaced_objects_list.append(source_object)
             
         # 5. Batch delete outside the loop using low-level API
         for obj in objects_to_delete:
@@ -133,7 +135,8 @@ class BatchTool(bpy.types.PropertyGroup):
             bpy.data.objects.remove(target_object, do_unlink=True)
         
         # Select the new objects
-        blend_utils.select(replaced_objects_list)
+        if len(replaced_objects_list) > 0:
+            blend_utils.select(replaced_objects_list)
         return len(replaced_objects_list)
     
     

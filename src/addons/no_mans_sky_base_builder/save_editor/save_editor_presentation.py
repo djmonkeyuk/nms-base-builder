@@ -3,6 +3,8 @@ from bpy.types import Panel
 from .save_manager import SaveManager
 from .save_editor_utils import BaseType
 
+from ..import icons
+
 ADDON_ID = __package__.rsplit(".", 1)[0]
 
 # Save Editor Panel ---
@@ -23,6 +25,10 @@ class NMS_PT_save_editor_panel(Panel):
         save_data = context.scene.nms_save_data
         prefs = context.preferences.addons[ADDON_ID].preferences
         save_folder_path = prefs.nms_save_folder_path
+        
+        icon_pcoll = icons.get_icons_pscroll()
+        drive_icon = icon_pcoll["drive"]
+        piece_icon = icon_pcoll["puzzle_piece"]
         
         #display data related to a pinned base on top if there is any withing a blend file
         if save_data.pinned_base_check:
@@ -58,7 +64,7 @@ class NMS_PT_save_editor_panel(Panel):
         save_folder_box = layout.box()
         sf_column = save_folder_box.column(align=True)
         sf_enable_row = sf_column.row(align = True)
-        sf_enable_row.label(text = "Select Save", icon = "COLLECTION_COLOR_01")#DISK_DRIVE
+        sf_enable_row.label(text = "Select Save", icon_value = drive_icon.icon_id)#DISK_DRIVE
         
         #this row will contain a field where location of save folder is displayed
         if save_data.check_plugin_enabled and save_data.validate_save_folder(save_folder_path):
@@ -104,7 +110,7 @@ class NMS_PT_save_editor_panel(Panel):
                     backup_row.operator("object.open_backup_folder", icon="FOLDER_REDIRECT", text = "Open Backup Folder")
                     
                     sf_column.separator()
-                    sf_column.label(text = f"Total Parts : {save_data.get_total_parts_count()}", icon = "COLLECTION_COLOR_01")
+                    sf_column.label(text = f"Total Parts : {save_data.get_total_parts_count()}", icon_value = piece_icon.icon_id)
                     se_column = sf_column.column(align = True)
                     se_column.label(text = "Base Type selected")# icon = "MOD_BUILD"
                     #radio buttons to select type of base

@@ -216,7 +216,10 @@ class DuplicateAlongCurve(bpy.types.Operator):
             ShowMessageBox(message=message, title="Duplicate Along Curve")
             return {"CANCELLED"}
         
-        return wm.invoke_props_dialog(self)
+        if "has_linked_objects" in curve_objs[0]:
+            return self.execute(context)
+        else :
+            return wm.invoke_props_dialog(self)
     
 
 class CreateCurve(bpy.types.Operator):
@@ -277,7 +280,10 @@ class CurveBreakApart(bpy.types.Operator):
     def execute(self, context):
         active_object = bpy.context.active_object
         try:
-            detached_count = curve.apply_curve_transforms_and_detach(active_object)
+            curve_obj, duplicates = curve.apply_curve_transforms_and_detach(active_object)
+            if duplicates is not None:
+                blend_utils.select(duplicates)
+            detached_count = len(duplicates)
             self.report({'INFO'}, f"Created {detached_count} objects")
         except TypeError as error_message:
             self.report({'ERROR'}, str(error_message))

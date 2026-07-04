@@ -250,22 +250,27 @@ class BuildTool(bpy.types.PropertyGroup):
             ShowMessageBox(message=message, title="Duplicate Along Curve")
             return {"FINISHED"}
         
-        curve_object["unique_id"] = str(uuid.uuid4())
-        curve_object["parent_selected"] = True
-        curve_object.show_in_front = True
-        self.selected_curve_object_is_parent = True
-        self.active_curve_radius_multiplier = radius_multiplier
-        self.active_curve_number_of_objects = number_of_objects
-        self.active_curve_name = curve_object.name
-        self.show_gap_edit_field = True
+        if "has_linked_objects" in curve_object:
+            curve_object = curve.replace_curve_object(curve_object, dup_object)
+            blend_utils.select(curve_object)
         
-        # Perform duplication along curve.
-        curve.duplicate_along_curve( dup_object, curve_object, number_of_objects, radius_multiplier )
-        
-        # lock all objects on curve so that only curve is selectable
-        curve.lock_all_objects(curve_object)
-        blend_utils.select(curve_object)
-        
+        else :
+            curve_object["unique_id"] = str(uuid.uuid4())
+            curve_object["parent_selected"] = True
+            curve_object.show_in_front = True
+            self.selected_curve_object_is_parent = True
+            self.active_curve_radius_multiplier = radius_multiplier
+            self.active_curve_number_of_objects = number_of_objects
+            self.active_curve_name = curve_object.name
+            self.show_gap_edit_field = True
+            
+            # Perform duplication along curve.
+            curve.duplicate_along_curve( dup_object, curve_object, number_of_objects, radius_multiplier )
+            
+            # lock all objects on curve so that only curve is selectable
+            curve.lock_all_objects(curve_object)
+            blend_utils.select(curve_object)
+            
         properties = bpy.context.scene.nms_properties
         properties.set_active_obect(curve_object)
         

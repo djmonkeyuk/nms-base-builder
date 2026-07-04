@@ -32,6 +32,8 @@ def move_curve_to_collection(curve_obj):
         move_collection_into_collection(master_col, curve_col)
         curve_obj["parent_col"] = curve_col
         
+    move_object_into_collection(curve_col, curve_obj)
+        
     return curve_col
 
 def rename_to_unliked(collection):

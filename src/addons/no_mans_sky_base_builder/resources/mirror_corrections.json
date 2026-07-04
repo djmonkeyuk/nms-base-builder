@@ -8,6 +8,10 @@
     "S_CANISTER1",
     "S_SPARKPLUG"
   ],
+
+  "local_y_90_rotation_parts": [
+    "S_ROOF_IC"
+  ],
   "mirror_z_180_identifiers": [
     "TRIFLOOR"
   ],

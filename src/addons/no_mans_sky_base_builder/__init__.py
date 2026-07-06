@@ -2,48 +2,36 @@ import json
 import os
 import subprocess
 import sys
-import webbrowser
 import uuid
+import webbrowser
 
 import blf
 import bpy
 import bpy.ops
 import bpy.utils
 import bpy.utils.previews
-from bpy.props import (
-    BoolProperty,
-    EnumProperty,
-    FloatProperty,
-    IntProperty,
-    PointerProperty,
-    StringProperty,
-)
-from bpy.types import Panel, PropertyGroup
 from bpy.app.handlers import persistent
+from bpy.props import (BoolProperty, EnumProperty, FloatProperty, IntProperty,
+                       PointerProperty, StringProperty)
+from bpy.types import Panel, PropertyGroup
 from numpy import isin
 
-from . import builder, part, preset, icons
+from . import builder, icons, part, preset
 from .part_overrides import line
-from .utils import blend_utils, curve, curve_utils, workspace, collection_utils
-from .utils import material as _material
-from .utils import python as python_utils
-
-from .save_editor.save_manager import SaveManager
+from .save_editor import save_editor_operators, save_editor_utils
 from .save_editor.save_editor_presentation import NMS_PT_save_editor_panel
-from .save_editor import save_editor_operators
-from .save_editor import save_editor_utils
-
+from .save_editor.save_manager import SaveManager
+from .tools import batch_tool_operators, build_tool_operators
+from .tools.batch_tool import BatchTool
+from .tools.batch_tool_presentation import NMS_PT_batch_tools_panel
 from .tools.build_tool import BuildTool
-from .tools import build_tool_operators
 from .tools.build_tool_presentation import NMS_PT_tools_panel
-
 from .tools.properties import Properties
 from .tools.properties_presentation import NMS_PT_base_prop_panel
-
-from .tools.batch_tool_presentation import NMS_PT_batch_tools_panel
-from .tools.batch_tool import BatchTool
-from .tools import batch_tool_operators
-
+from .utils import blend_utils, collection_utils, curve, curve_utils
+from .utils import material as _material
+from .utils import python as python_utils
+from .utils import workspace
 
 FILE_PATH = os.path.dirname(os.path.realpath(__file__))
 USER_PATH = os.path.join(os.path.expanduser("~"), "NoMansSkyBaseBuilder")
@@ -733,6 +721,7 @@ class NMS_PT_hero_panel(Panel):
         discord_icon = pcoll["discord"]
         coffee_icon = pcoll["coffee"]
         online_icon = pcoll["online"]
+        box_archive_icon = pcoll["box_archive"]
         
         
         
@@ -754,7 +743,7 @@ class NMS_PT_hero_panel(Panel):
         icon_text_sec = icon_text_column.column(align = True)
         icon_text_sec.alert = True
         #icon_text_sec.scale_y = 0.4
-        icon_text_sec.label(text = "by DjMonkey", icon = "MONKEY")
+        icon_text_sec.label(text = "🐵 by DjMonkey")
         
         community_row = layout.row(align=True)
         communuity_box = community_row.box()
@@ -766,29 +755,22 @@ class NMS_PT_hero_panel(Panel):
         support_box = community_row.box()
         fourth_column = support_box.column(align = True)
         fourth_column.label(text = "Support Me")
-        fourth_column.operator("object.nms_cleanup_workspace", text = "Patreon", icon_value = pateron_icon.icon_id)
-        fourth_column.operator("object.nms_cleanup_workspace", text = "Buy me a Coffee", icon_value = coffee_icon.icon_id)
+        fourth_column.operator("object.nms_visit_patreon", text = "Patreon", icon_value = pateron_icon.icon_id)
+        fourth_column.operator("object.nms_visit_steam_games", text = "Buy my Steam games", icon_value = coffee_icon.icon_id)
         
-        
-        #if not nms_tool.is_workspace_cleaned:
         workspace_row = layout.row(align=True)
         workspace_box = workspace_row.box()
         workspace_column = workspace_box.column(align = True)
         workspace_column.label(text = "Workspace")
-        workspace_column.operator("object.nms_cleanup_workspace", text = "Workspace Cleanup", icon = "WORKSPACE")
-        
-        theme_box = workspace_row.box()
-        theme_col = theme_box.column(align = True)
-        theme_col.label(text = "Theme")
-        theme_col.prop(prefs,"selected_theme", text = "")
-        
-        
+        workspace_column.operator("object.nms_launch_asset_browser", text = "Launch Asset Browser", icon = "DESKTOP")
+        if not nms_tool.is_workspace_cleaned:
+            workspace_column.operator("object.nms_cleanup_workspace", text = "Simplify Blender Workspace", icon = "WORKSPACE")
 
 
 # File Buttons Panel ---
 class NMS_PT_file_buttons_panel(Panel):
     bl_idname = "NMS_PT_file_buttons_panel"
-    bl_label = "Import/Export"
+    bl_label = "🔄 Import/Export"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
     bl_category = "No Mans Sky Base Builder"
@@ -826,11 +808,12 @@ class NMS_PT_file_buttons_panel(Panel):
 # Colour Panel ---
 class NMS_PT_colour_panel(Panel):
     bl_idname = "NMS_PT_colour_panel"
-    bl_label = "Colour & Materials"
+    bl_label = "🎨 Colour & Materials"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
     bl_category = "No Mans Sky Base Builder"
     bl_context = "objectmode"
+    bl_options = {'DEFAULT_CLOSED'}
 
     @classmethod
     def poll(self, context):
@@ -879,11 +862,12 @@ class NMS_PT_colour_panel(Panel):
 # Colour Panel ---
 class NMS_PT_logic_panel(Panel):
     bl_idname = "NMS_PT_logic_panel"
-    bl_label = "Cables and Logic"
+    bl_label = "⚡ Cables & Logic"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
     bl_category = "No Mans Sky Base Builder"
     bl_context = "objectmode"
+    bl_options = {'DEFAULT_CLOSED'}
 
     @classmethod
     def poll(self, context):
@@ -935,7 +919,7 @@ class NMS_PT_logic_panel(Panel):
 # Build Panel ---
 class NMS_PT_build_panel(Panel):
     bl_idname = "NMS_PT_build_panel"
-    bl_label = "Build"
+    bl_label = "🏗️ Build"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
     bl_category = "No Mans Sky Base Builder"
@@ -1307,7 +1291,7 @@ class VisitDiscord(bpy.types.Operator):
 
 
 class VisitGuides(bpy.types.Operator):
-    """Launch the community discord URL."""
+    """Launch the dedicated online guides."""
 
     bl_idname = "object.nms_visit_guides"
     bl_label = "Online Guides."
@@ -1317,6 +1301,28 @@ class VisitGuides(bpy.types.Operator):
         webbrowser.open_new(
             "https://djmonkey.uk/no-mans-sky-base-builder-blender/guides/"
         )
+        return {"FINISHED"}
+
+
+class VisitPatreon(bpy.types.Operator):
+    """Open the Patreon page."""
+
+    bl_idname = "object.nms_visit_patreon"
+    bl_label = "Patreon"
+
+    def execute(self, context):
+        webbrowser.open_new("https://www.patreon.com/cw/djmonkeyuk/")
+        return {"FINISHED"}
+
+
+class VisitSteamGames(bpy.types.Operator):
+    """Open DjMonkey's Steam developer page."""
+
+    bl_idname = "object.nms_visit_steam_games"
+    bl_label = "Wishlist/Buy my Steam games"
+
+    def execute(self, context):
+        webbrowser.open_new("https://store.steampowered.com/developer/djmonkey")
         return {"FINISHED"}
 
 
@@ -1846,7 +1852,7 @@ class SplitPreset(bpy.types.Operator):
 
     def execute(self, context):
         from . import preset as _preset_mod
-        
+
         # Find the selected preset, or any preset in the scene
         selected = [o for o in context.selected_objects if "PresetID" in o]
         if not selected:
@@ -1969,40 +1975,7 @@ class NMSAddonPreferences(bpy.types.AddonPreferences):
         default = str(save_editor_utils.get_default_save_folder())
     )
     
-    _theme_cache = []
-    
-    selected_theme: bpy.props.EnumProperty(
-        name="Active Theme",
-        description="Choose a theme to apply",
-        items= lambda self, context: self.generate_theme_list(),
-        update= lambda self, context: self.apply_selected_theme() 
-    )
-    
-    def generate_theme_list(self):
-        """Generates the list, using the class cache to scan only once."""
-        
-        if NMSAddonPreferences._theme_cache:
-            return NMSAddonPreferences._theme_cache
 
-        themes_extracted = workspace.get_themes_list()
-        enum_themes = []
-        blender_default_dark = ("DEFAULT_BLENDER", "(Dark) Blender Default", "Restore Blender's default theme")
-        
-        enum_themes.append(blender_default_dark)
-        for theme in themes_extracted:
-            theme_name = theme["theme_name"]
-            display_name = f"{theme_name}"
-            path = theme["path"]
-            enum_themes.append((path, display_name,"theme creator credits"))
-                    
-        NMSAddonPreferences._theme_cache = enum_themes
-        return enum_themes
-    
-    def apply_selected_theme(self):
-        theme_path = self.selected_theme
-        workspace.apply_theme(theme_path)
-
-        
 preview_collections = {}
 
 # Plugin Registration ---
@@ -2030,6 +2003,8 @@ classes = (
     PresetsMenu,
     VisitDiscord,
     VisitGuides,
+    VisitPatreon,
+    VisitSteamGames,
     VisitPrefabDiscord,
     VisitGitHubRepo,
     OpenPresetFolder,
@@ -2053,11 +2028,11 @@ classes = (
     NMS_PT_file_buttons_panel,
     NMS_PT_save_editor_panel,
     NMS_PT_base_prop_panel,
-    NMS_PT_tools_panel,
     NMS_PT_colour_panel,
     NMS_PT_logic_panel,
-    NMS_PT_build_panel,
+    NMS_PT_tools_panel,
     NMS_PT_batch_tools_panel,
+    NMS_PT_build_panel,
     NMS_PT_nms_legacy_asset_browser,
     
     NMSAddonPreferences,

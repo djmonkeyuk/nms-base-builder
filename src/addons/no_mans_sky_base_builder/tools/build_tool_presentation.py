@@ -1,14 +1,16 @@
 import bpy
 from bpy.types import Panel
 
+
 # Snap Panel ---
 class NMS_PT_tools_panel(Panel):
     bl_idname = "NMS_PT_snap_panel"
-    bl_label = "Tools"
+    bl_label = "🛠️ Builder Tools"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
     bl_category = "No Mans Sky Base Builder"
     bl_context = "objectmode"
+    bl_options = {'DEFAULT_CLOSED'}
 
     @classmethod
     def poll(self, context):

@@ -1,16 +1,16 @@
 import bpy
 from bpy.types import Panel
-from .save_manager import SaveManager
-from .save_editor_utils import BaseType
 
-from ..import icons
+from .. import icons
+from .save_editor_utils import BaseType
+from .save_manager import SaveManager
 
 ADDON_ID = __package__.rsplit(".", 1)[0]
 
 # Save Editor Panel ---
 class NMS_PT_save_editor_panel(Panel):
     bl_idname = "NMS_PT_save_editor_panel"
-    bl_label = "Save Manager"
+    bl_label = "💾 Save Manager"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
     bl_category = "No Mans Sky Base Builder"

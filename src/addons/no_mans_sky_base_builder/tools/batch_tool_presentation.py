@@ -1,15 +1,18 @@
 import bpy
 from bpy.types import Panel
+
 from .. import icons
+
 
 # Base Property Panel ---
 class NMS_PT_batch_tools_panel(Panel):
     bl_idname = "NMS_PT_batch_tools_panel"
-    bl_label = "Batch Tools"
+    bl_label = "📦 Batch Tools"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
     bl_category = "No Mans Sky Base Builder"
     bl_context = "objectmode"
+    bl_options = {'DEFAULT_CLOSED'} 
 
     @classmethod
     def poll(self, context):

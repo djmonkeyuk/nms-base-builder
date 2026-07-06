@@ -1,11 +1,13 @@
 import bpy
 from bpy.types import Panel
+
 from .. import icons
+
 
 # Base Property Panel ---
 class NMS_PT_base_prop_panel(Panel):
     bl_idname = "NMS_PT_base_prop_panel"
-    bl_label = "Properties"
+    bl_label = "📋 Properties"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
     bl_category = "No Mans Sky Base Builder"
@@ -28,7 +30,6 @@ class NMS_PT_base_prop_panel(Panel):
         
         properties_box = layout.box()
         properties_column = properties_box.column(align=True)
-        properties_column.label(text = "Base Properties", icon_value = home_icon.icon_id)
         base_prop_split = properties_column.split(factor = 0.3)
         base_label_col = base_prop_split.column(align = True)
         base_label_col.label(text = "Base Name :")

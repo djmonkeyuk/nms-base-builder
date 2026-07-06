@@ -1,6 +1,11 @@
 import bpy
 from bpy.types import Panel
 from .save_manager import SaveManager
+from .save_editor_utils import BaseType
+
+from ..import icons
+
+ADDON_ID = __package__.rsplit(".", 1)[0]
 
 # Save Editor Panel ---
 class NMS_PT_save_editor_panel(Panel):
@@ -18,6 +23,12 @@ class NMS_PT_save_editor_panel(Panel):
     def draw(self, context):
         layout = self.layout
         save_data = context.scene.nms_save_data
+        prefs = context.preferences.addons[ADDON_ID].preferences
+        save_folder_path = prefs.nms_save_folder_path
+        
+        icon_pcoll = icons.get_icons_pscroll()
+        drive_icon = icon_pcoll["drive"]
+        piece_icon = icon_pcoll["puzzle_piece"]
         
         #display data related to a pinned base on top if there is any withing a blend file
         if save_data.pinned_base_check:
@@ -53,10 +64,10 @@ class NMS_PT_save_editor_panel(Panel):
         save_folder_box = layout.box()
         sf_column = save_folder_box.column(align=True)
         sf_enable_row = sf_column.row(align = True)
-        sf_enable_row.label(text = "Select Save", icon = "DISK_DRIVE")
+        sf_enable_row.label(text = "Select Save", icon_value = drive_icon.icon_id)#DISK_DRIVE
         
         #this row will contain a field where location of save folder is displayed
-        if save_data.check_plugin_enabled and save_data.validate_save_folder(context.scene.nms_save_folder_path):
+        if save_data.check_plugin_enabled and save_data.validate_save_folder(save_folder_path):
             #button to choose path to save folder
             sf_enable_row.operator( "object.nms_select_save_folder", text="", icon='FILE_FOLDER')
         
@@ -70,9 +81,16 @@ class NMS_PT_save_editor_panel(Panel):
         
          # Select Save
         if save_data.check_plugin_enabled:
-            if not save_data.validate_save_folder(context.scene.nms_save_folder_path):
+            if not save_data.validate_save_folder(save_folder_path):
                 sf_column.separator()
-                sf_column.operator( "object.nms_select_save_folder", text="Select Save Folder", icon='FILE_FOLDER')
+                select_folder_info_col = sf_column.column(align = True)
+                select_folder_info_col.scale_y = 0.8
+                select_folder_info_col.label(text = " Save Folder should end with")
+                select_folder_info_col.label(text = r' path like : "...\HelloGames\NMS"')
+                sf_column.separator()
+                select_folder_button_col = sf_column.column(align = True)
+                select_folder_button_col.alert = True
+                select_folder_button_col.operator( "object.nms_select_save_folder", text="Select Save Folder", icon='FILE_FOLDER')
             else:
                 is_base_data_loaded = save_data.is_base_data_loaded()
                 sf_column.separator()
@@ -92,7 +110,7 @@ class NMS_PT_save_editor_panel(Panel):
                     backup_row.operator("object.open_backup_folder", icon="FOLDER_REDIRECT", text = "Open Backup Folder")
                     
                     sf_column.separator()
-                    sf_column.separator()
+                    sf_column.label(text = f"Total Parts : {save_data.get_total_parts_count()}", icon_value = piece_icon.icon_id)
                     se_column = sf_column.column(align = True)
                     se_column.label(text = "Base Type selected")# icon = "MOD_BUILD"
                     #radio buttons to select type of base
@@ -110,20 +128,27 @@ class NMS_PT_save_editor_panel(Panel):
                     else: 
                         base_index_row.alert = False
                         
-                    #list of bases for selection
-                    base_index_row.prop(save_data, "nms_base_index", text="", icon = "GEOMETRY_SET")
-                    
-                    #display buttons when a base is selected from list
                     if SaveManager.is_base_selected:
-                        # show pin button and a base/corvette is selected
-                        base_index_pin_row = base_index_row.row(align=True)
-                        base_index_pin_row.scale_x = 0.6
-                        #Pin button, pin a base without imorting it to scene, so that save data can be updated to location marked by it
-                        base_index_pin_row.operator("object.nms_pin_base", icon="PINNED", text = " Pin for easy-access")
+                        
+                        #list of bases for selection
+                        base_index_row.prop(save_data, "nms_base_index", text="")
+                        
+                        #display buttons when a base is selected from list
+                        if save_data.nms_base_type != BaseType.EXTERNAL_BASE:
+                            # show pin button and a base/corvette is selected
+                            base_index_pin_row = base_index_row.row(align=True)
+                            base_index_pin_row.scale_x = 0.6
+                            #Pin button, pin a base without imorting it to scene, so that save data can be updated to location marked by it
+                            base_index_pin_row.operator("object.nms_pin_base", icon="PINNED", text = " Pin for easy-access")
                         
                         se_column.separator()
                         import_export_row = se_column.row(align=True)
                         #Import button, this button will import base to scene
                         import_export_row.operator("object.nms_import_base_from_save", icon="IMPORT", text = "Import from Save")
-                        import_export_row.operator("object.nms_export_base_to_save", icon="EXPORT", text = "Export to Save")
-        
+                        
+                        if save_data.nms_base_type != BaseType.EXTERNAL_BASE:
+                            import_export_row.operator("object.nms_export_base_to_save", icon="EXPORT", text = "Export to Save")
+                            
+                    else :
+                        #list of bases for selection
+                        base_index_row.prop(save_data, "nms_base_index", text="", icon = "GEOMETRY_SET")

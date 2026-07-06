@@ -473,3 +473,51 @@ class Preset(object):
                 mat_rot = mathutils.Matrix.Rotation(math.radians(-90.0), 4, "X")
                 use_matrix = use_matrix @ mat_rot
         self.matrix_world = use_matrix
+        
+        
+    @staticmethod
+    def split_to_parts(preset_id):
+        """Split a preset into individual, independent parts.
+
+        Unparents all parts of the preset from the control object (maintaining their 
+        world positions), removes the 'belongs_to_preset' flag, and deletes the 
+        preset control object. After this operation, each part becomes independent.
+
+        Args:
+            preset_id (str): The PresetID of the preset in the scene.
+        Returns:
+            int: The number of parts the preset was split into.
+        """
+        controls = [o for o in bpy.data.objects if o.get("PresetID") == preset_id]
+        if not controls:
+            return 0
+        control = controls[0]
+
+        def all_children(obj):
+            res = []
+            for c in list(obj.children):
+                res.append(c)
+                res.extend(all_children(c))
+            return res
+
+        parts = all_children(control)
+        for p in parts:
+            # Unparent while maintaining world position
+            if p.parent == control:
+                world = p.matrix_world.copy()
+                p.parent = None
+                p.matrix_world = world
+            
+            # Remove preset-specific flags
+            if "belongs_to_preset" in p:
+                p["belongs_to_preset"] = False
+            if "PresetID" in p and p != control:
+                del p["PresetID"]
+            
+            # Unlock selection and visibility so the part can be selected/moved
+            p.hide_select = False
+            p.hide_set(False)
+
+        # Remove the control object
+        bpy.data.objects.remove(control, do_unlink=True)
+        return len(parts)

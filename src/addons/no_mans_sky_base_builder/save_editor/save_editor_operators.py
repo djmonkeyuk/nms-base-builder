@@ -1,6 +1,7 @@
 import bpy
 
 from . import save_editor_utils
+ADDON_ID = __package__.rsplit(".", 1)[0]
 
 # Operator for button to select save folder directory
 class SelectSaveFolder(bpy.types.Operator):
@@ -15,22 +16,29 @@ class SelectSaveFolder(bpy.types.Operator):
 
     def execute(self, context):
         prefs = context.scene
-        save_file_identifier = "HelloGames\\NMS\\"
-
         print("folder is :", self.directory)
-        if str(self.directory).lower().endswith(save_file_identifier.lower()):
+        if save_editor_utils.validate_save_folder(str(self.directory)):
+            
+            prefs = context.preferences.addons[ADDON_ID].preferences
             prefs.nms_save_folder_path = self.directory
             bpy.ops.wm.save_userpref()
+            
+            scene = context.scene
+            save_data = scene.nms_save_data
+            save_data.on_check_plugin_enabled(context)
+            save_data.nms_account_selected = "Default"
+            
+            self.report({'INFO'}, f"Selected folder is valid NMS save folder")
             print("Selected folder is valid:", prefs.nms_save_folder_path)
         else :
             self.report({'ERROR'}, f"Selected folder is not a NMS save folder. Please select the correct folder.")
             print("Selected folder is invalid:", self.directory)
-        
         return {'FINISHED'}
 
     def invoke(self, context, event):
-        save_root_folder = save_editor_utils.get_root_save_folder()
-        self.directory = str(save_root_folder)
+        prefs = context.preferences.addons[ADDON_ID].preferences
+        save_root_folder = prefs.nms_save_folder_path
+        self.directory = save_root_folder
         context.window_manager.fileselect_add(self)
         return {'RUNNING_MODAL'}
     

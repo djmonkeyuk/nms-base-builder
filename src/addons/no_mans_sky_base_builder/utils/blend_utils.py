@@ -4,6 +4,7 @@ import math
 
 import addon_utils
 import bpy
+from ..utils import blend_utils
 
 
 def load_plugin(plugin_name):
@@ -163,3 +164,64 @@ def delete(bpy_object):
 
     bpy_object.select_set(True)
     bpy.ops.object.delete()
+    
+    
+def find_duplicates(decimals = 4):
+    """
+    Removes duplicate objects based on:
+        - name
+        - world location
+        - world rotation
+        - world scale
+
+    Keeps the first found object unselected and select subsequent duplicates.
+    """
+
+    seen_objects = {}
+    duplicates = []
+
+    for obj in bpy.data.objects:
+        location_vector, rotation_quaternion, scale_vector = obj.matrix_world.decompose()
+        
+        location = (
+            round(location_vector.x,decimals),
+            round(location_vector.y,decimals),
+            round(location_vector.z,decimals)
+        )
+        
+        rotation_euler = rotation_quaternion.to_euler("XYZ")
+        rotation = (
+            round(rotation_euler.x, decimals),
+            round(rotation_euler.y, decimals),
+            round(rotation_euler.z, decimals)
+        )
+        
+        scale = round(scale_vector.x, decimals)
+        object_key = (
+            obj.get("ObjectID",obj.name),
+            location,
+            rotation,
+            scale,
+        )
+        
+        if object_key in seen_objects:
+            duplicates.append(obj.get("object", obj))
+        else:
+            seen_objects[object_key] = obj
+
+    # select duplicates
+    for obj in duplicates:
+        blend_utils.select(duplicates)
+
+    print(f"Selected {len(duplicates)} duplicate objects")
+    return len(duplicates)
+
+def duplicate_part(target):
+    """ Duplicate an object and place it in same collection as original object
+        Return duplicated object
+    """
+    new_item = target.copy()
+    new_item.data = target.data.copy()
+    for collection in target.users_collection:
+        collection.objects.link(new_item)
+    return target

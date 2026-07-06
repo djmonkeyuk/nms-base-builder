@@ -3,7 +3,9 @@ import os
 import subprocess
 import sys
 import webbrowser
+import uuid
 
+import blf
 import bpy
 import bpy.ops
 import bpy.utils
@@ -20,17 +22,28 @@ from bpy.types import Panel, PropertyGroup
 from bpy.app.handlers import persistent
 from numpy import isin
 
-from . import builder, part, preset
+from . import builder, part, preset, icons
 from .part_overrides import line
-from .utils import blend_utils, curve
+from .utils import blend_utils, curve, curve_utils, workspace, collection_utils
 from .utils import material as _material
 from .utils import python as python_utils
-from .utils import mirror_utils
 
 from .save_editor.save_manager import SaveManager
 from .save_editor.save_editor_presentation import NMS_PT_save_editor_panel
 from .save_editor import save_editor_operators
 from .save_editor import save_editor_utils
+
+from .tools.build_tool import BuildTool
+from .tools import build_tool_operators
+from .tools.build_tool_presentation import NMS_PT_tools_panel
+
+from .tools.properties import Properties
+from .tools.properties_presentation import NMS_PT_base_prop_panel
+
+from .tools.batch_tool_presentation import NMS_PT_batch_tools_panel
+from .tools.batch_tool import BatchTool
+from .tools import batch_tool_operators
+
 
 FILE_PATH = os.path.dirname(os.path.realpath(__file__))
 USER_PATH = os.path.join(os.path.expanduser("~"), "NoMansSkyBaseBuilder")
@@ -43,6 +56,8 @@ ghosted_reference = python_utils.load_dictionary(GHOSTED_JSON)
 GHOSTED_ITEMS = ghosted_reference["GHOSTED"]
 NICE_JSON = os.path.join(FILE_PATH, "resources", "nice_names.json")
 nice_name_dictionary = python_utils.load_dictionary(NICE_JSON)
+
+ADDON_ID = __package__
 
 
 # Setting Support Methods ---
@@ -68,13 +83,15 @@ def get_line_type_from_enum(context):
     line_object = "U_POWERLINE"
     scene = context.scene
     nms_tool = scene.nms_base_tool
-    line_value = list(nms_tool.line_switch)[0]
+    line_value = nms_tool.line_switch
     if line_value == "TELEPORT":
         line_object = "U_PORTALLINE"
     elif line_value == "PIPE":
         line_object = "U_PIPELINE"
     elif line_value == "BYTEBEAT":
         line_object = "U_BYTEBEATLINE"
+        
+    print("line value is :", line_value)
     return line_object
 
 
@@ -111,8 +128,8 @@ class NMSSettings(PropertyGroup):
             ("BYTEBEAT", "Byte-Beat Cable", "Byte-Beat Cable"),
             ("PIPE", "Pipe", "Pipe"),
         ],
-        options={"ENUM_FLAG"},
-        default={"POWER"},
+        #options={"ENUM_FLAG"},
+        default="POWER",
     )
 
     preset_name: StringProperty(
@@ -289,8 +306,21 @@ class NMSSettings(PropertyGroup):
     auto_power_setting: StringProperty(
         name="AutoPowerSetting", description="AutoPowerSetting.", default="UseDefault"
     )
+    
+    is_workspace_cleaned: BoolProperty(
+        name="Is Workspace Cleaned", description="Check if workspace has been cleaned by user", default=False
+    )
 
     room_vis_switch: IntProperty(name="room_vis_switch", default=0)
+    
+    
+    color_picker: bpy.props.PointerProperty(
+        name="Colour Picker",
+        type=bpy.types.Object,
+        options={'SKIP_SAVE'},
+        description = "Pick an object to use are reference for colouring",
+        update = lambda self, context: self.on_color_picked()
+    )
 
     def deserialise_from_data(self, nms_data):
         # Start new file
@@ -596,170 +626,8 @@ class NMSSettings(PropertyGroup):
                         ob.hide_select = hide_select
                     ob.select_set(False)
 
-    def delete(self):
-        """Delete the selected object and everything below."""
-        # Store selection.
-        selected_objects = bpy.context.selected_objects
-        # Validate
-        if not selected_objects:
-            ShowMessageBox(
-                message="Select an item to delete from the scene.", title="Delete"
-            )
-            return
 
-        for item in selected_objects:
-            blend_utils.delete(item)
-
-    def duplicate(self):
-        """Snaps one object to another based on selection."""
-        # Store selection.
-        selected_objects = bpy.context.selected_objects
-
-        # Validate
-        if not selected_objects:
-            ShowMessageBox(
-                message="Make sure you have an item selected.", title="Duplicate"
-            )
-            return
-
-        # Get Selected item.
-        target = blend_utils.get_current_selection()
-
-        if "ObjectID" not in target and "PresetID" not in target:
-            message = (
-                "This item can not be duplicated via the No Man's Sky tool. "
-                "Try using Blender hotkey instead (Shift-D)."
-            )
-            ShowMessageBox(message=message, title="Duplicate")
-            return
-
-        # Part
-        if "ObjectID" in target:
-            object_id = target["ObjectID"]
-            user_data = target["UserData"]
-            # Build Item.
-            new_item = BUILDER.add_part(object_id, user_data=user_data)
-            new_item.select()
-        if "PresetID" in target:
-            preset_id = target["PresetID"]
-            # Build Item.
-            new_item = BUILDER.add_preset(preset_id)
-            new_item.select()
-
-        # Build Rig if need to.
-        if hasattr(new_item, "build_rig"):
-            new_item.build_rig()
-        # Snap.
-        target = BUILDER.get_builder_object_from_bpy_object(target)
-        new_item.snap_to(target)
-
-    def duplicate_along_curve(self, distance_percentage):
-        """Snaps one object to another based on selection."""
-        selected_objects = bpy.context.selected_objects
-
-        if len(selected_objects) != 2:
-            message = (
-                "Make sure you have two items selected. Select the item to"
-                " duplicate, then the curve you want to snap to."
-            )
-            ShowMessageBox(message=message, title="Duplicate Along Curve")
-            return {"FINISHED"}
-
-        # Validate gap_distance.
-        range_message = "Please choose a value between 0 and 1."
-        if distance_percentage <= 0.0:
-            ShowMessageBox(message=range_message, title="Duplicate Along Curve")
-            return {"FINISHED"}
-
-        if distance_percentage >= 1.0:
-            ShowMessageBox(message=range_message, title="Duplicate Along Curve")
-            return {"FINISHED"}
-
-        # Figure out selection.
-        if "ObjectID" in selected_objects[0] or "PresetID" in selected_objects[0]:
-            curve_object = selected_objects[1]
-            dup_object = selected_objects[0]
-        else:
-            curve_object = selected_objects[0]
-            dup_object = selected_objects[1]
-
-        # Perform duplication along curve.
-        curve.duplicate_along_curve(
-            BUILDER, dup_object, curve_object, distance_percentage
-        )
-
-    def mirror(self, across_x=False):
-        """Mirror the object along X axis (if possible)."""
-        # Store selection.
-        selected_objects = bpy.context.selected_objects
-
-        # Validate
-        if not selected_objects:
-            ShowMessageBox(
-                message="Make sure you have an item selected.", title="Mirror"
-            )
-            return
-
-        # Get Selected item.
-        new_items = []
-        for target in selected_objects:
-            # Part
-            if "ObjectID" in target:
-                object_id = target["ObjectID"]
-                mirror_id = part.Part.get_mirror_part_id(object_id)
-                new_item = target
-                mirror_part_exist = False
-                if mirror_id in nice_name_dictionary.keys():
-                    # Build Item.
-                    new_item = BUILDER.mirror_part(target)
-                    mirror_part_exist = True
-
-                # mirror part across x axis
-                if across_x:
-                    mirrored_matrix_world = mirror_utils.mirror_matrix_world(object_id, new_item.matrix_world,True)
-                    new_item.matrix_world = mirrored_matrix_world
-                # mirror part on its location
-                else:
-                    # Apply mirroring fixes on parts that dont have a ingame asset to represent their mirror.
-                    if not mirror_part_exist:
-                        mirrored_matrix_world = mirror_utils.mirror_matrix_world(object_id, new_item.matrix_world, False)
-                        new_item.matrix_world = mirrored_matrix_world
-                        
-                if hasattr(new_item, "object"):
-                    new_items.append(new_item.object)
-                else:
-                    new_items.append(new_item)
-        blend_utils.select(new_items)
-        return {"FINISHED"}
-
-    def flip(self):
-        """Mirror the object along X axis (if possible)."""
-        # Store selection.
-        selected_objects = bpy.context.selected_objects
-        new_items = []
-        # Validate
-        if not selected_objects:
-            ShowMessageBox(message="Make sure you have an item selected.", title="Flip")
-            return
-
-        # Get Selected item.
-        for target in selected_objects:
-            # Part
-            if "ObjectID" in target:
-                object_id = target["ObjectID"]
-                mirror_id = part.Part.get_flip_part_id(object_id)
-                new_item = target
-                if mirror_id in nice_name_dictionary.keys():
-                    # Build Item.
-                    new_item = BUILDER.flip_part(target)
-                    new_items.append(new_item)
-
-                if hasattr(new_item, "object"):
-                    new_items.append(new_item.object)
-                else:
-                    new_items.append(new_item)
-
-        blend_utils.select(new_items)
+    
 
     def apply_colour(self, colour_index=0, material=0):
         """Gives an item a new colour."""
@@ -773,7 +641,16 @@ class NMSSettings(PropertyGroup):
         # Apply Colour Material.
         maeterial_index = int(material.split("_")[0])
         for obj in selected_objects:
-            _material.assign_material(obj, int(colour_index), int(maeterial_index))
+            
+            # detect if object is nms curve
+            if "has_linked_objects" in obj and curve.is_bezier_or_nurbs_path(obj):
+                for child_obj in bpy.context.scene.objects:
+                    if "curve_parent" in child_obj and child_obj["curve_parent"] == obj.name:
+                        _material.assign_material(child_obj, int(colour_index), int(maeterial_index))
+                        break
+            # for any other object
+            else :
+                _material.assign_material(obj, int(colour_index), int(maeterial_index))
 
         # Refresh the viewport.
         bpy.ops.wm.redraw_timer(type="DRAW_WIN_SWAP", iterations=1)
@@ -805,60 +682,34 @@ class NMSSettings(PropertyGroup):
 
         # Refresh the viewport.
         bpy.ops.wm.redraw_timer(type="DRAW_WIN_SWAP", iterations=1)
+        
+    # update materials of selected objects depending on material picked using picker
+    def on_color_picked(self):
+        target_object = self.color_picker
+        if target_object is None:
+            return 
+        
+        if "UserData" in target_object:
+            target_userdata = target_object["UserData"]
+            selected_objects = bpy.context.selected_objects
+            for obj in selected_objects:
+                if "has_linked_objects" in obj and curve.is_bezier_or_nurbs_path(obj):
+                    curve.apply_color(obj, target_userdata)
+                else :
+                    _material.restore_material(obj, target_userdata)
+        
+        def clear_picker():
+            self.color_picker = None
+            return None
 
-    def snap(
-        self, next_source=False, prev_source=False, next_target=False, prev_target=False
-    ):
-        """Snaps one object to another based on selection."""
-        selected_objects = bpy.context.selected_objects
-
-        source = None
-        target = None
-        # If only one item is selected, see if it has a snapped to variable to
-        # use.
-        if len(selected_objects) == 1:
-            source = bpy.context.view_layer.objects.active
-            if "snapped_to" in source:
-                target = bpy.data.objects[source["snapped_to"]]
-            else:
-                message = (
-                    "This item has not been snapped to anything. Please select "
-                    "the item you want to snap it to"
-                )
-                ShowMessageBox(message=message, title="Snap")
-                return {"FINISHED"}
-
-        # If 2 are selected, use them as the snapping items.
-        elif len(selected_objects) == 2:
-            target = bpy.context.view_layer.objects.active
-            source = [obj for obj in selected_objects if obj != target][0]
-
-        # If otherwise, we should skip and warn the user.
-        else:
-            message = (
-                "Make sure you have two items selected. Select the item you"
-                " want to snap to, then the item you want to snap."
-            )
-            ShowMessageBox(message=message, title="Snap")
-            return {"FINISHED"}
-
-        # Perform Snap
-        source = BUILDER.get_builder_object_from_bpy_object(source)
-        target = BUILDER.get_builder_object_from_bpy_object(target)
-        if source and target:
-            source.snap_to(
-                target,
-                next_source=next_source,
-                prev_source=prev_source,
-                next_target=next_target,
-                prev_target=prev_target,
-            )
-
+        bpy.app.timers.register(clear_picker, first_interval=0.0)
+        
 
 # UI ---
+
 # File Buttons Panel ---
-class NMS_PT_file_buttons_panel(Panel):
-    bl_idname = "NMS_PT_file_buttons_panel"
+class NMS_PT_hero_panel(Panel):
+    bl_idname = "NMS_PT_hero_panel"
     bl_label = "No Man's Sky Base Builder"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
@@ -870,37 +721,74 @@ class NMS_PT_file_buttons_panel(Panel):
         return True
 
     def draw(self, context):
+        scene = context.scene
+        nms_tool = scene.nms_base_tool
         layout = self.layout
-        file_box = layout.box()
-        first_column = file_box.column(align=True)
-        first_column.label(text="File")
-        button_row = first_column.row(align=True)
-        button_row.operator("object.nms_new_file")
-        save_load_row = first_column.row(align=True)
-        save_load_row.operator("object.nms_save_data", icon="FILE_TICK")
-        save_load_row.operator("object.nms_load_data", icon="FILE_FOLDER")
-
-        import_box = layout.box()
-        second_column = import_box.column(align=True)
-        second_column.label(text="Import & Export")
-        nms_row = second_column.row(align=True)
-        nms_row.operator("object.nms_import_nms_data", icon="PASTEDOWN")
-        export_col = nms_row.column(align=True)
-        export_col.operator("object.nms_export_nms_data", icon="COPYDOWN")
-        export_col.operator("object.nms_export_nms_data_objects", icon="COPYDOWN")
-
-        communuity_box = layout.box()
+        
+        prefs = context.preferences.addons[ADDON_ID].preferences
+        
+        pcoll = icons.get_icons_pscroll()
+        plugin_icon = pcoll["plugin_icon"]
+        pateron_icon = pcoll["patreon"]
+        discord_icon = pcoll["discord"]
+        coffee_icon = pcoll["coffee"]
+        online_icon = pcoll["online"]
+        
+        
+        
+        icon_row = layout.row(align = True)
+        icon_split = icon_row.split(factor = 0.35)
+        icon_holder = icon_split.column(align = True)
+        icon_holder.scale_y = 0.8
+        icon_holder.template_icon(
+            icon_value= plugin_icon.icon_id,
+            scale=4
+        )
+        
+        icon_text_column = icon_split.column(align = True)
+        icon_text_column.scale_y = 0.6
+        icon_text_column.label(text = "")
+        icon_text_column.label(text = "No Man's Sky")
+        icon_text_column.label(text = "Base and Corvette Builder")
+        icon_text_column.separator()
+        icon_text_sec = icon_text_column.column(align = True)
+        icon_text_sec.alert = True
+        #icon_text_sec.scale_y = 0.4
+        icon_text_sec.label(text = "by DjMonkey", icon = "MONKEY")
+        
+        community_row = layout.row(align=True)
+        communuity_box = community_row.box()
         third_column = communuity_box.column(align=True)
         third_column.label(text="Commmunity")
-        community_row = third_column.row(align=True)
-        community_row.operator("object.nms_visit_guides", icon="WORLD_DATA")
-        community_row.operator("object.nms_visit_community", icon="WORLD_DATA")
+        third_column.operator("object.nms_visit_guides", icon_value = online_icon.icon_id)
+        third_column.operator("object.nms_visit_community", icon_value = discord_icon.icon_id)
+        
+        support_box = community_row.box()
+        fourth_column = support_box.column(align = True)
+        fourth_column.label(text = "Support Me")
+        fourth_column.operator("object.nms_cleanup_workspace", text = "Patreon", icon_value = pateron_icon.icon_id)
+        fourth_column.operator("object.nms_cleanup_workspace", text = "Buy me a Coffee", icon_value = coffee_icon.icon_id)
+        
+        
+        #if not nms_tool.is_workspace_cleaned:
+        workspace_row = layout.row(align=True)
+        workspace_box = workspace_row.box()
+        workspace_column = workspace_box.column(align = True)
+        workspace_column.label(text = "Workspace")
+        workspace_column.operator("object.nms_cleanup_workspace", text = "Workspace Cleanup", icon = "WORKSPACE")
+        
+        theme_box = workspace_row.box()
+        theme_col = theme_box.column(align = True)
+        theme_col.label(text = "Theme")
+        theme_col.prop(prefs,"selected_theme", text = "")
+        
+        
 
 
-# Base Property Panel ---
-class NMS_PT_base_prop_panel(Panel):
-    bl_idname = "NMS_PT_base_prop_panel"
-    bl_label = "Base Properties"
+# File Buttons Panel ---
+class NMS_PT_file_buttons_panel(Panel):
+    bl_idname = "NMS_PT_file_buttons_panel"
+    bl_label = "Import/Export"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
     bl_category = "No Mans Sky Base Builder"
@@ -911,126 +799,28 @@ class NMS_PT_base_prop_panel(Panel):
         return True
 
     def draw(self, context):
+        
         layout = self.layout
         scene = context.scene
         nms_tool = scene.nms_base_tool
-        properties_box = layout.box()
-        properties_column = properties_box.column(align=True)
-        properties_column.prop(nms_tool, "string_base")
-        properties_column.prop(nms_tool, "string_address")
-        properties_column.prop(nms_tool, "string_userdata")
+        
+        file_row = layout.row(align=True)
+        file_box = file_row.box()
+        first_column = file_box.column(align=True)
+        first_column.label(text="File")# icon = "COLLECTION_COLOR_04"
+        first_column.operator("object.nms_new_file")
+        first_column.separator()
+        first_column.operator("object.nms_save_data", icon="FILE_TICK")
+        first_column.operator("object.nms_load_data", icon="FILE_FOLDER")
 
-
-# Snap Panel ---
-class NMS_PT_snap_panel(Panel):
-    bl_idname = "NMS_PT_snap_panel"
-    bl_label = "Tools"
-    bl_space_type = "VIEW_3D"
-    bl_region_type = "UI"
-    bl_category = "No Mans Sky Base Builder"
-    bl_context = "objectmode"
-
-    @classmethod
-    def poll(self, context):
-        return True
-
-    def draw(self, context):
-        layout = self.layout
-        scene = context.scene
-        nms_tool = scene.nms_base_tool
-
-        # Split into two columns of equal widths.
-        split = layout.split(factor=0.5)
-        tools_column, snap_column = (split.column(), split.column())
-
-        # Create Part Count Box.
-        part_box = tools_column.box()
-        splitter = part_box.split(factor=0.7)
-        splitter.label(text="Part Count:")
-        part_count = len([obj for obj in bpy.data.objects if "ObjectID" in obj])
-        splitter.label(text="{}".format(part_count))
-
-        tools_box = tools_column.box()
-        tools_col = tools_box.column(align=True)
-
-        tools_col.label(text="Visibility")
-        # Room Vis Button.
-        label = "Normal"
-        if nms_tool.room_vis_switch == 1:
-            label = "Ghosted"
-        elif nms_tool.room_vis_switch == 2:
-            label = "Invisible"
-
-        tools_col.operator("object.nms_toggle_room_visibility", icon="CUBE", text=label)
-
-        tools_col.label(text="Duplicate")
-        tools_col.operator("object.nms_duplicate", icon="DUPLICATE")
-        dup_along_curve = tools_col.operator(
-            "object.nms_duplicate_along_curve", icon="CURVE_DATA"
-        )
-        tools_col.label(text="Delete")
-        tools_col.operator("object.nms_delete", icon="CANCEL")
-
-        # Create Snapping box.
-        snap_box = snap_column.box()
-        snap_col = snap_box.column(align=True)
-        snap_col.label(text="Snap")
-        snap_op = snap_col.operator("object.nms_snap", icon="SNAP_ON")
-
-        target_row = snap_col.row(align=True)
-        target_row.label(text="Target")
-        snap_target_prev = target_row.operator(
-            "object.nms_snap", icon="TRIA_LEFT", text="Prev"
-        )
-        snap_target_next = target_row.operator(
-            "object.nms_snap", icon="TRIA_RIGHT", text="Next"
-        )
-
-        source_row = snap_col.row(align=True)
-        source_row.label(text="Source")
-        snap_source_prev = source_row.operator(
-            "object.nms_snap", icon="TRIA_LEFT", text="Prev"
-        )
-        snap_source_next = source_row.operator(
-            "object.nms_snap", icon="TRIA_RIGHT", text="Next"
-        )
-
-        # Corvette Mirror Tools
-        mirror_box = snap_column.box()
-        mirror_col = mirror_box.column(align=True)
-        mirror_col.label(text="Mirroring")
-        mirror_op = mirror_col.operator("object.nms_mirror", icon="ARROW_LEFTRIGHT")
-        mirror_op_x = mirror_col.operator(
-            "object.nms_mirror_across_x", icon="ARROW_LEFTRIGHT"
-        )
-        flip_op = mirror_col.operator("object.nms_flip", icon="DECORATE_OVERRIDE")
-
-        # Set Snap Operator assignments.
-        # Default
-        snap_op.prev_source = False
-        snap_op.next_source = False
-        snap_op.prev_target = False
-        snap_op.next_target = False
-        # Previous Target.
-        snap_target_prev.prev_source = False
-        snap_target_prev.next_source = False
-        snap_target_prev.prev_target = True
-        snap_target_prev.next_target = False
-        # Next Target.
-        snap_target_next.prev_source = False
-        snap_target_next.next_source = False
-        snap_target_next.prev_target = False
-        snap_target_next.next_target = True
-        # Previous Source.
-        snap_source_prev.prev_source = True
-        snap_source_prev.next_source = False
-        snap_source_prev.prev_target = False
-        snap_source_prev.next_target = False
-        # Next Source.
-        snap_source_next.prev_source = False
-        snap_source_next.next_source = True
-        snap_source_next.prev_target = False
-        snap_source_next.next_target = False
+        clipboard_box = file_row.box()
+        second_column = clipboard_box.column(align=True)
+        second_column.label(text="Import & Export")
+        second_column.operator("object.nms_import_nms_data", icon="PASTEDOWN")
+        second_column.separator()
+        second_column.operator("object.nms_export_nms_data", icon="COPYDOWN")
+        second_column.operator("object.nms_export_nms_data_objects", icon="COPYDOWN")
+            
 
 
 # Colour Panel ---
@@ -1050,15 +840,24 @@ class NMS_PT_colour_panel(Panel):
         layout = self.layout
         scene = context.scene
         nms_tool = scene.nms_base_tool
-        pcoll = preview_collections["main"]
-        colour_area = layout.column(align=True)
-        enum_row = colour_area.row(align=True)
-        enum_row.prop(nms_tool, "material_switch")
-
+        batch_tool = scene.nms_batch_tool
         colours = _material.get_colours_from_palette(nms_tool.material_switch)
-
-        grid = layout.grid_flow(columns=3, even_columns=True)
-
+        pcoll = preview_collections["main"]
+        
+        icons_pcoll = icons.get_icons_pscroll()
+        palette_icon = icons_pcoll["palette"]
+        
+        
+        colour_area = layout.box().column(align=False)
+        material_row = colour_area.row(align = True)
+        #material_row.label(text="", icon = "COLLECTION_COLOR_07")
+        #material_row.label(text = "Palette") # icon = "NODE_MATERIAL"
+        
+        material_row.prop(nms_tool, "material_switch",text = "Palette", icon_value = palette_icon.icon_id)
+        colour_area.separator()
+        grid = colour_area.grid_flow(columns=12, even_columns=True, align = True)
+        grid.scale_x = 0.6
+        grid.scale_y = 1.0
         for row in colours:
             index = row[3]
             name = row[5]
@@ -1068,10 +867,13 @@ class NMS_PT_colour_panel(Panel):
             colour_icon = pcoll.get(os.path.splitext(thumb)[0], None)
             op = grid.operator(
                 "object.nms_apply_colour",
-                text=name,
+                text="",
                 icon_value=colour_icon.icon_id if colour_icon else 0,
             )
             op.colour_index = int(index)
+            op.colour_name = name
+            
+        grid.prop(nms_tool,"color_picker", icon = "BLANK1", text = "")
 
 
 # Colour Panel ---
@@ -1091,32 +893,43 @@ class NMS_PT_logic_panel(Panel):
         layout = self.layout
         scene = context.scene
         nms_tool = scene.nms_base_tool
-
         layout = self.layout
+        
+        icons_pcoll = icons.get_icons_pscroll()
+        plug_icon = icons_pcoll["plug"]
+        
+        
         box = layout.box()
-        col = box.column()
-        col.label(text="Cables")
-        enum_row = col.row()
-        enum_row.prop(nms_tool, "line_switch")
-        row = col.row()
-        row.operator("object.nms_point", icon="EMPTY_DATA")
-        row.operator("object.nms_connect", icon="PARTICLES")
-        divide_row = col.row()
-        divide_row.operator("object.nms_divide", icon="LINCURVE")
-        divide_row.operator("object.nms_split", icon="MOD_PHYSICS")
-        select_row = col.row()
-        select_row.operator("object.nms_select_connected", icon="RESTRICT_SELECT_OFF")
-        select_row.operator("object.nms_select_floating", icon="RESTRICT_INSTANCED_ON")
-
-        col.label(text="Logic")
-        logic_row = col.row()
-        logic_row.operator("object.nms_logic_button")
-        logic_row.operator("object.nms_logic_wall_switch")
-        logic_row.operator("object.nms_logic_prox_switch")
-        logic_row.operator("object.nms_logic_inv_switch")
-        logic_row.operator("object.nms_logic_auto_switch")
-        logic_row.operator("object.nms_logic_floor_switch")
-        logic_row.operator("object.nms_logic_beat_switch")
+        col = box.column(align = True)
+        #col.label(text="Cable type", icon = "PLUGIN")
+        enum_row = col.row(align = True)
+        #enum_row.label(text="", icon = "COLLECTION_COLOR_05")
+        enum_row.prop(nms_tool, "line_switch", text = "Cable", icon_value = plug_icon.icon_id)#IPO_LINEAR
+        
+        col.separator()
+        col.label(text = "Operations")# , icon = "CON_CHILDOF"
+        row = col.row(align = True)
+        operations_col_1 = row.column(align = True)
+        operations_col_1.operator("object.nms_point", icon="EMPTY_DATA")
+        operations_col_1.operator("object.nms_divide", icon="LINCURVE")
+        
+        operations_col_2 = row.column(align = True)
+        operations_col_2.operator("object.nms_connect", icon="PARTICLES")
+        operations_col_2.operator("object.nms_split", icon="MOD_PHYSICS")
+        
+        operations_col_3 = row.column(align = True)
+        operations_col_3.operator("object.nms_select_connected", icon="RESTRICT_SELECT_OFF")
+        operations_col_3.operator("object.nms_select_floating", icon="RESTRICT_INSTANCED_ON")
+        logic_col= box.column(align = True)
+        logic_col.label(text="Logic")
+        logic_row_1 = logic_col.row(align = True)
+        logic_row_1.operator("object.nms_logic_button")
+        logic_row_1.operator("object.nms_logic_wall_switch")
+        logic_row_1.operator("object.nms_logic_prox_switch")
+        logic_row_1.operator("object.nms_logic_inv_switch")
+        logic_row_1.operator("object.nms_logic_auto_switch")
+        logic_row_1.operator("object.nms_logic_floor_switch")
+        logic_row_1.operator("object.nms_logic_beat_switch")
 
 
 # Build Panel ---
@@ -1136,14 +949,45 @@ class NMS_PT_build_panel(Panel):
         layout = self.layout
         scene = context.scene
         nms_tool = scene.nms_base_tool
-        col = layout.column(align=True)
-        col.operator("object.nms_launch_asset_browser", icon="DESKTOP")
-        col.operator("object.nms_save_as_preset", icon="SCENE_DATA")
-        row = col.row(align=True)
+        
+        icons_pcoll = icons.get_icons_pscroll()
+        box_archive_icon = icons_pcoll["box_archive"]
+        
+        
+        main_col = layout.box().column(align = True)
+        col = main_col.column(align=True)
+        col.label(text = "Asset Browser")
+        col.operator("object.nms_launch_asset_browser", icon_value = box_archive_icon.icon_id )# icon="COLLECTION_COLOR_03"
+        
+        presets_box = main_col.column(align = True)
+        presets_box.label(text = "Presets")
+        preset_row = presets_box.row(align = True)
+        preset_row.operator("object.nms_save_as_preset", icon="SCENE_DATA")
+        preset_row.operator("object.nms_split_preset", icon="MOD_EXPLODE")
+        row = presets_box.row(align=True)
         row.operator("object.nms_get_more_presets", icon="WORLD_DATA")
         row.operator("object.nms_open_preset_folder", icon="FILE_FOLDER")
-        layout.prop(nms_tool, "enum_switch", expand=True)
-        layout.template_list(
+        
+class NMS_PT_nms_legacy_asset_browser(Panel):
+    bl_label = "Legacy Asset Browser";  
+    bl_idname = "NMS_PT_legacy_asset_browser"
+    bl_space_type = 'VIEW_3D';   
+    bl_region_type = 'UI';  
+    bl_category = "No Mans Sky Base Builder"
+    bl_parent_id  = "NMS_PT_build_panel"
+    bl_context = "objectmode"
+    bl_options = {'DEFAULT_CLOSED'}
+    
+    def draw(self, context):
+        layout = self.layout
+        
+        scene = context.scene
+        nms_tool = scene.nms_base_tool
+        
+        lab_col = layout.box().column(align = True)
+        lab_col.label(text = "Parts and Presets", icon = "ASSET_MANAGER")
+        lab_col.row(align = True).prop(nms_tool, "enum_switch", expand=True)
+        lab_col.template_list(
             "NMS_UL_actions_list",
             "compact",
             context.scene,
@@ -1368,23 +1212,19 @@ class ExportObjectsData(bpy.types.Operator):
         nms_tool = scene.nms_base_tool
         nms_tool.export_nms_data(objects_only=True)
         return {"FINISHED"}
-
-
-# Tool Operators ---
-class ToggleRoom(bpy.types.Operator):
-    bl_idname = "object.nms_toggle_room_visibility"
-    bl_label = "Toggle Room Visibility: Normal"
-    bl_options = {
-        "UNDO",
-        "REGISTER",
-    }  # I think this must pass "UNDO" because it changes objects, but it probably doesn't interact correctly with the plugin?
+    
+    
+class SwitchWorkspace(bpy.types.Operator):
+    """Switch to a simpler workspace"""
+    bl_idname = "object.nms_cleanup_workspace"
+    bl_label = "Switch workspace"
 
     def execute(self, context):
         scene = context.scene
         nms_tool = scene.nms_base_tool
-        nms_tool.toggle_room_visibility()
+        nms_tool.is_workspace_cleaned = True
+        workspace.cleanup_workspace(context)
         return {"FINISHED"}
-
 
 class SaveAsPreset(bpy.types.Operator):
     """Save the current scene contents as a new Preset"""
@@ -1608,105 +1448,18 @@ class ListDeleteOperator(bpy.types.Operator):
         return context.window_manager.invoke_confirm(self, event)
 
 
-# Tool Operators ---
-class Duplicate(bpy.types.Operator):
-    """Duplicate the selected part."""
 
-    bl_idname = "object.nms_duplicate"
-    bl_label = "Duplicate"
-    bl_options = {"UNDO", "REGISTER"}
-
-    def execute(self, context):
-        scene = context.scene
-        nms_tool = scene.nms_base_tool
-        nms_tool.duplicate()
-        return {"FINISHED"}
-
-
-class Delete(bpy.types.Operator):
-    """Remove the selected part from the scene."""
-
-    bl_idname = "object.nms_delete"
-    bl_label = "Delete"
-    bl_options = {"UNDO", "REGISTER"}
-
-    def execute(self, context):
-        scene = context.scene
-        nms_tool = scene.nms_base_tool
-        nms_tool.delete()
-        return {"FINISHED"}
-
-
-class DuplicateAlongCurve(bpy.types.Operator):
-    """Duplicate the selected part along a Blender curve."""
-
-    bl_idname = "object.nms_duplicate_along_curve"
-    bl_label = "Duplicate Along Curve"
-    bl_options = {"UNDO", "REGISTER"}
-    distance_percentage: bpy.props.FloatProperty(
-        name="Distance Percentage Between Item."
-    )
-
-    def execute(self, context):
-        scene = context.scene
-        nms_tool = scene.nms_base_tool
-        nms_tool.duplicate_along_curve(distance_percentage=self.distance_percentage)
-        return {"FINISHED"}
-
-    def invoke(self, context, event):
-        wm = context.window_manager
-        return wm.invoke_props_dialog(self)
-
-
-class Mirror(bpy.types.Operator):
-    """Mirror the object local to itself."""
-
-    bl_idname = "object.nms_mirror"
-    bl_label = "Mirror"
-    bl_options = {"UNDO", "REGISTER"}
-
-    def execute(self, context):
-        scene = context.scene
-        nms_tool = scene.nms_base_tool
-        nms_tool.mirror()
-        return {"FINISHED"}
-
-
-class MirrorAcrossX(bpy.types.Operator):
-    """Mirror the object along the X axis."""
-
-    bl_idname = "object.nms_mirror_across_x"
-    bl_label = "Mirror Across X Axis"
-    bl_options = {"UNDO", "REGISTER"}
-
-    def execute(self, context):
-        scene = context.scene
-        nms_tool = scene.nms_base_tool
-        nms_tool.mirror(across_x=True)
-        return {"FINISHED"}
-
-
-class Flip(bpy.types.Operator):
-    """Flip the object along the Y axis (Only available on certain Corvette pieces)"""
-
-    bl_idname = "object.nms_flip"
-    bl_label = "Flip"
-    bl_options = {"UNDO", "REGISTER"}
-
-    def execute(self, context):
-        scene = context.scene
-        nms_tool = scene.nms_base_tool
-        nms_tool.flip()
-        return {"FINISHED"}
 
 
 class ApplyColour(bpy.types.Operator):
     """Apply this colour to the selected part."""
 
     bl_idname = "object.nms_apply_colour"
-    bl_label = "Apply Colour"
+    bl_label = ""
     bl_options = {"UNDO", "REGISTER"}
+    
     colour_index: IntProperty(default=0)
+    colour_name: bpy.props.StringProperty()
 
     def execute(self, context):
         scene = context.scene
@@ -1714,6 +1467,10 @@ class ApplyColour(bpy.types.Operator):
         material = nms_tool.material_switch
         nms_tool.apply_colour(colour_index=self.colour_index, material=material)
         return {"FINISHED"}
+    
+    @classmethod
+    def description(cls, context, properties):
+        return f"{properties.colour_name}"
 
 
 class ApplyDefaultColour(bpy.types.Operator):
@@ -1730,30 +1487,6 @@ class ApplyDefaultColour(bpy.types.Operator):
         nms_tool.apply_default_colour()
         return {"FINISHED"}
 
-
-class Snap(bpy.types.Operator):
-    """Snap the selected object to another selected object."""
-
-    bl_idname = "object.nms_snap"
-    bl_label = "Snap"
-    bl_options = {"UNDO", "REGISTER"}
-
-    next_source: BoolProperty()
-    prev_source: BoolProperty()
-    next_target: BoolProperty()
-    prev_target: BoolProperty()
-
-    def execute(self, context):
-        scene = context.scene
-        nms_tool = scene.nms_base_tool
-        kwargs = {
-            "next_source": self.next_source,
-            "prev_source": self.prev_source,
-            "next_target": self.next_target,
-            "prev_target": self.prev_target,
-        }
-        nms_tool.snap(**kwargs)
-        return {"FINISHED"}
 
 
 # Logic Operators ---
@@ -2103,27 +1836,179 @@ class LogicBeatSwitch(bpy.types.Operator):
         # Select new item.
         button.select()
         return {"FINISHED"}
+    
+
+class SplitPreset(bpy.types.Operator):
+    """Split the selected preset into individual parts"""
+
+    bl_idname = "object.nms_split_preset"
+    bl_label = "Split Preset to Parts"
+
+    def execute(self, context):
+        from . import preset as _preset_mod
+        
+        # Find the selected preset, or any preset in the scene
+        selected = [o for o in context.selected_objects if "PresetID" in o]
+        if not selected:
+            selected = [o for o in bpy.data.objects if "PresetID" in o]
+            
+        if not selected:
+            self.report({"WARNING"}, "No preset found to split")
+            return {"CANCELLED"}
+
+        total = 0
+        names = []
+        for ctrl in selected:
+            pid = ctrl.get("PresetID")
+            n = _preset_mod.Preset.split_to_parts(pid)
+            total += n
+            names.append(pid)
+
+        # Clear builder caches
+        BUILDER.clear_caches()
+        
+        self.report({"INFO"}, f"Presets split: {len(names)}, parts: {total}")
+        return {"FINISHED"}
+    
 
 
-# to reset toggle button of save editor
+# Track  curve objects
+known_curves = set()
+
+# To reset toggle button of save editor and initialize curve registry
 @persistent
-def reset_save_editor_state(dummy):
+def reset_plugin_state(dummy):
+    
+    global known_curves
+    known_curves = set( obj for obj in bpy.data.objects  if obj.type == 'CURVE' and obj.get("has_linked_objects", False) )
+    curve.update_curves(known_curves)
+    
     for scene in bpy.data.scenes:
         save_data = scene.nms_save_data
         save_data.check_plugin_enabled = False
 
+last_active = None
+# keep track of active object to display or hide additional options related to that object
+@persistent
+def active_object_watcher(scene, depsgraph):
+    global last_active
 
+    active = bpy.context.view_layer.objects.active
+    properties = scene.nms_properties
+    
+    if active != last_active:
+        last_active = active
+        properties.set_active_obect(active)
+        
+            
+# Whenever a curve is modified, automatically update whatever duplicated objects are associated with that curve.
+@persistent
+def curve_udpate_handler(scene, depsgraph):
+    global known_curves
+    
+    # Quick-scan for currently active curves in database
+    current_curves = set()
+    for obj in bpy.data.objects:
+        if obj.type == 'CURVE' and obj.get("has_linked_objects", False):
+            current_curves.add(obj)
+        elif "curve_parent" in obj:
+            parent_curve = bpy.data.objects.get(obj["curve_parent"])
+            if parent_curve is None:
+                print(f"curve parent {obj["curve_parent"]} doesnt exist for {obj.name}")
+                #bpy.data.objects.remove(obj, do_unlink=True)
+            elif not parent_curve.get("parent_selected", True):
+                obj["base_scale"] = curve.calculate_base_scale(parent_curve, obj)
+    
+    # Detect dead curves, cuerves that have been deleted by user through blender
+    dead_curves = known_curves - current_curves
+    if dead_curves:
+        known_curves.difference_update(dead_curves)
+    
+    # identify new curves
+    new_curves_detected = []
+    # these are curves that have been updated by user in edit mode
+    updated_curves = set()
+    for update in depsgraph.updates:
+        if isinstance(update.id, bpy.types.Object):
+            # Convert the evaluated update pointer back into the real scene object block
+            orig_obj = bpy.data.objects.get(update.id.name)
+            if orig_obj and orig_obj.type == 'CURVE' and orig_obj.get("has_linked_objects", False):
+                updated_curves.add(orig_obj)
+                if orig_obj not in known_curves and orig_obj not in new_curves_detected:
+                    new_curves_detected.append(orig_obj)
+                    
+    # Handle duplication syncing
+    if new_curves_detected and known_curves:
+        for new_curve in new_curves_detected:
+            # if two curves have equal "unique_id", that means they have been duplicated using shift+d
+            # we need to duplicate objects in similar way on new curve too
+            try:
+                new_uuid = new_curve.get("unique_id")
+                # Look for matching source configuration inside our narrow curve registry
+                matching_curve = next((c for c in known_curves if c.get("unique_id") == new_uuid and c != new_curve), None)
+                if matching_curve is not None:
+                    curve.sync_curves(new_curve, matching_curve)
+            except ReferenceError as error:
+                print("Reference error :", error)
+                continue
+    
+    # Update curve's children according to manipulations done by user.
+    curve.update_curves(known_curves)
+        
+    # Sync back down to the global tracking set 
+    known_curves = current_curves
+            
 
+class NMSAddonPreferences(bpy.types.AddonPreferences):
+    bl_idname = ADDON_ID
 
-# We can store multiple preview collections here,
-# however in this example we only store "main"
+    nms_save_folder_path: StringProperty(
+        name="Save Directory",
+        description="Folder where save files are stored",
+        subtype='DIR_PATH',
+        default = str(save_editor_utils.get_default_save_folder())
+    )
+    
+    _theme_cache = []
+    
+    selected_theme: bpy.props.EnumProperty(
+        name="Active Theme",
+        description="Choose a theme to apply",
+        items= lambda self, context: self.generate_theme_list(),
+        update= lambda self, context: self.apply_selected_theme() 
+    )
+    
+    def generate_theme_list(self):
+        """Generates the list, using the class cache to scan only once."""
+        
+        if NMSAddonPreferences._theme_cache:
+            return NMSAddonPreferences._theme_cache
+
+        themes_extracted = workspace.get_themes_list()
+        enum_themes = []
+        blender_default_dark = ("DEFAULT_BLENDER", "(Dark) Blender Default", "Restore Blender's default theme")
+        
+        enum_themes.append(blender_default_dark)
+        for theme in themes_extracted:
+            theme_name = theme["theme_name"]
+            display_name = f"{theme_name}"
+            path = theme["path"]
+            enum_themes.append((path, display_name,"theme creator credits"))
+                    
+        NMSAddonPreferences._theme_cache = enum_themes
+        return enum_themes
+    
+    def apply_selected_theme(self):
+        theme_path = self.selected_theme
+        workspace.apply_theme(theme_path)
+
+        
 preview_collections = {}
 
 # Plugin Registration ---
 
 classes = (
     NMSSettings,
-    Snap,
     Point,
     Connect,
     Divide,
@@ -2139,12 +2024,6 @@ classes = (
     LogicBeatSwitch,
     ApplyColour,
     ApplyDefaultColour,
-    Duplicate,
-    DuplicateAlongCurve,
-    Delete,
-    Mirror,
-    MirrorAcrossX,
-    Flip,
     SaveAsPreset,
     LoadFancyUI,
     GetMorePresets,
@@ -2154,7 +2033,6 @@ classes = (
     VisitPrefabDiscord,
     VisitGitHubRepo,
     OpenPresetFolder,
-    ToggleRoom,
     NewFile,
     SaveData,
     LoadData,
@@ -2166,17 +2044,30 @@ classes = (
     ListEditOperator,
     ListBuildOperator,
     SaveManager,
+    BuildTool,
+    Properties,
+    BatchTool,
+    
     NMS_UL_actions_list,
+    NMS_PT_hero_panel,
     NMS_PT_file_buttons_panel,
     NMS_PT_save_editor_panel,
     NMS_PT_base_prop_panel,
-    NMS_PT_snap_panel,
+    NMS_PT_tools_panel,
     NMS_PT_colour_panel,
     NMS_PT_logic_panel,
     NMS_PT_build_panel,
+    NMS_PT_batch_tools_panel,
+    NMS_PT_nms_legacy_asset_browser,
+    
+    NMSAddonPreferences,
+    
+    SwitchWorkspace,
+    SplitPreset
 )
 
-classes = classes  + save_editor_operators.classes
+classes = classes  + save_editor_operators.classes + build_tool_operators.classes + batch_tool_operators.classes
+
 
 
 def register():
@@ -2199,8 +2090,12 @@ def register():
             os.path.join(colours_dir, colour_file),
             "IMAGE",
         )
-
+        
     preview_collections["main"] = pcoll
+    
+    icons.register_icons()
+    
+    
 
     # Register Plugin
     for _class in classes:
@@ -2209,23 +2104,47 @@ def register():
     bpy.types.Scene.col = bpy.props.CollectionProperty(type=PartCollection)
     bpy.types.Scene.col_idx = bpy.props.IntProperty(default=0)
     bpy.types.Scene.nms_save_data = bpy.props.PointerProperty(type=SaveManager)
-    bpy.types.Scene.nms_save_folder_path = StringProperty(
-        name="Save Directory ",
-        description="Folder where save files are stored",
-        default = str(save_editor_utils.get_root_save_folder()) if not None else "/"
-    )
+    bpy.types.Scene.nms_build_tool = bpy.props.PointerProperty(type=BuildTool)
+    bpy.types.Scene.nms_properties = bpy.props.PointerProperty(type=Properties)
+    bpy.types.Scene.nms_batch_tool = bpy.props.PointerProperty(type=BatchTool)
     
-    bpy.app.handlers.load_post.append(reset_save_editor_state)
-
+    if reset_plugin_state not in bpy.app.handlers.load_post:
+        bpy.app.handlers.load_post.append(reset_plugin_state)
+    
+    if active_object_watcher not in bpy.app.handlers.depsgraph_update_post:
+        bpy.app.handlers.depsgraph_update_post.append(active_object_watcher)
+    
+    if curve_udpate_handler not in bpy.app.handlers.depsgraph_update_post:
+        bpy.app.handlers.depsgraph_update_post.append(curve_udpate_handler)
+        
+        
+    
 
 def unregister():
     for pcoll in preview_collections.values():
         bpy.utils.previews.remove(pcoll)
     preview_collections.clear()
+    icons.unregister_icons()
 
     for _class in reversed(classes):
         bpy.utils.unregister_class(_class)
+        
     del bpy.types.Scene.nms_base_tool
+    del bpy.types.Scene.nms_save_data
+    del bpy.types.Scene.nms_build_tool
+    del bpy.types.Scene.nms_properties
+    del bpy.types.Scene.nms_batch_tool
+    
+    if reset_plugin_state in bpy.app.handlers.load_post:
+        bpy.app.handlers.load_post.remove(reset_plugin_state)
+    
+    if active_object_watcher in bpy.app.handlers.depsgraph_update_post:
+        bpy.app.handlers.depsgraph_update_post.remove(active_object_watcher)
+        
+    if curve_udpate_handler in bpy.app.handlers.depsgraph_update_post:
+        bpy.app.handlers.depsgraph_update_post.remove(curve_udpate_handler)
+        
+        
 
 
 if __name__ == "__main__":

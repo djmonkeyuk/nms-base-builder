@@ -6,10 +6,16 @@
     "S_SAIL3",
     "BASE_CAVE3",
     "S_CANISTER1",
-    "S_SPARKPLUG"
+    "S_SPARKPLUG",
+    "S_ARCH_H"
+  ],
+
+  "local_y_90_rotation_parts": [
+    "S_ROOF_IC"
   ],
   "mirror_z_180_identifiers": [
-    "TRIFLOOR"
+    "TRIFLOOR",
+    "B_WNG_R"
   ],
   "position_offsets": {
     "STORAGEPANEL": [0.05444555, 0.0, 0.0]

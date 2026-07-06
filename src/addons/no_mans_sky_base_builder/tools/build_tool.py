@@ -223,8 +223,9 @@ class BuildTool(bpy.types.PropertyGroup):
             return {"FINISHED"}
         
         if "has_linked_objects" in curve_object:
-            curve_object = curve.replace_curve_object(curve_object, dup_object)
-            blend_utils.select(curve_object)
+            new_curve_object, old_curve_object = curve.replace_curve_object(curve_object, dup_object)
+            blend_utils.delete(old_curve_object)
+            curve_object = new_curve_object
         
         else :
             curve_object["unique_id"] = str(uuid.uuid4())
@@ -242,8 +243,8 @@ class BuildTool(bpy.types.PropertyGroup):
             
             # lock all objects on curve so that only curve is selectable
             curve.lock_all_objects(curve_object)
-            blend_utils.select(curve_object)
             
+        blend_utils.select(new_curve_object)
         properties = bpy.context.scene.nms_properties
         properties.set_active_obect(curve_object)
         

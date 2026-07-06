@@ -23,6 +23,7 @@
     "curve":"icons8-curve-64.png",
     "up":"icons8-up-64.png",
     "down":"icons8-down-64.png",
-    "batch":"icons8-intersect-64.png"
+    "batch":"icons8-intersect-64.png",
+    "pin":"pushpin-icon.png"
   }
 }

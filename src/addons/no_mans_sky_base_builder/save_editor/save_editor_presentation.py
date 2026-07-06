@@ -29,6 +29,7 @@ class NMS_PT_save_editor_panel(Panel):
         icon_pcoll = icons.get_icons_pscroll()
         drive_icon = icon_pcoll["drive"]
         piece_icon = icon_pcoll["puzzle_piece"]
+        pin_icon = icon_pcoll["pin"]
         
         #display data related to a pinned base on top if there is any withing a blend file
         if save_data.pinned_base_check:
@@ -40,7 +41,7 @@ class NMS_PT_save_editor_panel(Panel):
             pinned_main_row = pinned_col.row(align = True)
             pinned_main_left_col = pinned_main_row.column(align = True)
             #base type
-            pinned_main_left_col.label(text = f"Pinned {pinned_base_type}",  icon="PINNED")
+            pinned_main_left_col.label(text = f"Pinned {pinned_base_type}",  icon_value = pin_icon.icon_id)
             #name of base
             pinned_main_left_col.label(text=f"Name : {save_data.pinned_base_name}")
             #display save slot and last 3 digits of account number for easy recognition

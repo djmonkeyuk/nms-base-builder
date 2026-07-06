@@ -641,12 +641,12 @@ class NMSSettings(PropertyGroup):
         # Apply Colour Material.
         maeterial_index = int(material.split("_")[0])
         for obj in selected_objects:
-            
             # detect if object is nms curve
             if "has_linked_objects" in obj and curve.is_bezier_or_nurbs_path(obj):
                 for child_obj in bpy.context.scene.objects:
                     if "curve_parent" in child_obj and child_obj["curve_parent"] == obj.name:
                         _material.assign_material(child_obj, int(colour_index), int(maeterial_index))
+                        obj["dup_UserData"] = child_obj["UserData"]
                         break
             # for any other object
             else :
@@ -689,8 +689,14 @@ class NMSSettings(PropertyGroup):
         if target_object is None:
             return 
         
+        # extract user_data from target according to type of object
+        target_userdata = None
         if "UserData" in target_object:
             target_userdata = target_object["UserData"]
+        elif "has_linked_objects" in target_object:
+            target_userdata = target_object["dup_UserData"]
+        
+        if target_userdata is not None:
             selected_objects = bpy.context.selected_objects
             for obj in selected_objects:
                 if "has_linked_objects" in obj and curve.is_bezier_or_nurbs_path(obj):
@@ -701,7 +707,8 @@ class NMSSettings(PropertyGroup):
         def clear_picker():
             self.color_picker = None
             return None
-
+        
+        # clear color picker value after operator execution finishes so that blender doesnt fire a warning popup
         bpy.app.timers.register(clear_picker, first_interval=0.0)
         
 
@@ -724,8 +731,6 @@ class NMS_PT_hero_panel(Panel):
         scene = context.scene
         nms_tool = scene.nms_base_tool
         layout = self.layout
-        
-        prefs = context.preferences.addons[ADDON_ID].preferences
         
         pcoll = icons.get_icons_pscroll()
         plugin_icon = pcoll["plugin_icon"]
@@ -776,11 +781,6 @@ class NMS_PT_hero_panel(Panel):
         workspace_column = workspace_box.column(align = True)
         workspace_column.label(text = "Workspace")
         workspace_column.operator("object.nms_cleanup_workspace", text = "Workspace Cleanup", icon = "WORKSPACE")
-        
-        theme_box = workspace_row.box()
-        theme_col = theme_box.column(align = True)
-        theme_col.label(text = "Theme")
-        theme_col.prop(prefs,"selected_theme", text = "")
         
         
 
@@ -1879,10 +1879,12 @@ known_curves = set()
 @persistent
 def reset_plugin_state(dummy):
     
+    # collect all curves when a blend file is reopened
     global known_curves
     known_curves = set( obj for obj in bpy.data.objects  if obj.type == 'CURVE' and obj.get("has_linked_objects", False) )
     curve.update_curves(known_curves)
     
+    # reset save editor's state to closed
     for scene in bpy.data.scenes:
         save_data = scene.nms_save_data
         save_data.check_plugin_enabled = False
@@ -1896,26 +1898,31 @@ def active_object_watcher(scene, depsgraph):
     active = bpy.context.view_layer.objects.active
     properties = scene.nms_properties
     
+    # only continue when active object actually changes
     if active != last_active:
         last_active = active
         properties.set_active_obect(active)
         
             
-# Whenever a curve is modified, automatically update whatever duplicated objects are associated with that curve.
+# Whenever a curve is modified, automatically update whatever child objects that are associated with that curve.
 @persistent
 def curve_udpate_handler(scene, depsgraph):
     global known_curves
     
-    # Quick-scan for currently active curves in database
+    # check each object in scene to detect if their parent curve has been deleted by user or not
+    # if not, we update object's base scale to keep track of transformation changes made by user
     current_curves = set()
     for obj in bpy.data.objects:
+        # if object type is a linked curve
         if obj.type == 'CURVE' and obj.get("has_linked_objects", False):
             current_curves.add(obj)
+        # if object type is a child of curve
         elif "curve_parent" in obj:
             parent_curve = bpy.data.objects.get(obj["curve_parent"])
+            # remove object if it's parent curve has been deleted
             if parent_curve is None:
-                print(f"curve parent {obj["curve_parent"]} doesnt exist for {obj.name}")
-                #bpy.data.objects.remove(obj, do_unlink=True)
+                bpy.data.objects.remove(obj, do_unlink=True)
+            # Update base scale to persiste changes to scale made by user when curve mode is switched
             elif not parent_curve.get("parent_selected", True):
                 obj["base_scale"] = curve.calculate_base_scale(parent_curve, obj)
     
@@ -1926,15 +1933,17 @@ def curve_udpate_handler(scene, depsgraph):
     
     # identify new curves
     new_curves_detected = []
-    # these are curves that have been updated by user in edit mode
+    
+    # Collect curves that have recieved updates by user
     updated_curves = set()
     for update in depsgraph.updates:
         if isinstance(update.id, bpy.types.Object):
-            # Convert the evaluated update pointer back into the real scene object block
+            # validate each object
             orig_obj = bpy.data.objects.get(update.id.name)
             if orig_obj and orig_obj.type == 'CURVE' and orig_obj.get("has_linked_objects", False):
                 updated_curves.add(orig_obj)
                 if orig_obj not in known_curves and orig_obj not in new_curves_detected:
+                    # a completely new curve should not exist in know_curves set
                     new_curves_detected.append(orig_obj)
                     
     # Handle duplication syncing
@@ -1944,7 +1953,8 @@ def curve_udpate_handler(scene, depsgraph):
             # we need to duplicate objects in similar way on new curve too
             try:
                 new_uuid = new_curve.get("unique_id")
-                # Look for matching source configuration inside our narrow curve registry
+                # Look for curves that have same unique_id as new curve
+                # if a duplciate unique_id found, new curve must be duplicate of that curve
                 matching_curve = next((c for c in known_curves if c.get("unique_id") == new_uuid and c != new_curve), None)
                 if matching_curve is not None:
                     curve.sync_curves(new_curve, matching_curve)
@@ -1952,7 +1962,7 @@ def curve_udpate_handler(scene, depsgraph):
                 print("Reference error :", error)
                 continue
     
-    # Update curve's children according to manipulations done by user.
+    # Loop through all curves and update their children's transformations
     curve.update_curves(known_curves)
         
     # Sync back down to the global tracking set 
@@ -1968,39 +1978,6 @@ class NMSAddonPreferences(bpy.types.AddonPreferences):
         subtype='DIR_PATH',
         default = str(save_editor_utils.get_default_save_folder())
     )
-    
-    _theme_cache = []
-    
-    selected_theme: bpy.props.EnumProperty(
-        name="Active Theme",
-        description="Choose a theme to apply",
-        items= lambda self, context: self.generate_theme_list(),
-        update= lambda self, context: self.apply_selected_theme() 
-    )
-    
-    def generate_theme_list(self):
-        """Generates the list, using the class cache to scan only once."""
-        
-        if NMSAddonPreferences._theme_cache:
-            return NMSAddonPreferences._theme_cache
-
-        themes_extracted = workspace.get_themes_list()
-        enum_themes = []
-        blender_default_dark = ("DEFAULT_BLENDER", "(Dark) Blender Default", "Restore Blender's default theme")
-        
-        enum_themes.append(blender_default_dark)
-        for theme in themes_extracted:
-            theme_name = theme["theme_name"]
-            display_name = f"{theme_name}"
-            path = theme["path"]
-            enum_themes.append((path, display_name,"theme creator credits"))
-                    
-        NMSAddonPreferences._theme_cache = enum_themes
-        return enum_themes
-    
-    def apply_selected_theme(self):
-        theme_path = self.selected_theme
-        workspace.apply_theme(theme_path)
 
         
 preview_collections = {}

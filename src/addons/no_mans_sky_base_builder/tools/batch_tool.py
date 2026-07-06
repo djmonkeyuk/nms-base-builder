@@ -51,6 +51,8 @@ class BatchTool(bpy.types.PropertyGroup):
         update = lambda self, context: self.on_color_picked()
     )
     
+    
+    
     def on_color_picked(self):
         target_object = self.color_picker
         if target_object is None:
@@ -136,6 +138,7 @@ class BatchTool(bpy.types.PropertyGroup):
         
         # Select the new objects
         if len(replaced_objects_list) > 0:
+            print(replaced_objects_list)
             blend_utils.select(replaced_objects_list)
         return len(replaced_objects_list)
     

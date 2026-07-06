@@ -4,6 +4,9 @@ curve_prefix = "(linked-curve) "
 curve_unliked_prefix = "(unlinked-curve) "
 curve_suffix = "_nmsc"
 
+LINKED_CURVE_OBJ_COL = "Linked Curve Objects"
+UNLINKED_CURVE_OBJ_COL = "Unlinked Curve Objects"
+
 def move_curve_to_collection(curve_obj):
     
     global curve_prefix 
@@ -36,6 +39,14 @@ def move_curve_to_collection(curve_obj):
         
     return curve_col
 
+# returns collection or creates a new collection
+def get_collection(collection_name):
+    collection = bpy.data.collections.get(collection_name)
+    if collection is None:
+        collection = bpy.data.collections.new(collection_name)
+        bpy.context.scene.collection.children.link(collection)
+    return collection
+
 def rename_to_unliked(collection):
     global curve_prefix 
     global curve_unliked_prefix
@@ -43,7 +54,7 @@ def rename_to_unliked(collection):
         new_name = curve_unliked_prefix + collection.name[len(curve_prefix):]
         collection.name = new_name
 
-def  move_object_into_collection(collection, obj):
+def move_object_into_collection(collection, obj):
     if collection not in obj.users_collection:
         collection.objects.link(obj)
     
@@ -60,7 +71,6 @@ def create_collection(collection_name, color_tag = None):
     curve_col = bpy.data.collections.new(collection_name)
     if color_tag is not None:
         curve_col.color_tag = "COLOR_02"
-        
     return curve_col
 
 # delete a collection and all objects inside it

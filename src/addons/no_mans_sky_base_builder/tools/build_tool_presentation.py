@@ -38,23 +38,13 @@ class NMS_PT_tools_panel(Panel):
         splitter.label(text="{}".format(part_count))
 
         tools_box = tools_column.box()
-        tools_col = tools_box.column(align=True)
+        tools_col = tools_box.column()
 
-        tools_col.label(text="Visibility")
-        # Room Vis Button.
-        label = "Normal"
-        if nms_tool.room_vis_switch == 1:
-            label = "Ghosted"
-        elif nms_tool.room_vis_switch == 2:
-            label = "Invisible"
-
-        tools_col.operator("object.nms_toggle_room_visibility", icon="CUBE", text=label)
-        tools_col.label(text="Duplicate")
+        tools_col.label(text="Common Tools")
         tools_col.operator("object.nms_duplicate", icon="DUPLICATE")
-        tools_col.operator("object.nms_select_duplicates",icon = "BRUSH_DATA", text = "Find Duplicates")
+        tools_col.operator("object.nms_delete", icon="TRASH")
         tools_col.label(text="Curve")
         tools_col.operator("object.nms_duplicate_along_curve", icon="MOD_DASH")
-        tools_col.operator("object.nms_create_curve", icon="CURVE_BEZCURVE", text = "create curve")
         
 
         # Create Snapping box.
@@ -92,9 +82,6 @@ class NMS_PT_tools_panel(Panel):
         mirror_col.operator("object.nms_flip", icon="DECORATE_OVERRIDE")
         #mirror_col.operator("object.nms_turn", icon="GESTURE_ROTATE")
         
-        delete_col = snap_column.box().column(align = True)
-        delete_col.label(text="Delete")
-        delete_col.operator("object.nms_delete", icon="TRASH")
                     
         # Mirroring tools
         mirroring_box = build_tools_col.box()

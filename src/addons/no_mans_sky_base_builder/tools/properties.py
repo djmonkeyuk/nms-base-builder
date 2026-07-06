@@ -22,7 +22,7 @@ class Properties(bpy.types.PropertyGroup):
     active_curve_number_of_objects: bpy.props.IntProperty(
         name="Number of Objects",
         default = 10,
-        update = lambda self, context: self.on_curve_parameter_change(),
+        update = lambda self, context: self.on_number_of_objects_change(),
         
         min=1,       # Absolute lowest value allowed
         max=1000,      # Absolute highest value allowed
@@ -85,9 +85,9 @@ class Properties(bpy.types.PropertyGroup):
         
         original_object_id = curve_obj.get("dup_ObjectID",None)
         if curve_obj and original_object_id:
-            curve.update_curve_duplicates(curve_obj, self.active_curve_radius_multiplier)
+            curve.update_curve_children(curve_obj, self.active_curve_radius_multiplier)
         
-    def on_curve_parameter_change(self):
+    def on_number_of_objects_change(self):
         active = bpy.context.view_layer.objects.active
         curve_obj = curve.get_curve_or_linked_curve(active)
         
@@ -96,6 +96,11 @@ class Properties(bpy.types.PropertyGroup):
         
         original_object_id = curve_obj.get("dup_ObjectID",None)
         if curve_obj and original_object_id:
+            
+            old_count = curve_obj.get("objects_count")
+            if old_count and old_count == self.active_curve_number_of_objects:
+                return
+            
             curve.duplicate_along_curve(
                 None,
                 curve_obj,

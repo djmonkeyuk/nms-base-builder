@@ -24,7 +24,7 @@ from numpy import isin
 
 from . import builder, part, preset, icons
 from .part_overrides import line
-from .utils import blend_utils, curve, curve_utils, workspace, collection_utils, icon_utils
+from .utils import blend_utils, curve, curve_utils, workspace, collection_utils
 from .utils import material as _material
 from .utils import python as python_utils
 
@@ -647,6 +647,7 @@ class NMSSettings(PropertyGroup):
                 for child_obj in bpy.context.scene.objects:
                     if "curve_parent" in child_obj and child_obj["curve_parent"] == obj.name:
                         _material.assign_material(child_obj, int(colour_index), int(maeterial_index))
+                        break
             # for any other object
             else :
                 _material.assign_material(obj, int(colour_index), int(maeterial_index))
@@ -692,7 +693,10 @@ class NMSSettings(PropertyGroup):
             target_userdata = target_object["UserData"]
             selected_objects = bpy.context.selected_objects
             for obj in selected_objects:
-                _material.restore_material(obj, target_userdata)
+                if "has_linked_objects" in obj and curve.is_bezier_or_nurbs_path(obj):
+                    curve.apply_color(obj, target_userdata)
+                else :
+                    _material.restore_material(obj, target_userdata)
         
         def clear_picker():
             self.color_picker = None
@@ -717,13 +721,18 @@ class NMS_PT_hero_panel(Panel):
         return True
 
     def draw(self, context):
-        
+        scene = context.scene
+        nms_tool = scene.nms_base_tool
         layout = self.layout
+        
+        prefs = context.preferences.addons[ADDON_ID].preferences
         
         pcoll = icons.get_icons_pscroll()
         plugin_icon = pcoll["plugin_icon"]
         pateron_icon = pcoll["patreon"]
         discord_icon = pcoll["discord"]
+        coffee_icon = pcoll["coffee"]
+        online_icon = pcoll["online"]
         
         
         
@@ -751,14 +760,29 @@ class NMS_PT_hero_panel(Panel):
         communuity_box = community_row.box()
         third_column = communuity_box.column(align=True)
         third_column.label(text="Commmunity")
-        third_column.operator("object.nms_visit_guides", icon="WORLD_DATA")
+        third_column.operator("object.nms_visit_guides", icon_value = online_icon.icon_id)
         third_column.operator("object.nms_visit_community", icon_value = discord_icon.icon_id)
         
         support_box = community_row.box()
         fourth_column = support_box.column(align = True)
         fourth_column.label(text = "Support Me")
         fourth_column.operator("object.nms_cleanup_workspace", text = "Patreon", icon_value = pateron_icon.icon_id)
-        fourth_column.operator("object.nms_cleanup_workspace", text = "Buy me a Coffee")
+        fourth_column.operator("object.nms_cleanup_workspace", text = "Buy me a Coffee", icon_value = coffee_icon.icon_id)
+        
+        
+        #if not nms_tool.is_workspace_cleaned:
+        workspace_row = layout.row(align=True)
+        workspace_box = workspace_row.box()
+        workspace_column = workspace_box.column(align = True)
+        workspace_column.label(text = "Workspace")
+        workspace_column.operator("object.nms_cleanup_workspace", text = "Workspace Cleanup", icon = "WORKSPACE")
+        
+        theme_box = workspace_row.box()
+        theme_col = theme_box.column(align = True)
+        theme_col.label(text = "Theme")
+        theme_col.prop(prefs,"selected_theme", text = "")
+        
+        
 
 
 # File Buttons Panel ---
@@ -796,14 +820,6 @@ class NMS_PT_file_buttons_panel(Panel):
         second_column.separator()
         second_column.operator("object.nms_export_nms_data", icon="COPYDOWN")
         second_column.operator("object.nms_export_nms_data_objects", icon="COPYDOWN")
-        
-        if not nms_tool.is_workspace_cleaned:
-            community_row = layout.row(align=True)
-            workspace_box = community_row.box()
-            fourth_column = workspace_box.column()
-            fourth_column.label(text = "Workspace")
-            fourth_column.operator("object.nms_cleanup_workspace", text = "Workspace Cleanup", icon = "WORKSPACE")
-            community_row.label(text = "")
             
 
 
@@ -1861,188 +1877,86 @@ known_curves = set()
 
 # To reset toggle button of save editor and initialize curve registry
 @persistent
-def reset_save_editor_state(dummy):
+def reset_plugin_state(dummy):
+    
     global known_curves
-    known_curves = set(
-        obj for obj in bpy.data.objects 
-        if obj.type == 'CURVE' and obj.get("has_linked_objects", False)
-    )
+    known_curves = set( obj for obj in bpy.data.objects  if obj.type == 'CURVE' and obj.get("has_linked_objects", False) )
+    curve.update_curves(known_curves)
     
     for scene in bpy.data.scenes:
         save_data = scene.nms_save_data
         save_data.check_plugin_enabled = False
-
-_pending_curve_syncs = []
-_curve_sync_timer_scheduled = False
-
-def _restore_selection(prev_selected_names, prev_active_name):
-    """Best-effort reselect. Safe to call more than once."""
-    try:
-        for obj in bpy.context.view_layer.objects:
-            obj.select_set(False)
-        for name in prev_selected_names:
-            obj = bpy.data.objects.get(name)
-            if obj is not None:
-                obj.select_set(True)
-        if prev_active_name:
-            active_obj = bpy.data.objects.get(prev_active_name)
-            if active_obj is not None:
-                bpy.context.view_layer.objects.active = active_obj
-    except ReferenceError:
-        pass
-    return None
-
-
-def _flush_pending_curve_syncs():
-    """Runs outside the depsgraph handler context. Safe to call operators here."""
-    global _curve_sync_timer_scheduled
-
-    pending = _pending_curve_syncs[:]
-    _pending_curve_syncs.clear()
-
-    # Capture the selection here and restore it once the sync is done.
-    prev_selected_names = [obj.name for obj in bpy.context.selected_objects]
-    active_obj = bpy.context.view_layer.objects.active
-    prev_active_name = active_obj.name if active_obj is not None else None
-
-    for new_curve, matching_curve in pending:
-        try:
-            # Objects may have been removed/undo'd between queuing and now.
-            if new_curve.name not in bpy.data.objects or matching_curve.name not in bpy.data.objects:
-                continue
-            curve.sync_curves(new_curve, matching_curve)
-        except ReferenceError:
-            continue
-
-    _restore_selection(prev_selected_names, prev_active_name)
-
-    # Shift+D immediately starts a modal Grab/Translate operator.
-    bpy.app.timers.register(
-        lambda: _restore_selection(prev_selected_names, prev_active_name),
-        first_interval=0.3,
-    )
-
-    _curve_sync_timer_scheduled = False
-    return None  # a new timer is scheduled next time work is queued
-
 
 last_active = None
 # keep track of active object to display or hide additional options related to that object
 @persistent
 def active_object_watcher(scene, depsgraph):
     global last_active
-    
+
     active = bpy.context.view_layer.objects.active
     properties = scene.nms_properties
     
     if active != last_active:
         last_active = active
         properties.set_active_obect(active)
+        
             
 # Whenever a curve is modified, automatically update whatever duplicated objects are associated with that curve.
 @persistent
 def curve_udpate_handler(scene, depsgraph):
-    # This function keeps track of newly duplicated or deleted curves cleanly
-    curves_watcher(scene, depsgraph)
+    global known_curves
     
-    updated_curves = set()
-    for update in depsgraph.updates:
-        id_data = update.id
-        if isinstance(id_data, bpy.types.Object) and id_data.type == 'CURVE':
-            # FIX: Fetch the clean original object from the main database
-            orig_obj = bpy.data.objects.get(id_data.name)
-            if orig_obj:
-                updated_curves.add(orig_obj)
+    # Quick-scan for currently active curves in database
+    current_curves = set()
+    for obj in bpy.data.objects:
+        if obj.type == 'CURVE' and obj.get("has_linked_objects", False):
+            current_curves.add(obj)
+        elif "curve_parent" in obj:
+            parent_curve = bpy.data.objects.get(obj["curve_parent"])
+            if parent_curve is None:
+                print(f"curve parent {obj["curve_parent"]} doesnt exist for {obj.name}")
+                #bpy.data.objects.remove(obj, do_unlink=True)
+            elif not parent_curve.get("parent_selected", True):
+                obj["base_scale"] = curve.calculate_base_scale(parent_curve, obj)
     
-    # Update curve's children according to manipulations done by user.
-    for curve_obj in updated_curves:
-        properties = scene.nms_properties
-        try:
-            if curve_obj.name == properties.active_curve_name:
-                new_radius_multiplier = properties.active_curve_radius_multiplier
-            elif "radius_multiplier" in curve_obj:
-                new_radius_multiplier = curve_obj["radius_multiplier"]
-            else:
-                continue
-            curve.update_curve_duplicates(curve_obj, new_radius_multiplier)
-        except ReferenceError:
-            continue
-        
-# Uses depsgraph updates and selectively sweeps deletions 
-def curves_watcher(scene, depsgraph):
-    global known_curves, _curve_sync_timer_scheduled
-    
-    # 1. Quick-scan for currently active curves in database
-    current_curves = set(
-        obj for obj in bpy.data.objects 
-        if obj.type == 'CURVE' and obj.get("has_linked_objects", False)
-    )
-    
-    # 2. Detect if a curve was deleted by comparing curve sets
+    # Detect dead curves, cuerves that have been deleted by user through blender
     dead_curves = known_curves - current_curves
-    
     if dead_curves:
-        # Only loop through objects to clean up children WHEN a curve is actually deleted
-        for obj in list(bpy.data.objects):
-            try:
-                if "curve_parent" in obj:
-                    parent_curve = bpy.data.objects.get(obj["curve_parent"])
-                    if parent_curve is None:
-                        parent_collection = obj.get("parent_col")
-                        if parent_collection is not None:
-                            collection_utils.delete_collection(parent_collection)
-                        else:
-                            bpy.data.objects.remove(obj, do_unlink=True)
-                    elif not parent_curve.get("parent_selected", True):
-                        obj["base_scale"] = curve.calculate_base_scale(parent_curve, obj)
-            except ReferenceError:
-                pass
-        
         known_curves.difference_update(dead_curves)
     
-    # 3. Use depsgraph.updates to identify new curves, but force retrieval of the ORIGINAL object
+    # identify new curves
     new_curves_detected = []
+    # these are curves that have been updated by user in edit mode
+    updated_curves = set()
     for update in depsgraph.updates:
         if isinstance(update.id, bpy.types.Object):
-            # FIX: Convert the evaluated update pointer back into the real scene object block
+            # Convert the evaluated update pointer back into the real scene object block
             orig_obj = bpy.data.objects.get(update.id.name)
             if orig_obj and orig_obj.type == 'CURVE' and orig_obj.get("has_linked_objects", False):
+                updated_curves.add(orig_obj)
                 if orig_obj not in known_curves and orig_obj not in new_curves_detected:
                     new_curves_detected.append(orig_obj)
                     
-    # 4. Handle duplication syncing using strictly original objects
+    # Handle duplication syncing
     if new_curves_detected and known_curves:
         for new_curve in new_curves_detected:
+            # if two curves have equal "unique_id", that means they have been duplicated using shift+d
+            # we need to duplicate objects in similar way on new curve too
             try:
                 new_uuid = new_curve.get("unique_id")
-                if not new_uuid:
-                    continue
-                
                 # Look for matching source configuration inside our narrow curve registry
-                matching_curve = next(
-                    (c for c in known_curves if c.get("unique_id") == new_uuid and c != new_curve), 
-                    None
-                )
-                
-                if matching_curve and matching_curve.get("dup_ObjectID") is not None:
-                    # IMPORTANT: don't call curve.sync_curves() directly here.
-                    # It can end up calling bpy.ops.import_scene.fbx (via
-                    # BUILDER.add_part) when the new curve has no linked
-                    # objects yet, and Blender doesn't support running
-                    # operators from inside a depsgraph_update_post handler.
-                    # Queue the work and flush it on a timer instead.
-                    _pending_curve_syncs.append((new_curve, matching_curve))
-                    if not _curve_sync_timer_scheduled:
-                        _curve_sync_timer_scheduled = True
-                        bpy.app.timers.register(_flush_pending_curve_syncs, first_interval=0.0)
-            except ReferenceError:
+                matching_curve = next((c for c in known_curves if c.get("unique_id") == new_uuid and c != new_curve), None)
+                if matching_curve is not None:
+                    curve.sync_curves(new_curve, matching_curve)
+            except ReferenceError as error:
+                print("Reference error :", error)
                 continue
-
+    
+    # Update curve's children according to manipulations done by user.
+    curve.update_curves(known_curves)
+        
     # Sync back down to the global tracking set 
     known_curves = current_curves
-        
-        
-    
             
 
 class NMSAddonPreferences(bpy.types.AddonPreferences):
@@ -2054,14 +1968,41 @@ class NMSAddonPreferences(bpy.types.AddonPreferences):
         subtype='DIR_PATH',
         default = str(save_editor_utils.get_default_save_folder())
     )
-
-    def draw(self, context):
-        layout = self.layout
-        layout.prop(self, "nms_save_folder_path")
+    
+    _theme_cache = []
+    
+    selected_theme: bpy.props.EnumProperty(
+        name="Active Theme",
+        description="Choose a theme to apply",
+        items= lambda self, context: self.generate_theme_list(),
+        update= lambda self, context: self.apply_selected_theme() 
+    )
+    
+    def generate_theme_list(self):
+        """Generates the list, using the class cache to scan only once."""
         
+        if NMSAddonPreferences._theme_cache:
+            return NMSAddonPreferences._theme_cache
 
-# We can store multiple preview collections here,
-# however in this example we only store "main"
+        themes_extracted = workspace.get_themes_list()
+        enum_themes = []
+        blender_default_dark = ("DEFAULT_BLENDER", "(Dark) Blender Default", "Restore Blender's default theme")
+        
+        enum_themes.append(blender_default_dark)
+        for theme in themes_extracted:
+            theme_name = theme["theme_name"]
+            display_name = f"{theme_name}"
+            path = theme["path"]
+            enum_themes.append((path, display_name,"theme creator credits"))
+                    
+        NMSAddonPreferences._theme_cache = enum_themes
+        return enum_themes
+    
+    def apply_selected_theme(self):
+        theme_path = self.selected_theme
+        workspace.apply_theme(theme_path)
+
+        
 preview_collections = {}
 
 # Plugin Registration ---
@@ -2167,8 +2108,8 @@ def register():
     bpy.types.Scene.nms_properties = bpy.props.PointerProperty(type=Properties)
     bpy.types.Scene.nms_batch_tool = bpy.props.PointerProperty(type=BatchTool)
     
-    if reset_save_editor_state not in bpy.app.handlers.load_post:
-        bpy.app.handlers.load_post.append(reset_save_editor_state)
+    if reset_plugin_state not in bpy.app.handlers.load_post:
+        bpy.app.handlers.load_post.append(reset_plugin_state)
     
     if active_object_watcher not in bpy.app.handlers.depsgraph_update_post:
         bpy.app.handlers.depsgraph_update_post.append(active_object_watcher)
@@ -2194,8 +2135,8 @@ def unregister():
     del bpy.types.Scene.nms_properties
     del bpy.types.Scene.nms_batch_tool
     
-    if reset_save_editor_state in bpy.app.handlers.load_post:
-        bpy.app.handlers.load_post.remove(reset_save_editor_state)
+    if reset_plugin_state in bpy.app.handlers.load_post:
+        bpy.app.handlers.load_post.remove(reset_plugin_state)
     
     if active_object_watcher in bpy.app.handlers.depsgraph_update_post:
         bpy.app.handlers.depsgraph_update_post.remove(active_object_watcher)

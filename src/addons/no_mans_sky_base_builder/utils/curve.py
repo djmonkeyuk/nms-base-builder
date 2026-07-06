@@ -6,15 +6,30 @@ from . import blend_utils, curve_utils, collection_utils, material, mirror_utils
 from . import python as python_utils
 from .. import builder, part
 
+import inspect
+
 BUILDER = builder.Builder()
 
 FILE_PATH = os.path.dirname(os.path.realpath(__file__))
 NICE_JSON = os.path.join(FILE_PATH,"..","resources","nice_names.json")
 nice_name_dictionary = python_utils.load_dictionary(NICE_JSON)
 
+def update_curves(updated_curves):
+    scene = bpy.context.scene
+    for curve_obj in updated_curves:
+        properties = scene.nms_properties
+        if "has_linked_objects" in curve_obj:
+            try:
+                if curve_obj.name == properties.active_curve_name:
+                    new_radius_multiplier = properties.active_curve_radius_multiplier
+                elif "radius_multiplier" in curve_obj:
+                    new_radius_multiplier = curve_obj["radius_multiplier"]
+                update_curve_children(curve_obj, new_radius_multiplier)
+            except ReferenceError:
+                continue
 
 # update children on curve
-def update_curve_duplicates(curve_obj, new_radius_multier = None):
+def update_curve_children(curve_obj, new_radius_multier = None):
     """Refreshes transformations for all objects assigned to this curve."""
     if not curve_obj.get("has_linked_objects"):
         return
@@ -29,21 +44,21 @@ def update_curve_duplicates(curve_obj, new_radius_multier = None):
             curve_utils.update_obj_transformations(obj, curve_obj, val_data, total_length)
 
 
-def duplicate_along_curve( object, curve, number_of_duplicates=10, radius_multiplier=1.0):
+def duplicate_along_curve( bpy_object, curve, number_of_duplicates=10, radius_multiplier=1.0):
     curve["has_linked_objects"] = True
     curve["radius_multiplier"] = radius_multiplier
     
     if "initial_curve_scale" not in curve:
         curve["initial_curve_scale"] = curve.scale.x
     
-    if object is not None:
-        curve["dup_ObjectID"] = object["ObjectID"]
-        curve["dup_UserData"] = object["UserData"]
+    if bpy_object is not None:
+        curve["dup_ObjectID"] = bpy_object["ObjectID"]
+        curve["dup_UserData"] = bpy_object["UserData"]
     
-    # Calculate the fractional distance between objects. 
-    gap_distance = 0.0 if number_of_duplicates <= 1 else 1.0 / (number_of_duplicates - 1)
+    # Calculate the fractional distance between bpy_objects. 
+    gap_distance = 1.0 / (number_of_duplicates - 1)
     
-    # Gather all objects currently following this curve
+    # Gather all bpy_objects currently following this curve
     existing_objs = [obj for obj in bpy.context.scene.objects if obj.get("curve_parent") == curve.name]
     current_count = len(existing_objs)
     
@@ -71,16 +86,22 @@ def duplicate_along_curve( object, curve, number_of_duplicates=10, radius_multip
         curve_col = collection_utils.move_curve_to_collection(curve)
         parent_col = curve["parent_col"]
         
+        linked_curve_obj_col = collection_utils.get_collection(collection_utils.LINKED_CURVE_OBJ_COL)
+        
         for _ in range(number_of_duplicates - current_count):
-            
             if len(existing_objs) == 0:
                 
-                last_rotation_euler = (math.pi,0,0)
-                last_position = (0,0,0)
-                base_scale = 1.0
-                
-                new_item = BUILDER.add_part(object_id, user_data=user_data)
-                new_obj = new_item.object
+                if bpy_object is None:
+                    caller = inspect.stack()[1]
+                    print("Called by:", caller.function)
+                    print("bulding new object")
+                    new_item = BUILDER.add_part(object_id, user_data=user_data)
+                    new_obj = new_item.object
+                else:
+                    new_obj = bpy_object.copy()
+                    new_obj.data = bpy_object.data.copy()
+                    for constraint in list(new_obj.constraints):
+                        new_obj.constraints.remove(constraint)
                 
                 constraint = new_obj.constraints.new(type='FOLLOW_PATH')
                 constraint.target = curve
@@ -88,26 +109,21 @@ def duplicate_along_curve( object, curve, number_of_duplicates=10, radius_multip
                 constraint.use_curve_follow = True
                 
                 new_obj["curve_parent"] = curve.name
-                new_obj["base_scale"] = base_scale
-                new_obj.rotation_euler = last_rotation_euler
-                new_obj.location = last_position
+                new_obj["base_scale"] = 1.0
+                new_obj.rotation_euler = (math.pi,0,0)
+                new_obj.location = (0,0,0)
                 new_obj.hide_select = True
                 
-                if curve_col not in new_obj.users_collection:
-                    curve_col.objects.link(new_obj)
-                    
-                for col in list(new_obj.users_collection):
-                    if col != curve_col:
-                        col.objects.unlink(new_obj)
+                collection_utils.move_object_into_collection(linked_curve_obj_col, new_obj)
 
                 material.restore_material(new_obj, user_data)
                 new_obj["parent_col"] = parent_col
                 
             else :
                 new_obj = existing_objs[-1].copy()
-                parent_col.objects.link(new_obj)
+                new_obj["curve_parent"] = curve.name
+                linked_curve_obj_col.objects.link(new_obj)
                 
-            
             existing_objs.append(new_obj)
 
     # calcuate segment_length and total length of curve once
@@ -153,7 +169,8 @@ def apply_curve_transforms_and_detach(curve):
     # If we don't do this, 'obj.matrix_world' might return stale data from before 
     bpy.context.view_layer.update()
     
-    renamed_child_collection = False
+    
+    unlinked_curve_obj_col = collection_utils.get_collection(collection_utils.UNLINKED_CURVE_OBJ_COL)
     
     for obj in bpy.context.scene.objects:
         if obj.get("curve_parent") == curve.name:
@@ -165,19 +182,6 @@ def apply_curve_transforms_and_detach(curve):
                 
             if "curve_factor" in obj:
                 del obj["curve_factor"]
-                
-            if "child_col" in obj:
-                if not renamed_child_collection:
-                    child_col = obj["child_col"]
-                    child_col.name = f"(unlinked-children) {child_col.name}"
-                    renamed_child_collection = True
-                del obj["child_col"]
-                
-            if "parent_col" in obj:
-                del obj["parent_col"]
-                
-            if "master_col" in obj:
-                del obj["master_col"]
                 
             del obj["curve_parent"]
                 
@@ -196,6 +200,8 @@ def apply_curve_transforms_and_detach(curve):
             obj.hide_select = False
             obj.lock_location = (False, False, False)
             duplicates.append(obj)
+            
+            collection_utils.move_object_into_collection(unlinked_curve_obj_col , obj)
     
     #blend_utils.select(duplicates)
     
@@ -319,21 +325,20 @@ def delete_curve_and_children(curve):
 
     return deleted_count
 
+# reokace curve objects on curve with source object provided
 def replace_curve_object(curve_obj, source_obj):
     
     new_curve_obj = curve_obj.copy()
     new_curve_obj.data = curve_obj.data.copy()
     new_curve_obj["unique_id"] = str(uuid.uuid4())
-    if "parent_col" in curve_obj and curve_obj.get("parent_col") is not None:
-        collection = curve_obj["parent_col"]
+    
+    for collection in curve_obj.users_collection:
         collection.objects.link(new_curve_obj)
-    else:
-        bpy.context.collection.objects.link(new_curve_obj)
-        
+    
     new_curve_obj["dup_ObjectID"] = source_obj["ObjectID"]
     new_curve_obj["dup_UserData"] = source_obj["UserData"]
     
-    sync_curves(new_curve_obj,curve_obj)
+    sync_curves(new_curve_obj , curve_obj, duping_object_source= source_obj)
     delete_curve_and_children(curve_obj)
 
     return new_curve_obj
@@ -352,10 +357,8 @@ def reset_curve(curve):
             bpy.data.objects.remove(obj, do_unlink=True)
     return curve_obj
 
+# mirror a curve and objects dupicated along it
 def mirror_curve(curve_obj, axis = "Z", center = None, auto_duplicate = False):
-    """
-    Duplicates a curve object and applies a pure mathematical mirror to its data.
-    """
     if not is_bezier_or_nurbs_path(curve_obj):
         return None
     
@@ -373,9 +376,10 @@ def mirror_curve(curve_obj, axis = "Z", center = None, auto_duplicate = False):
         new_curve_obj = curve_obj
                     
     
-    #Apply the mathematical mirror
+    #Apply the mathematical mirror to curve objects
     curve_utils.mirror_curve_data(new_curve_obj, axis)
     
+    # Mirror positin of curve according to center of reflection
     location = new_curve_obj.location
     if axis == "X":
         new_curve_obj.location.x  = mirror_utils.reflect_point_across(location.x, center.x)
@@ -390,33 +394,41 @@ def mirror_curve(curve_obj, axis = "Z", center = None, auto_duplicate = False):
         new_curve_obj.rotation_euler.x *= -1
         new_curve_obj.rotation_euler.y *= -1
     
+    # update objectID of mirror part of that object exist
     obj_id = new_curve_obj["dup_ObjectID"]
     mirror_obj_id = part.Part.get_mirror_part_id(obj_id)
     mirror_part_exist =  mirror_obj_id in nice_name_dictionary.keys()
-    
     if mirror_part_exist:
         new_curve_obj["dup_ObjectID"] = mirror_obj_id
-        
-    sync_curves(new_curve_obj, curve_obj, True, axis)
+    
+    # syncing curves will make objects duplicating on them have identical transformations
+    sync_curves(new_curve_obj, curve_obj, True, axis, from_mirror= True)
     return new_curve_obj
 
 
-def sync_curves(target_curve, source_curve, do_mirror = False, axis = None):
+def sync_curves(target_curve, source_curve, do_mirror = False, axis = None, from_mirror = False, duping_object_source = None):
+
+    source_dupe_objects = [obj for obj in bpy.context.scene.objects if obj.get("curve_parent") == source_curve.name]
     
     radius_multiplier = target_curve["radius_multiplier"]
     number_of_objects = target_curve["objects_count"]
-     
     
-    target_dupe_obejcts = duplicate_along_curve(None, target_curve, number_of_objects, radius_multiplier)   
-    source_dupe_objects = [obj for obj in bpy.context.scene.objects if obj.get("curve_parent") == source_curve.name]
+    if duping_object_source is not None:
+        duping_obejct = duping_object_source
+    elif len(source_dupe_objects) > 0 and not from_mirror:
+        duping_obejct = source_dupe_objects[0]
+    else:
+        duping_obejct = None
+    target_dupe_obejcts = duplicate_along_curve(duping_obejct, target_curve, number_of_objects, radius_multiplier)
     
-    if len(target_dupe_obejcts)>0 and  len(source_dupe_objects)>0:
+    if len(target_dupe_obejcts)>0:
         target = target_dupe_obejcts[0]
-        source = source_dupe_objects[0]
-        if target["UserData"] != source["UserData"]:
-            target["UserData"] = source["UserData"]
-            material.restore_material(target, target["UserData"])
-   
+        material.restore_material(target, target["UserData"])
+        
+    
+    # these curves are almost identical
+    # blender stores bpy.context.scene.objects in sorted order, so duplicated objects will alsmo match that order.
+    # objects on same index will have save transformations
     for index,source in enumerate(source_dupe_objects):
         if index >= len(target_dupe_obejcts):
             break
@@ -435,8 +447,11 @@ def sync_curves(target_curve, source_curve, do_mirror = False, axis = None):
             if axis is not None and axis == "Z":
                 target.rotation_euler.x += math.pi
                 target.rotation_euler.z += math.pi
-            
-    target_curve["unique_id"] = str(uuid.uuid4())
+    
+    print("sync complete : ", target_curve.name)
+    
+    # Refresh evaluation data for the newly synced children
+    update_curve_children(target_curve, radius_multiplier)
     
 
 def calculate_base_scale(curve, obj):
@@ -444,10 +459,10 @@ def calculate_base_scale(curve, obj):
     radius_multiplier = curve["radius_multiplier"]
     point_radius = obj["radius"]
     return obj.scale.x/( point_radius* radius_multiplier * curve_scale_multiplier )
-    
 
 
-
-
-
-    
+def apply_color(curve, user_data):
+    for child_obj in bpy.context.scene.objects:
+        if "curve_parent" in child_obj and child_obj["curve_parent"] == curve.name:
+            material.restore_material(child_obj, user_data)
+            break

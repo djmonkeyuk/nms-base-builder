@@ -79,34 +79,6 @@ class BuildTool(bpy.types.PropertyGroup):
     )
     
     
-        
-    def on_curve_radius_multiplier_change(self):
-        active = bpy.context.view_layer.objects.active
-        curve_obj = curve.get_curve_or_linked_curve(active)
-        
-        if curve_obj is None: 
-            return
-        
-        original_object_id = curve_obj.get("dup_ObjectID",None)
-        if curve_obj and original_object_id:
-            curve.update_curve_duplicates(curve_obj, self.active_curve_radius_multiplier)
-        
-    def on_curve_parameter_change(self):
-        active = bpy.context.view_layer.objects.active
-        curve_obj = curve.get_curve_or_linked_curve(active)
-        
-        if curve_obj is None: 
-            return
-        
-        original_object_id = curve_obj.get("dup_ObjectID",None)
-        if curve_obj and original_object_id:
-            curve.duplicate_along_curve(
-                None,
-                curve_obj,
-                self.active_curve_number_of_objects,
-                curve_obj.get("radius_multiplier",1.0)
-            )
-    
     def mirror(self, axis = None, center = None, change_orientation = False, auto_duplicate = False):
         """Mirror the object acording to parameters provided"""
         # Store selection.
@@ -264,6 +236,7 @@ class BuildTool(bpy.types.PropertyGroup):
             self.active_curve_name = curve_object.name
             self.show_gap_edit_field = True
             
+            print("duplicating along curve")
             # Perform duplication along curve.
             curve.duplicate_along_curve( dup_object, curve_object, number_of_objects, radius_multiplier )
             

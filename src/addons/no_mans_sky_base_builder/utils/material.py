@@ -285,3 +285,4 @@ def assign_material(item, colour_index=0, material_index=0):
 
     set_material(item, material)
     return material
+

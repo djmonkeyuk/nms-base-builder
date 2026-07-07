@@ -83,7 +83,6 @@ def duplicate_along_curve( bpy_object, curve, number_of_duplicates=10, radius_mu
         
         object_id = curve["dup_ObjectID"]
         user_data = curve["dup_UserData"]
-        curve_col = collection_utils.move_curve_to_collection(curve)
         parent_col = curve["parent_col"]
         
         linked_curve_obj_col = collection_utils.get_collection(collection_utils.LINKED_CURVE_OBJ_COL)
@@ -115,9 +114,7 @@ def duplicate_along_curve( bpy_object, curve, number_of_duplicates=10, radius_mu
                 new_obj.hide_select = True
                 
                 collection_utils.move_object_into_collection(linked_curve_obj_col, new_obj)
-
                 material.restore_material(new_obj, user_data)
-                new_obj["parent_col"] = parent_col
                 
             else :
                 new_obj = existing_objs[-1].copy()
@@ -325,7 +322,7 @@ def delete_curve_and_children(curve):
 
     return deleted_count
 
-# reokace curve objects on curve with source object provided
+# replace curve objects on curve with source object provided
 def replace_curve_object(curve_obj, source_obj):
     
     new_curve_obj = curve_obj.copy()
@@ -339,9 +336,8 @@ def replace_curve_object(curve_obj, source_obj):
     new_curve_obj["dup_UserData"] = source_obj["UserData"]
     
     sync_curves(new_curve_obj , curve_obj, duping_object_source= source_obj)
-    delete_curve_and_children(curve_obj)
-
-    return new_curve_obj
+    
+    return new_curve_obj, curve_obj
 
 # reset a curve to its default stage and delete all clildren on it
 def reset_curve(curve):
@@ -406,8 +402,17 @@ def mirror_curve(curve_obj, axis = "Z", center = None, auto_duplicate = False):
     return new_curve_obj
 
 
+# this function takes two curves as argument
+# iterage over objects of source curve and copy transformations of those objects to their alternatives in target curve
+# this in a way creates eact copy of these curves no matter how much obects have been manupulated by user
+# do_mirror: this argument dictates if child objects need to be mirrored
+# asix: this dictates which direction objects need to be mirrored
+# last two objects dictate which function is calling them, 
 def sync_curves(target_curve, source_curve, do_mirror = False, axis = None, from_mirror = False, duping_object_source = None):
 
+    target_curve["unique_id"] = str(uuid.uuid4())
+    
+    # all child objects of source curve
     source_dupe_objects = [obj for obj in bpy.context.scene.objects if obj.get("curve_parent") == source_curve.name]
     
     radius_multiplier = target_curve["radius_multiplier"]
@@ -419,6 +424,7 @@ def sync_curves(target_curve, source_curve, do_mirror = False, axis = None, from
         duping_obejct = source_dupe_objects[0]
     else:
         duping_obejct = None
+    # all child objects of parent curve
     target_dupe_obejcts = duplicate_along_curve(duping_obejct, target_curve, number_of_objects, radius_multiplier)
     
     if len(target_dupe_obejcts)>0:
@@ -448,21 +454,28 @@ def sync_curves(target_curve, source_curve, do_mirror = False, axis = None, from
                 target.rotation_euler.x += math.pi
                 target.rotation_euler.z += math.pi
     
-    print("sync complete : ", target_curve.name)
+    
     
     # Refresh evaluation data for the newly synced children
     update_curve_children(target_curve, radius_multiplier)
     
-
+# scale of a child object of curve is mix of multiple products
+# base scale is scale of object before getting influenced by curve's points
 def calculate_base_scale(curve, obj):
     curve_scale_multiplier = curve.scale.x/curve["initial_curve_scale"]
     radius_multiplier = curve["radius_multiplier"]
     point_radius = obj["radius"]
     return obj.scale.x/( point_radius* radius_multiplier * curve_scale_multiplier )
 
-
-def apply_color(curve, user_data):
-    for child_obj in bpy.context.scene.objects:
-        if "curve_parent" in child_obj and child_obj["curve_parent"] == curve.name:
-            material.restore_material(child_obj, user_data)
-            break
+# change color of objects on curve
+def apply_color(curve_obj, user_data):
+    
+    if curve_obj is None:
+        return None
+    
+    if "has_linked_objects" in curve_obj and is_bezier_or_nurbs_path(curve_obj):
+        curve_obj["dup_UserData"] = user_data
+        for child_obj in bpy.context.scene.objects:
+            if "curve_parent" in child_obj and child_obj["curve_parent"] == curve_obj.name:
+                material.restore_material(child_obj, user_data)
+                break

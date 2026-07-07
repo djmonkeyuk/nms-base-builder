@@ -1,15 +1,18 @@
 import bpy
 from bpy.types import Panel
+
 from .. import icons
+
 
 # Base Property Panel ---
 class NMS_PT_batch_tools_panel(Panel):
     bl_idname = "NMS_PT_batch_tools_panel"
-    bl_label = "Batch Tools"
+    bl_label = "📦 Batch Tools"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
     bl_category = "No Mans Sky Base Builder"
     bl_context = "objectmode"
+    bl_options = {'DEFAULT_CLOSED'} 
 
     @classmethod
     def poll(self, context):
@@ -20,13 +23,9 @@ class NMS_PT_batch_tools_panel(Panel):
         scene = context.scene
         batch_tool = scene.nms_batch_tool
         
-        icon_pcoll = icons.get_icons_pscroll()
-        batch_icon = icon_pcoll["batch"]
-        
         top_row = layout.row(align = True)
         select_box = top_row.box()
-        #select_box.scale_x = 1.3333
-        select_box.label(text = "Batch Select", icon_value = batch_icon.icon_id )#, icon = "SELECT_INTERSECT"
+        select_box.label(text = "Batch Select")
         select_col = select_box.column(align = True)
         select_col.label(text = "Select objects with")
         select_col.operator("object.nms_select_same_colors", text = "Same Colour", icon = "MOD_SOFT")

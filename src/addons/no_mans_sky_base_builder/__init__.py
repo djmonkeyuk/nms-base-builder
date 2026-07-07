@@ -2,48 +2,36 @@ import json
 import os
 import subprocess
 import sys
-import webbrowser
 import uuid
+import webbrowser
 
 import blf
 import bpy
 import bpy.ops
 import bpy.utils
 import bpy.utils.previews
-from bpy.props import (
-    BoolProperty,
-    EnumProperty,
-    FloatProperty,
-    IntProperty,
-    PointerProperty,
-    StringProperty,
-)
-from bpy.types import Panel, PropertyGroup
 from bpy.app.handlers import persistent
+from bpy.props import (BoolProperty, EnumProperty, FloatProperty, IntProperty,
+                       PointerProperty, StringProperty)
+from bpy.types import Panel, PropertyGroup
 from numpy import isin
 
-from . import builder, part, preset, icons
+from . import builder, icons, part, preset
 from .part_overrides import line
-from .utils import blend_utils, curve, curve_utils, workspace, collection_utils
-from .utils import material as _material
-from .utils import python as python_utils
-
-from .save_editor.save_manager import SaveManager
+from .save_editor import save_editor_operators, save_editor_utils
 from .save_editor.save_editor_presentation import NMS_PT_save_editor_panel
-from .save_editor import save_editor_operators
-from .save_editor import save_editor_utils
-
+from .save_editor.save_manager import SaveManager
+from .tools import batch_tool_operators, build_tool_operators
+from .tools.batch_tool import BatchTool
+from .tools.batch_tool_presentation import NMS_PT_batch_tools_panel
 from .tools.build_tool import BuildTool
-from .tools import build_tool_operators
 from .tools.build_tool_presentation import NMS_PT_tools_panel
-
 from .tools.properties import Properties
 from .tools.properties_presentation import NMS_PT_base_prop_panel
-
-from .tools.batch_tool_presentation import NMS_PT_batch_tools_panel
-from .tools.batch_tool import BatchTool
-from .tools import batch_tool_operators
-
+from .utils import blend_utils, collection_utils, curve, curve_utils
+from .utils import material as _material
+from .utils import python as python_utils
+from .utils import workspace
 
 FILE_PATH = os.path.dirname(os.path.realpath(__file__))
 USER_PATH = os.path.join(os.path.expanduser("~"), "NoMansSkyBaseBuilder")
@@ -101,7 +89,7 @@ class NMSSettings(PropertyGroup):
     enum_items = []
     for pack, _ in BUILDER.available_packs:
         enum_items.append((pack, pack, "View {0}...".format(pack)))
-    enum_items.append(("PRESETS", "Presets", "View Presets..."))
+    enum_items.append(("PRESETS", "Prefabs", "View Prefabs..."))
 
     # Blender Properties.
     enum_switch: EnumProperty(
@@ -736,10 +724,8 @@ class NMS_PT_hero_panel(Panel):
         plugin_icon = pcoll["plugin_icon"]
         pateron_icon = pcoll["patreon"]
         discord_icon = pcoll["discord"]
-        coffee_icon = pcoll["coffee"]
+        steam_icon = pcoll["steam"]
         online_icon = pcoll["online"]
-        
-        
         
         icon_row = layout.row(align = True)
         icon_split = icon_row.split(factor = 0.35)
@@ -759,7 +745,7 @@ class NMS_PT_hero_panel(Panel):
         icon_text_sec = icon_text_column.column(align = True)
         icon_text_sec.alert = True
         #icon_text_sec.scale_y = 0.4
-        icon_text_sec.label(text = "by DjMonkey", icon = "MONKEY")
+        icon_text_sec.label(text = "🐵 by DjMonkey")
         
         community_row = layout.row(align=True)
         communuity_box = community_row.box()
@@ -771,24 +757,22 @@ class NMS_PT_hero_panel(Panel):
         support_box = community_row.box()
         fourth_column = support_box.column(align = True)
         fourth_column.label(text = "Support Me")
-        fourth_column.operator("object.nms_cleanup_workspace", text = "Patreon", icon_value = pateron_icon.icon_id)
-        fourth_column.operator("object.nms_cleanup_workspace", text = "Buy me a Coffee", icon_value = coffee_icon.icon_id)
+        fourth_column.operator("object.nms_visit_patreon", text = "Patreon", icon_value = pateron_icon.icon_id)
+        fourth_column.operator("object.nms_visit_steam_games", text = "Steam games", icon_value = steam_icon.icon_id)
         
-        
-        #if not nms_tool.is_workspace_cleaned:
         workspace_row = layout.row(align=True)
         workspace_box = workspace_row.box()
         workspace_column = workspace_box.column(align = True)
         workspace_column.label(text = "Workspace")
-        workspace_column.operator("object.nms_cleanup_workspace", text = "Workspace Cleanup", icon = "WORKSPACE")
-        
-        
+        workspace_column.operator("object.nms_launch_asset_browser", text = "Launch Asset Browser", icon = "DESKTOP")
+        if not nms_tool.is_workspace_cleaned:
+            workspace_column.operator("object.nms_cleanup_workspace", text = "Simplify Blender Workspace", icon = "WORKSPACE")
 
 
 # File Buttons Panel ---
 class NMS_PT_file_buttons_panel(Panel):
     bl_idname = "NMS_PT_file_buttons_panel"
-    bl_label = "Import/Export"
+    bl_label = "🔄 Import/Export"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
     bl_category = "No Mans Sky Base Builder"
@@ -808,7 +792,7 @@ class NMS_PT_file_buttons_panel(Panel):
         file_box = file_row.box()
         first_column = file_box.column(align=True)
         first_column.label(text="File")# icon = "COLLECTION_COLOR_04"
-        first_column.operator("object.nms_new_file")
+        first_column.operator("object.nms_new_file", icon="FILE_NEW")
         first_column.separator()
         first_column.operator("object.nms_save_data", icon="FILE_TICK")
         first_column.operator("object.nms_load_data", icon="FILE_FOLDER")
@@ -826,11 +810,12 @@ class NMS_PT_file_buttons_panel(Panel):
 # Colour Panel ---
 class NMS_PT_colour_panel(Panel):
     bl_idname = "NMS_PT_colour_panel"
-    bl_label = "Colour & Materials"
+    bl_label = "🎨 Colour & Materials"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
     bl_category = "No Mans Sky Base Builder"
     bl_context = "objectmode"
+    bl_options = {'DEFAULT_CLOSED'}
 
     @classmethod
     def poll(self, context):
@@ -840,20 +825,13 @@ class NMS_PT_colour_panel(Panel):
         layout = self.layout
         scene = context.scene
         nms_tool = scene.nms_base_tool
-        batch_tool = scene.nms_batch_tool
         colours = _material.get_colours_from_palette(nms_tool.material_switch)
         pcoll = preview_collections["main"]
         
-        icons_pcoll = icons.get_icons_pscroll()
-        palette_icon = icons_pcoll["palette"]
-        
-        
         colour_area = layout.box().column(align=False)
         material_row = colour_area.row(align = True)
-        #material_row.label(text="", icon = "COLLECTION_COLOR_07")
-        #material_row.label(text = "Palette") # icon = "NODE_MATERIAL"
         
-        material_row.prop(nms_tool, "material_switch",text = "Palette", icon_value = palette_icon.icon_id)
+        material_row.prop(nms_tool, "material_switch",text = "Palette")
         colour_area.separator()
         grid = colour_area.grid_flow(columns=12, even_columns=True, align = True)
         grid.scale_x = 0.6
@@ -879,11 +857,12 @@ class NMS_PT_colour_panel(Panel):
 # Colour Panel ---
 class NMS_PT_logic_panel(Panel):
     bl_idname = "NMS_PT_logic_panel"
-    bl_label = "Cables and Logic"
+    bl_label = "⚡ Cables & Logic"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
     bl_category = "No Mans Sky Base Builder"
     bl_context = "objectmode"
+    bl_options = {'DEFAULT_CLOSED'}
 
     @classmethod
     def poll(self, context):
@@ -895,19 +874,13 @@ class NMS_PT_logic_panel(Panel):
         nms_tool = scene.nms_base_tool
         layout = self.layout
         
-        icons_pcoll = icons.get_icons_pscroll()
-        plug_icon = icons_pcoll["plug"]
-        
-        
         box = layout.box()
         col = box.column(align = True)
-        #col.label(text="Cable type", icon = "PLUGIN")
         enum_row = col.row(align = True)
-        #enum_row.label(text="", icon = "COLLECTION_COLOR_05")
-        enum_row.prop(nms_tool, "line_switch", text = "Cable", icon_value = plug_icon.icon_id)#IPO_LINEAR
+        enum_row.prop(nms_tool, "line_switch", text = "Cable")
         
         col.separator()
-        col.label(text = "Operations")# , icon = "CON_CHILDOF"
+        col.label(text = "Operations")
         row = col.row(align = True)
         operations_col_1 = row.column(align = True)
         operations_col_1.operator("object.nms_point", icon="EMPTY_DATA")
@@ -935,11 +908,12 @@ class NMS_PT_logic_panel(Panel):
 # Build Panel ---
 class NMS_PT_build_panel(Panel):
     bl_idname = "NMS_PT_build_panel"
-    bl_label = "Build"
+    bl_label = "🏗️ Parts & Prefabs"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
     bl_category = "No Mans Sky Base Builder"
     bl_context = "objectmode"
+    bl_options = {'DEFAULT_CLOSED'}
 
     @classmethod
     def poll(self, context):
@@ -950,17 +924,13 @@ class NMS_PT_build_panel(Panel):
         scene = context.scene
         nms_tool = scene.nms_base_tool
         
-        icons_pcoll = icons.get_icons_pscroll()
-        box_archive_icon = icons_pcoll["box_archive"]
-        
-        
         main_col = layout.box().column(align = True)
         col = main_col.column(align=True)
         col.label(text = "Asset Browser")
-        col.operator("object.nms_launch_asset_browser", icon_value = box_archive_icon.icon_id )# icon="COLLECTION_COLOR_03"
+        col.operator("object.nms_launch_asset_browser", icon = "DESKTOP" )# icon="COLLECTION_COLOR_03"
         
         presets_box = main_col.column(align = True)
-        presets_box.label(text = "Presets")
+        presets_box.label(text = "Prefabs")
         preset_row = presets_box.row(align = True)
         preset_row.operator("object.nms_save_as_preset", icon="SCENE_DATA")
         preset_row.operator("object.nms_split_preset", icon="MOD_EXPLODE")
@@ -985,7 +955,7 @@ class NMS_PT_nms_legacy_asset_browser(Panel):
         nms_tool = scene.nms_base_tool
         
         lab_col = layout.box().column(align = True)
-        lab_col.label(text = "Parts and Presets", icon = "ASSET_MANAGER")
+        lab_col.label(text = "Parts and Prefabs", icon = "ASSET_MANAGER")
         lab_col.row(align = True).prop(nms_tool, "enum_switch", expand=True)
         lab_col.template_list(
             "NMS_UL_actions_list",
@@ -1041,7 +1011,7 @@ class NMS_UL_actions_list(bpy.types.UIList):
                     operator.part_id = item.description
                     edit_operator.part_id = item.description
                     delete_operator.part_id = item.description
-                    operator.tooltip = "Place this preset in the scene."
+                    operator.tooltip = "Place this prefab in the scene."
 
 
 class PartCollection(bpy.types.PropertyGroup):
@@ -1090,7 +1060,7 @@ def generate_ui_list_data(item_type="parts", pack=None):
         # Uncategorized.
         presets = BUILDER.get_uncategorized_presets()
         if presets:
-            ui_list_data.append(("Uncategorized Presets", ""))
+            ui_list_data.append(("Uncategorized Prefabs", ""))
             for _preset in sorted(presets):
                 ui_list_data.append(("", _preset))
     else:
@@ -1227,11 +1197,11 @@ class SwitchWorkspace(bpy.types.Operator):
         return {"FINISHED"}
 
 class SaveAsPreset(bpy.types.Operator):
-    """Save the current scene contents as a new Preset"""
+    """Save the current scene contents as a new Prefab"""
 
     bl_idname = "object.nms_save_as_preset"
-    bl_label = "Save As Preset"
-    preset_name: bpy.props.StringProperty(name="Preset Name")
+    bl_label = "Save As Prefab"
+    preset_name: bpy.props.StringProperty(name="Prefab Name")
 
     def execute(self, context):
         # Save Preset.
@@ -1274,7 +1244,7 @@ class LoadFancyUI(bpy.types.Operator):
 
 class PresetsMenu(bpy.types.Menu):
     bl_idname = "OBJECT_MT_nms_get_more_presets_menu"
-    bl_label = "Get More Presets..."
+    bl_label = "Get More Prefabs..."
 
     def draw(self, context):
         layout = self.layout
@@ -1283,10 +1253,10 @@ class PresetsMenu(bpy.types.Menu):
 
 
 class GetMorePresets(bpy.types.Operator):
-    """Load the No Man's Sky Presets web page to find more community presets."""
+    """Load the No Man's Sky Prefabs web page to find more community prefabs."""
 
     bl_idname = "object.nms_get_more_presets"
-    bl_label = "Get More Presets..."
+    bl_label = "Get More Prefabs..."
 
     def execute(self, context):
         # Load web page.
@@ -1307,7 +1277,7 @@ class VisitDiscord(bpy.types.Operator):
 
 
 class VisitGuides(bpy.types.Operator):
-    """Launch the community discord URL."""
+    """Launch the dedicated online guides."""
 
     bl_idname = "object.nms_visit_guides"
     bl_label = "Online Guides."
@@ -1317,6 +1287,28 @@ class VisitGuides(bpy.types.Operator):
         webbrowser.open_new(
             "https://djmonkey.uk/no-mans-sky-base-builder-blender/guides/"
         )
+        return {"FINISHED"}
+
+
+class VisitPatreon(bpy.types.Operator):
+    """Open the Patreon page."""
+
+    bl_idname = "object.nms_visit_patreon"
+    bl_label = "Patreon"
+
+    def execute(self, context):
+        webbrowser.open_new("https://www.patreon.com/cw/djmonkeyuk/")
+        return {"FINISHED"}
+
+
+class VisitSteamGames(bpy.types.Operator):
+    """Open DjMonkey's Steam developer page."""
+
+    bl_idname = "object.nms_visit_steam_games"
+    bl_label = "Wishlist/Buy my Steam games"
+
+    def execute(self, context):
+        webbrowser.open_new("https://store.steampowered.com/developer/djmonkey")
         return {"FINISHED"}
 
 
@@ -1345,10 +1337,10 @@ class VisitGitHubRepo(bpy.types.Operator):
 
 
 class OpenPresetFolder(bpy.types.Operator):
-    """Open the folder containing your presets."""
+    """Open the folder containing your prefabs."""
 
     bl_idname = "object.nms_open_preset_folder"
-    bl_label = "Open Preset Folder"
+    bl_label = "Open Prefab Folder"
 
     def execute(self, context):
         # Open the preset folder with the system's default file manager.
@@ -1402,10 +1394,10 @@ class ListBuildOperator(bpy.types.Operator):
 
 
 class ListEditOperator(bpy.types.Operator):
-    """Edit the specified preset."""
+    """Edit the specified prefab."""
 
     bl_idname = "object.list_edit_operator"
-    bl_label = "Edit Preset"
+    bl_label = "Edit Prefab"
     bl_options = {"UNDO", "REGISTER"}
     part_id: StringProperty()
 
@@ -1839,14 +1831,14 @@ class LogicBeatSwitch(bpy.types.Operator):
     
 
 class SplitPreset(bpy.types.Operator):
-    """Split the selected preset into individual parts"""
+    """Split the selected prefab into individual parts"""
 
     bl_idname = "object.nms_split_preset"
-    bl_label = "Split Preset to Parts"
+    bl_label = "Split Prefab to Parts"
 
     def execute(self, context):
         from . import preset as _preset_mod
-        
+
         # Find the selected preset, or any preset in the scene
         selected = [o for o in context.selected_objects if "PresetID" in o]
         if not selected:
@@ -1867,7 +1859,7 @@ class SplitPreset(bpy.types.Operator):
         # Clear builder caches
         BUILDER.clear_caches()
         
-        self.report({"INFO"}, f"Presets split: {len(names)}, parts: {total}")
+        self.report({"INFO"}, f"Prefabs split: {len(names)}, parts: {total}")
         return {"FINISHED"}
     
 
@@ -1978,8 +1970,8 @@ class NMSAddonPreferences(bpy.types.AddonPreferences):
         subtype='DIR_PATH',
         default = str(save_editor_utils.get_default_save_folder())
     )
+    
 
-        
 preview_collections = {}
 
 # Plugin Registration ---
@@ -2007,6 +1999,8 @@ classes = (
     PresetsMenu,
     VisitDiscord,
     VisitGuides,
+    VisitPatreon,
+    VisitSteamGames,
     VisitPrefabDiscord,
     VisitGitHubRepo,
     OpenPresetFolder,
@@ -2030,11 +2024,11 @@ classes = (
     NMS_PT_file_buttons_panel,
     NMS_PT_save_editor_panel,
     NMS_PT_base_prop_panel,
-    NMS_PT_tools_panel,
     NMS_PT_colour_panel,
     NMS_PT_logic_panel,
-    NMS_PT_build_panel,
+    NMS_PT_tools_panel,
     NMS_PT_batch_tools_panel,
+    NMS_PT_build_panel,
     NMS_PT_nms_legacy_asset_browser,
     
     NMSAddonPreferences,

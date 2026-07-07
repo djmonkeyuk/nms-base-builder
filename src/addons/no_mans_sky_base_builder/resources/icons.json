@@ -1,29 +1,15 @@
 {
   "base_path": "src/addons/no_mans_sky_base_builder/images/icons/",
   "icons": {
-    "bolt": "bolt-solid.png",
-    "book_atlas": "book-atlas-solid.png",
-    "box_archive": "box-archive-solid.png",
-    "circle_user": "circle-user-solid.png",
-    "clipboard": "clipboard-solid.png",
-    "discord": "discord-brands-solid.png",
-    "file": "file-solid.png",
-    "floppy_disk": "floppy-disk-solid.png",
+    "online":"T_Icon_Online.png",
     "house": "house-solid.png",
-    "list_ol": "list-ol-solid.png",
-    "palette": "palette-solid.png",
-    "patreon": "patreon-brands-solid.png",
-    "people_group": "people-group-solid.png",
-    "plug": "plug-solid.png",
-    "puzzle_piece": "puzzle-piece-solid.png", 
-    "rocket": "rocket-solid.png",
-    "drive":"icons8-hard-drive-90.png",
-    "online":"icons8-online-90.png",
-    "coffee":"icons8-coffee-96.png",
     "curve":"icons8-curve-64.png",
     "up":"icons8-up-64.png",
     "down":"icons8-down-64.png",
     "batch":"icons8-intersect-64.png",
     "pin":"pushpin-icon.png"
+    "discord": "T_Icon_Discord.png",
+    "steam": "T_Icon_Steam.png",
+    "patreon": "T_Icon_Patreon.png"
   }
 }

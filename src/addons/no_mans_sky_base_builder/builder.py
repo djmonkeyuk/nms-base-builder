@@ -10,24 +10,14 @@ from collections import defaultdict
 from copy import copy
 
 import bpy
+from mathutils import Matrix
 
 from . import part, preset
-from .part_overrides import (
-    bone,
-    bone_replacer,
-    line,
-    locked,
-    message,
-    power_control,
-    turret,
-    u_bytebeatline,
-    u_pipeline,
-    u_portalline,
-    u_powerline,
-)
+from .part_overrides import (bone, bone_replacer, line, locked, message,
+                             power_control, turret, u_bytebeatline, u_pipeline,
+                             u_portalline, u_powerline)
 from .utils import blend_utils
 from .utils import python as python_utils
-from mathutils import Matrix
 
 
 class Builder(object):
@@ -291,7 +281,7 @@ class Builder(object):
         return part_object
 
     # Serialising ---
-    def serialise(self, get_presets=False, add_timestamp=False):
+    def serialise(self, get_presets=False, add_timestamp=False, as_prefab=False):
         """Return NMS compatible dictionary.
 
         Args:
@@ -310,7 +300,8 @@ class Builder(object):
             object_list.append(item_obj.serialise())
 
         # Create full dictionary.
-        data = {"Objects": object_list}
+        key = "Prefab" if as_prefab else "Objects"
+        data = {key: object_list}
 
         if add_timestamp:
             data["timestamp"] = int(time.time())
@@ -499,11 +490,11 @@ class Builder(object):
         else:
             file_path = os.path.join(self.PRESET_PATH, preset_name)
         # Add .json if it's not specified.
-        if not file_path.endswith(".json"):
-            file_path += ".json"
+        if not file_path.endswith(".nmsprefab"):
+            file_path += ".nmsprefab"
         # Save to file path
         with open(file_path, "w") as stream:
-            json.dump(self.serialise(add_timestamp=True), stream, indent=4)
+            json.dump(self.serialise(add_timestamp=False, as_prefab=True), stream, indent=4)
 
     def build_rigs(self):
         """Get all items that require a rig and build them."""

@@ -1,14 +1,16 @@
 import bpy
 from bpy.types import Panel
 
+
 # Snap Panel ---
 class NMS_PT_tools_panel(Panel):
     bl_idname = "NMS_PT_snap_panel"
-    bl_label = "Tools"
+    bl_label = "🛠️ Builder Tools"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
     bl_category = "No Mans Sky Base Builder"
     bl_context = "objectmode"
+    bl_options = {'DEFAULT_CLOSED'}
 
     @classmethod
     def poll(self, context):
@@ -34,7 +36,6 @@ class NMS_PT_tools_panel(Panel):
         splitter = part_box.split(factor=0.7)
         splitter.label(text="Part Count:" )# , icon = "GEOMETRY_NODES"
         part_count = len([obj for obj in bpy.data.objects if "ObjectID" in obj])
-        splitter.alert = True
         splitter.label(text="{}".format(part_count))
 
         tools_box = tools_column.box()
@@ -117,10 +118,11 @@ class NMS_PT_tools_panel(Panel):
                 mirroring_box_column.prop(build_tool, "target_object", text = "")
                 mirroring_box_column.separator()
                 
-            # perform mirror button
-            mirroring_box_column.operator("object.nms_advanced_mirror", icon = "MOD_MIRROR", text = "Perform Mirror")
             #check to auto duplicate objects before mirroring
             mirroring_box_column.prop(build_tool,"check_auto_duplicate")
+            # perform mirror button
+            mirroring_box_column.operator("object.nms_advanced_mirror", icon = "MOD_MIRROR", text = "Perform Mirror")
+            
 
         # Set Snap Operator assignments.
         # Default

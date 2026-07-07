@@ -244,7 +244,7 @@ class BuildTool(bpy.types.PropertyGroup):
             # lock all objects on curve so that only curve is selectable
             curve.lock_all_objects(curve_object)
             
-        blend_utils.select(new_curve_object)
+        blend_utils.select(curve_object)
         properties = bpy.context.scene.nms_properties
         properties.set_active_obect(curve_object)
         

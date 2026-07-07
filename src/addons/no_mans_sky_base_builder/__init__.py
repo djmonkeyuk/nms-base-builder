@@ -753,7 +753,7 @@ class NMS_PT_hero_panel(Panel):
         fourth_column = support_box.column(align = True)
         fourth_column.label(text = "Support Me")
         fourth_column.operator("object.nms_visit_patreon", text = "Patreon", icon_value = pateron_icon.icon_id)
-        fourth_column.operator("object.nms_visit_steam_games", text = "Buy my Steam games", icon_value = steam_icon.icon_id)
+        fourth_column.operator("object.nms_visit_steam_games", text = "Steam games", icon_value = steam_icon.icon_id)
         
         workspace_row = layout.row(align=True)
         workspace_box = workspace_row.box()

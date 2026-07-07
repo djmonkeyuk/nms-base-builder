@@ -2,7 +2,7 @@ release 6.5.0
 -------------
 
 
-* A UI polish pass across the panels or the tool, improving visual consistency across different tools. (credit: Kuma the Wizard & DjMonkey)
+* A UI polish pass across the panels or the tool, improving visual consistency across different tools. (credit: Kuma the Wizard, with additional feedback/tweaks from DjMonkey)
 * New workspace buttons that simplify the Blender UI and quicker access to the Asset Browser UI. (credit: Kuma the Wizard)
 * Expanded Mirror Options: Specify different axis options and auto-duplication settings with these new options (credit: Kuma the Wizard)
 * Expanded Curve Options: Selecting the "Duplicate Along Curve" button now provides an expanded property box with dynamic options like number of parts and part scale. Selecting and deselecting the curve will toggle these tools. (credit: Kuma the Wizard)
@@ -12,6 +12,7 @@ release 6.5.0
 * Added a top section for logos, guides, and support (credit: Kuma the Wizard & DjMonkey)
 * Added Prismatic Core Trophy models to the catalogue. (credit: DjMonkey)
 * Consolidated the terminology and file format for Presets => Prefabs. From this update onward both Blender and App will produce `.nmsprefab` files compatible with both tools. Blender can still read `.json` preset files for backward compatibility. (credit: DjMonkey)
+* Prefabs now appear in a left-most tab within the Asset Browser UI. (credit: DjMonkey)
 
 
 

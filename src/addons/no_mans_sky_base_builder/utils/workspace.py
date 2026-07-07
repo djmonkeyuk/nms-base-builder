@@ -5,7 +5,7 @@ import bpy
 # Workspace Cleanup
 def cleanup_workspace(context) -> None:
     
-    new_workspace_name = "No Man's Sky Base & Corvette builder"
+    new_workspace_name = "No Man's Sky Base & Corvette Builder"
     
     layout_ws = bpy.data.workspaces.get("Layout")
     if layout_ws is None:

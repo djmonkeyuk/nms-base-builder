@@ -1,13 +1,10 @@
 {
   "base_path": "src/addons/no_mans_sky_base_builder/images/icons/",
   "icons": {
-    "online":"T_Icon_Online.png",
+    "online": "T_Icon_Online.png",
     "house": "house-solid.png",
-    "curve":"icons8-curve-64.png",
-    "up":"icons8-up-64.png",
-    "down":"icons8-down-64.png",
-    "batch":"icons8-intersect-64.png",
-    "pin":"pushpin-icon.png"
+    "curve": "icons8-curve-64.png",
+    "pin": "pushpin-icon.png",
     "discord": "T_Icon_Discord.png",
     "steam": "T_Icon_Steam.png",
     "patreon": "T_Icon_Patreon.png"

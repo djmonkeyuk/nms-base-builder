@@ -27,13 +27,10 @@ class NMS_PT_save_editor_panel(Panel):
         save_folder_path = prefs.nms_save_folder_path
         
         icon_pcoll = icons.get_icons_pscroll()
-        drive_icon = icon_pcoll["drive"]
-        piece_icon = icon_pcoll["puzzle_piece"]
         pin_icon = icon_pcoll["pin"]
         
         #display data related to a pinned base on top if there is any withing a blend file
         if save_data.pinned_base_check:
-            
             pinned_base_type  = save_data.get_base_type_string(save_data.pinned_base_type)
             pinned_box = layout.box()
             pinned_col = pinned_box.column(align = True)

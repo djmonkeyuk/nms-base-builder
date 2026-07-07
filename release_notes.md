@@ -1,3 +1,20 @@
+release 6.5.0
+-------------
+
+
+* A UI polish pass across the panels or the tool, improving visual consistency across different tools. (credit: Kuma the Wizard & DjMonkey)
+* New workspace buttons that simplify the Blender UI and quicker access to the Asset Browser UI. (credit: Kuma the Wizard)
+* Expanded Mirror Options: Specify different axis options and auto-duplication settings with these new options (credit: Kuma the Wizard)
+* Expanded Curve Options: Selecting the "Duplicate Along Curve" button now provides an expanded property box with dynamic options like number of parts and part scale. Selecting and deselecting the curve will toggle these tools. (credit: Kuma the Wizard)
+* Batch Tools: Various options for selecting and swapping multiple objects all at once. (credit: Kuma the Wizard)
+* Added a colour picker button that lets you drop material and colour options quicker between parts from another part.
+* Bugfixes and visual updates to the Save Manager tools. (credit: Kuma the Wizard)
+* Added a top section for logos, guides, and support (credit: Kuma the Wizard & DjMonkey)
+* Added Prismatic Core Trophy models to the catalogue. (credit: DjMonkey)
+* Consolidated the terminology and file format for Presets => Prefabs. From this update onward both Blender and App will produce `.nmsprefab` files compatible with both tools. Blender can still read `.json` preset files for backward compatibility. (credit: DjMonkey)
+
+
+
 release 6.4.1
 -------------
 

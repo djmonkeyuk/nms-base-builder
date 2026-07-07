@@ -3,8 +3,8 @@ release 6.5.0
 
 
 * A UI polish pass across the panels of the tool, improving visual consistency across different tools. (credit: Kuma the Wizard, with additional feedback/tweaks from DjMonkey)
-* Panels that contain particular tools are now collapsed by default, to help with initial overwhelm when loading for the first time. (credit: DjMoneky)
-* New workspace buttons that simplify the Blender UI and quicker access to the Asset Browser UI. (credit: Kuma the Wizard)
+* Panels that contain particular tools are now collapsed by default, to help with initial overwhelm when loading for the first time. (credit: DjMonkey)
+* New workspace buttons that simplify the Blender UI and quicker access to the Asset Browser UI. (credit: Kuma the Wizard & DjMonkey)
 * Expanded Mirror Options: Specify different axis options and auto-duplication settings with these new options (credit: Kuma the Wizard)
 * Expanded Curve Options: Selecting the "Duplicate Along Curve" button now provides an expanded property box with dynamic options like number of parts and part scale. Selecting and deselecting the curve will toggle these tools. (credit: Kuma the Wizard)
 * Batch Tools: Various options for selecting and swapping multiple objects all at once. (credit: Kuma the Wizard)

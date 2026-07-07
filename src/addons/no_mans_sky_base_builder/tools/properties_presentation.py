@@ -30,6 +30,7 @@ class NMS_PT_base_prop_panel(Panel):
         
         properties_box = layout.box()
         properties_column = properties_box.column(align=True)
+        properties_column.label(text = "Base Properties", icon_value = home_icon.icon_id)
         base_prop_split = properties_column.split(factor = 0.3)
         base_label_col = base_prop_split.column(align = True)
         base_label_col.label(text = "Base Name :")
@@ -46,7 +47,7 @@ class NMS_PT_base_prop_panel(Panel):
         if properties.show_gap_edit_field: # and properties.active_curve_is_highlighted()
             active_curve_box = layout.box()
             active_curve_box_col = active_curve_box.column(align = False)
-            active_curve_box_col.label(text = "Edit Active-Curve parameters", icon_value = curve_icon.icon_id) # icon = "NORMALIZE_FCURVES"
+            active_curve_box_col.label(text = "Edit Active-Curve Parameters", icon_value = curve_icon.icon_id) # icon = "NORMALIZE_FCURVES"
             
             active_curve_box_col_label_split = active_curve_box_col.split(factor = 0.7)
             active_curve_box_col_label, active_curve_box_col_delete = (active_curve_box_col_label_split.column(), active_curve_box_col_label_split.column())
@@ -59,7 +60,6 @@ class NMS_PT_base_prop_panel(Panel):
                 curve_gap_row, curve_radius_row = (curve_params_split.column(align = True), curve_params_split.column(align = True))
                 curve_gap_row.label(text = "Number of Objects")
                 curve_gap_row.label(text = "Objects Size")
-                curve_radius_row.alert = True
                 #Text fields for editing curv related params
                 curve_radius_row.prop(properties,"active_curve_number_of_objects",text = "")
                 curve_radius_row.prop(properties,"active_curve_radius_multiplier",text = "")

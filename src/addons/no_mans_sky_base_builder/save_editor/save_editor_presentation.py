@@ -26,10 +26,6 @@ class NMS_PT_save_editor_panel(Panel):
         prefs = context.preferences.addons[ADDON_ID].preferences
         save_folder_path = prefs.nms_save_folder_path
         
-        icon_pcoll = icons.get_icons_pscroll()
-        drive_icon = icon_pcoll["drive"]
-        piece_icon = icon_pcoll["puzzle_piece"]
-        
         #display data related to a pinned base on top if there is any withing a blend file
         if save_data.pinned_base_check:
             
@@ -64,7 +60,7 @@ class NMS_PT_save_editor_panel(Panel):
         save_folder_box = layout.box()
         sf_column = save_folder_box.column(align=True)
         sf_enable_row = sf_column.row(align = True)
-        sf_enable_row.label(text = "Select Save", icon_value = drive_icon.icon_id)#DISK_DRIVE
+        sf_enable_row.label(text = "Select Save")#DISK_DRIVE
         
         #this row will contain a field where location of save folder is displayed
         if save_data.check_plugin_enabled and save_data.validate_save_folder(save_folder_path):
@@ -110,16 +106,16 @@ class NMS_PT_save_editor_panel(Panel):
                     backup_row.operator("object.open_backup_folder", icon="FOLDER_REDIRECT", text = "Open Backup Folder")
                     
                     sf_column.separator()
-                    sf_column.label(text = f"Total Parts : {save_data.get_total_parts_count()}", icon_value = piece_icon.icon_id)
+                    sf_column.label(text = f"📦 Total Parts : {save_data.get_total_parts_count()}")
                     se_column = sf_column.column(align = True)
-                    se_column.label(text = "Base Type selected")# icon = "MOD_BUILD"
+                    se_column.label(text = "Base Type:")# icon = "MOD_BUILD"
                     #radio buttons to select type of base
                     base_type_row = se_column.row(align=True)
                     base_type_row.prop(save_data, "nms_base_type",expand=True, text = "base type")
                     se_column.separator()
                     
                     #list of bases/corvettes
-                    se_column.label(text = f"{base_type} Selected")# icon = "ASSET_MANAGER"
+                    se_column.label(text = f"{base_type} Selected:")# icon = "ASSET_MANAGER"
                     
                     #show base list in red when on base/corvette is selected
                     base_index_row = se_column.row(align = True)

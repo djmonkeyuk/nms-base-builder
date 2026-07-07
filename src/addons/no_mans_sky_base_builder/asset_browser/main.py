@@ -73,7 +73,7 @@ class AssetBrowser(QtWidgets.QMainWindow):
         self.refresh_presets_button.setCursor(
             QtGui.QCursor(QtCore.Qt.PointingHandCursor)
         )
-        self.refresh_presets_button.setToolTip("Refresh Presets")
+        self.refresh_presets_button.setToolTip("Refresh Prefabs")
 
         # Tab widget
         self.tab_widget = QtWidgets.QTabWidget(self.main_widget)
@@ -107,7 +107,7 @@ class AssetBrowser(QtWidgets.QMainWindow):
         self.search_presets_layout = QtWidgets.QVBoxLayout(self.search_presets_frame)
         self.search_presets_layout.setAlignment(QtCore.Qt.AlignTop)
         self.search_presets_scroll.setWidget(self.search_presets_frame)
-        self.search_tab_widget.addTab(self.search_presets_scroll, "Presets")
+        self.search_tab_widget.addTab(self.search_presets_scroll, "Prefabs")
 
     def refresh_search(self):
         with contexts.block_render(self):
@@ -294,7 +294,7 @@ Right click on a tab to pin it to the left of the tab bar.""",
         scroll_frame.setWidget(self.presets_frame)
         self.presets_layout = QtWidgets.QVBoxLayout(self.presets_frame)
         self.presets_layout.setAlignment(QtCore.Qt.AlignTop)
-        self.tab_widget.addTab(scroll_frame, "Presets")
+        self.tab_widget.addTab(scroll_frame, "Prefabs")
         self.generate_presets()
 
     def attach_favourites_menu(self, item_widget, item_id, expanded=False):
@@ -396,7 +396,7 @@ Right click on a tab to pin it to the left of the tab bar.""",
         ]
         if presets:
             preset_category_frame = CollapsableFrame(
-                label="Uncategorized Presets",
+                label="Uncategorized Prefabs",
                 layout="vertical",
                 parent=self.presets_frame,
             )
@@ -458,7 +458,8 @@ Right click on a tab to pin it to the left of the tab bar.""",
 
         menu = QtWidgets.QMenu()
         tab_name = tabbar.tabText(index)
-        if tab_name in ["Favourites", "Presets"]:
+        print (tab_name)
+        if tab_name in ["Favourites", "Prefabs"]:
             return  # Don't allow pinning the favourites tab.
         if tab_name in self.__settings.get_pinned_tabs():
             action = menu.addAction("Unpin Tab")
@@ -495,6 +496,9 @@ Right click on a tab to pin it to the left of the tab bar.""",
                 tabbar.setTabIcon(index, QtGui.QIcon(":PIN"))
             else:
                 tabbar.setTabIcon(index, QtGui.QIcon())
+                
+            if tab_name in ["Prefabs"]:
+                tabbar.setTabIcon(index, QtGui.QIcon(":PACKAGE"))
 
         pinned_tabs = set(self.__settings.get_pinned_tabs())
 
@@ -503,19 +507,19 @@ Right click on a tab to pin it to the left of the tab bar.""",
         pinned = sorted(
             tab
             for tab in all_tabs
-            if tab in pinned_tabs and tab not in ["Favourites", "Presets"]
+            if tab in pinned_tabs and tab not in ["Favourites", "Prefabs"]
         )
 
         unpinned = sorted(
             tab
             for tab in all_tabs
-            if tab not in pinned_tabs and tab not in ["Favourites", "Presets"]
+            if tab not in pinned_tabs and tab not in ["Favourites", "Prefabs"]
         )
 
+        if "Prefabs" in all_tabs:
+            unpinned.insert(0, "Prefabs")
+        
         final_order = ["Favourites"] + pinned + unpinned
-
-        if "Presets" in all_tabs:
-            final_order.append("Presets")
 
         for target_index, tab_name in enumerate(final_order):
             current_index = self.get_tab_index(tab_name)

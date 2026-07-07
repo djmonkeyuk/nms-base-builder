@@ -98,6 +98,7 @@ class BatchTool(bpy.types.PropertyGroup):
                 ShowMessageBox(message=message, title=title )
                 return 0
         else :
+            # create a temp object if "ObjectID" is provided
             object_id = self.object_id
             new_obj = BUILDER.add_part(object_id)
             target_object = new_obj.object
@@ -110,6 +111,9 @@ class BatchTool(bpy.types.PropertyGroup):
 
         for source_object in selected_objects:
             if source_object == target_object:
+                continue
+            
+            if source_object is None:
                 continue
             
             if "ObjectID" in source_object:
@@ -126,20 +130,25 @@ class BatchTool(bpy.types.PropertyGroup):
                 replaced_objects_list.append(replaced_object)
                 objects_to_delete.append(source_object)
             elif "has_linked_objects" in source_object and source_object.get("has_linked_objects", False):
-                source_object = curve.replace_curve_object(source_object, target_object)
-                replaced_objects_list.append(source_object)
+                new_curve, old_curve = curve.replace_curve_object(source_object, target_object)
+                replaced_objects_list.append(new_curve)
+                objects_to_delete.append(old_curve)
             
-        # 5. Batch delete outside the loop using low-level API
+        # Delete old objects
         for obj in objects_to_delete:
             bpy.data.objects.remove(obj, do_unlink=True)
+        
+        # Select the new objects
+        try:
+            if len(replaced_objects_list) > 0:
+                blend_utils.select(replaced_objects_list)
+        except ReferenceError as error:
+            print(error)
             
+        # delete temp object
         if self.nms_batch_replace_type == "object_id":
             bpy.data.objects.remove(target_object, do_unlink=True)
         
-        # Select the new objects
-        if len(replaced_objects_list) > 0:
-            print(replaced_objects_list)
-            blend_utils.select(replaced_objects_list)
         return len(replaced_objects_list)
     
     

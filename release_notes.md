@@ -1,3 +1,9 @@
+release 6.5.1
+-------------
+
+* Fixed incorrect scale of Swarm Trophy parts.
+
+
 release 6.5.0
 -------------
 

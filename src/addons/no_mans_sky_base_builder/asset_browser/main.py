@@ -614,6 +614,7 @@ import threading
 qt_app = None
 qt_window = None
 qt_thread = None
+IS_LINUX = sys.platform.startswith("linux")
 
 
 def qt_event_loop():
@@ -637,9 +638,20 @@ def load():
         qt_app = QtWidgets.QApplication(sys.argv)
     else:
         qt_app = QtWidgets.QApplication.instance()
-    window = AssetBrowser()
-    window.show()
-    # Start Qt event loop in a separate thread to avoid blocking Blender
+    qt_window = AssetBrowser()
+    qt_window.show()
+
+    if IS_LINUX:
+        # Qt objects were created by Blender's main thread.  Qt requires their
+        # event loop to run on that same thread; calling exec_() from a Python
+        # worker happens to work on Windows but is rejected on Linux.
+        # Let Blender schedule short Qt event-processing slices instead.
+        if not bpy.app.timers.is_registered(qt_event_loop):
+            bpy.app.timers.register(qt_event_loop, first_interval=0.01)
+        return
+
+    # Preserve the existing Windows behaviour, where the separate Qt event
+    # loop has historically coexisted with Blender without blocking its UI.
     qt_thread = threading.Thread(target=qt_thread_func, daemon=True)
     qt_thread.start()
 

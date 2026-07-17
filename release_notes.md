@@ -1,3 +1,9 @@
+release 6.5.2
+-------------
+
+* Fixed an issue where the Asset Browser would not load on Linux.
+
+
 release 6.5.1
 -------------
 

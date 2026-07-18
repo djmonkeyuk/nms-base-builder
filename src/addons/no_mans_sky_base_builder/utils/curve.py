@@ -1,12 +1,14 @@
-import os
-import bpy
-import uuid
-import math
-from . import blend_utils, curve_utils, collection_utils, material, mirror_utils
-from . import python as python_utils
-from .. import builder, part
-
 import inspect
+import math
+import os
+import uuid
+
+import bpy
+
+from .. import builder, part
+from . import (blend_utils, collection_utils, curve_utils, material,
+               mirror_utils)
+from . import python as python_utils
 
 BUILDER = builder.Builder()
 
@@ -83,7 +85,6 @@ def duplicate_along_curve( bpy_object, curve, number_of_duplicates=10, radius_mu
         
         object_id = curve["dup_ObjectID"]
         user_data = curve["dup_UserData"]
-        parent_col = curve["parent_col"]
         
         linked_curve_obj_col = collection_utils.get_collection(collection_utils.LINKED_CURVE_OBJ_COL)
         

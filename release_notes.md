@@ -1,3 +1,15 @@
+release 6.5.2
+-------------
+
+* Fixed an issue where the Asset Browser would not load on Linux.
+
+
+release 6.5.1
+-------------
+
+* Fixed incorrect scale of Swarm Trophy parts.
+
+
 release 6.5.0
 -------------
 

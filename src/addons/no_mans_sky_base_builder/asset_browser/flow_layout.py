@@ -13,6 +13,16 @@ class FlowLayout(QtWidgets.QLayout):
         #     self.setContentsMargins(QtCore.QMargins(0, 0, 0, 0))
 
         self._item_list = []
+        self._list_mode = False
+
+    def set_list_mode(self, enabled):
+        """Switch between wrapping grid layout and a single-column list layout."""
+        if self._list_mode != enabled:
+            self._list_mode = enabled
+            self.invalidate()
+
+    def is_list_mode(self):
+        return self._list_mode
 
     def __del__(self):
         item = self.takeAt(0)
@@ -72,6 +82,9 @@ class FlowLayout(QtWidgets.QLayout):
         return size
 
     def _do_layout(self, rect, test_only):
+        if self._list_mode:
+            return self._do_list_layout(rect, test_only)
+
         x = rect.x()
         y = rect.y()
         line_height = 0
@@ -108,5 +121,32 @@ class FlowLayout(QtWidgets.QLayout):
             line_height = max(line_height, item.sizeHint().height())
 
         new_height = y + line_height - rect.y()
+        self.heightChanged.emit(new_height)
+        return new_height
+
+    def _do_list_layout(self, rect, test_only):
+        x = rect.x()
+        y = rect.y()
+        spacing = self.spacing()
+
+        for item in self._item_list:
+            widget = item.widget()
+            if widget is not None and widget.isHidden():
+                continue
+            style = widget.style()
+            layout_spacing_y = style.layoutSpacing(
+                QtWidgets.QSizePolicy.ControlType.PushButton,
+                QtWidgets.QSizePolicy.ControlType.PushButton,
+                QtCore.Qt.Orientation.Vertical,
+            )
+            space_y = max(spacing, 0) + layout_spacing_y
+            height = item.sizeHint().height()
+
+            if not test_only:
+                item.setGeometry(QtCore.QRect(x, y, rect.width(), height))
+
+            y += height + space_y
+
+        new_height = y - rect.y()
         self.heightChanged.emit(new_height)
         return new_height

@@ -28,25 +28,34 @@ class NMS_PT_tools_panel(Panel):
         build_tools_col = layout.column(align = True)
         tools_row = build_tools_col.row(align = True)
         tools_column = tools_row.column(align = True)
-        tools_column.scale_x = 1.3333
+        tools_column.scale_x = 1.4333
         snap_column = tools_row.column(align = True)
 
         # Create Part Count Box.
-        part_box = tools_column.box()
+        part_box = snap_column.box()
         splitter = part_box.split(factor=0.7)
         splitter.label(text="Part Count:" )# , icon = "GEOMETRY_NODES"
-        part_count = len([obj for obj in bpy.data.objects if "ObjectID" in obj])
+        # a group counts as the parts inside it
+        part_count = sum(
+            1 if "ObjectID" in obj else obj.get("part_count", 0)
+            for obj in bpy.data.objects
+            if "ObjectID" in obj or "GroupID" in obj
+        )
         splitter.label(text="{}".format(part_count))
 
         tools_box = tools_column.box()
-        tools_col = tools_box.column()
-
+        tools_col = tools_box.column(align = False)
         tools_col.label(text="Common Tools")
-        tools_col.operator("object.nms_duplicate", icon="DUPLICATE")
-        tools_col.operator("object.nms_delete", icon="TRASH")
+        del_dup_col = tools_col.column(align = True)
+        del_dup_col.operator("object.nms_duplicate", icon="DUPLICATE")
+        del_dup_col.operator("object.nms_delete", icon="TRASH")
         tools_col.label(text="Curve")
         tools_col.operator("object.nms_duplicate_along_curve", icon="MOD_DASH")
-        
+        tools_col.label(text="Grouping")
+        group_row = tools_col.row(align=True)
+        group_row.operator("object.nms_group_objects", text="Group", icon="OUTLINER_OB_POINTCLOUD")
+        group_row.operator("object.nms_ungroup_objects", text="Ungroup", icon="OUTLINER_DATA_POINTCLOUD")
+
 
         # Create Snapping box.
         snap_box = snap_column.box()
@@ -79,8 +88,9 @@ class NMS_PT_tools_panel(Panel):
         orientation_box = snap_column.box()
         mirror_col = orientation_box.column(align=True)
         mirror_col.label(text="Orientation") # icon = "ORIENTATION_GIMBAL"
-        mirror_col.operator("object.nms_mirror", icon="ARROW_LEFTRIGHT")
-        mirror_col.operator("object.nms_flip", icon="DECORATE_OVERRIDE")
+        mirror_col_row = mirror_col.row(align = True)
+        mirror_col_row.operator("object.nms_mirror", icon="ARROW_LEFTRIGHT")
+        mirror_col_row.operator("object.nms_flip", icon="DECORATE_OVERRIDE")
         #mirror_col.operator("object.nms_turn", icon="GESTURE_ROTATE")
         
                     

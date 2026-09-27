@@ -1,4 +1,5 @@
 import os
+import re
 import json
 import struct
 import lz4.block
@@ -6,10 +7,37 @@ from pathlib import Path
 import shutil
 
 from .save_translation import SaveTranslation
-from .save_editor_utils import BaseData, BaseType, ShowMessageBox
+from .save_editor_utils import BaseData, BaseType
+from ..utils.blend_utils import ShowMessageBox
 
 MAGIC = 0xFEEDA1E5
 CHUNK_SIZE = 0x80000  # 524288 bytes
+
+# turn the raw bytes between a json string's quotes into text, resolving escapes like \" and \n
+def decode_json_string(raw):
+    try:
+        return json.loads(b'"' + raw + b'"')
+    except ValueError:
+        return raw.decode("utf-8", errors="replace")
+
+# write a file so that it is either fully replaced or left untouched, never half written
+# data goes to a temporary file next to it first, which is then swapped in with a single rename
+def write_file_atomic(path, data):
+    path = Path(path)
+    temp_path = path.with_name(path.name + ".tmp")
+    try:
+        with open(temp_path, "wb") as f:
+            f.write(data)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(temp_path, path)
+    except Exception:
+        # the original file is still intact, only the temporary file needs removing
+        try:
+            os.remove(temp_path)
+        except OSError:
+            pass
+        raise
 
 # this handles loading, saving and backup of a hg save file with provided path
 class SaveFile:
@@ -51,17 +79,16 @@ class SaveFile:
         self.json_data = json.loads(json_text)
         return self.json_data
     
-    # save data to save file
-    def save(self, output_path=None):
+    # compress loaded data into the bytes of a hg save file, without touching the disk
+    def pack(self):
         if self.json_data is None:
             raise ValueError("No JSON data loaded")
 
-        output_path = output_path or self.path
         json_bytes = json.dumps(
             self.json_data,
             separators=(",", ":"),
             ensure_ascii=False
-        ).encode("utf-8")
+        ).encode("utf-8") + b"\x00"
 
         blocks = []
 
@@ -70,11 +97,14 @@ class SaveFile:
             compressed = lz4.block.compress( chunk, store_size=False)
             header = struct.pack("<IIII",MAGIC,len(compressed),len(chunk),0)
             blocks.append(header + compressed)
-        with open(output_path, "wb") as f:
-            for block in blocks:
-                f.write(block)
-             
+        return b"".join(blocks)
+
+    # save data to save file
+    def save(self, output_path=None):
+        write_file_atomic(Path(output_path or self.path), self.pack())
+
     # make backup of save file that is changed into a /blender_backup folder which is different from /nms_base_builder_backup folder
+    # returns path of the backup
     def make_backup(self, output_path = None):
         path  = self.path
         folder = os.path.dirname(path)
@@ -90,37 +120,42 @@ class SaveFile:
             f"{name}{ext}.blender.bak"
         )
         shutil.copy2(path, backup_file)
+        return backup_file
+
+    # search string properties in save file, decompressing one block at a time and stopping as soon as all are found
+    # returns {property: value}, value is None for properties that were not found
+    def search_properties(self, properties):
+        patterns = {
+            prop: re.compile(rb'"' + re.escape(prop.encode("utf-8")) + rb'"\s*:\s*"((?:[^"\\]|\\.)*)"')
+            for prop in properties
+        }
+        found = {prop: None for prop in properties}
+        buffer = bytearray()
+        with open(self.path, "rb") as f:
+            while patterns:
+                header = f.read(16)
+                if not header:
+                    break
+                if len(header) < 16:
+                    raise ValueError("Invalid HG block header")
+                magic, comp_size, decomp_size, _ = struct.unpack("<IIII", header)
+                if magic != MAGIC:
+                    raise ValueError(f"Invalid magic in {self.path.name}: {hex(magic)}")
+                buffer += lz4.block.decompress(f.read(comp_size), uncompressed_size=decomp_size)
+
+                # a value split across two blocks will not match yet, and is picked up after the next block
+                for prop, pattern in list(patterns.items()):
+                    match = pattern.search(buffer)
+                    if match:
+                        found[prop] = decode_json_string(match.group(1))
+                        del patterns[prop]
+        return found
 
     # seach a paticular property in save file and stop as soon as you find it
     def search_property(self, property):
-        offset = 0
-        buffer = ""
-        with open(self.path, "rb") as f:
-            raw = f.read()
-        while offset < len(raw):
-            if offset + 16 > len(raw):
-                raise ValueError("Invalid HG block header")
-            magic, comp_size, decomp_size, _ = struct.unpack(  "<IIII", raw[offset:offset + 16])
-            if magic != MAGIC:
-                raise ValueError(f"Invalid magic at offset {offset}: {hex(magic)}")
-            offset += 16
-            comp_data = raw[offset:offset + comp_size]
-            offset += comp_size
-            chunk = lz4.block.decompress(comp_data,uncompressed_size=decomp_size)
-            buffer += chunk.decode("utf-8", errors="ignore")
-            key = '"'+property+'"'
-            if key in buffer:
-                i = buffer.find(key)
-                snippet = buffer[i:i+200]
-                try:
-                    return snippet.split(":")[1].split('"')[1]
-                except:
-                    return None
-                
-        def cleanup(self):
-            self.json_data = None
-            
-            
+        return self.search_properties([property])[property]
+
+
     # Return pointer to PersistentPlayerBases List in save data
     def get_bases_list_pointer(self):
         data = self.json_data
@@ -134,6 +169,14 @@ class SaveFile:
         save_type = data[SaveTranslation.active_context]
         key_base_list = SaveTranslation.base_context if save_type == "Main" else SaveTranslation.expedition_context
         return data[key_base_list][SaveTranslation.player_state_data][SaveTranslation.ship_ownership]
+    
+    # Return pointer to ShipOwnership Element in save data
+    def get_ship_ownsership_element(self, userdata):
+        ship_ownsership_pointer = self.get_ship_ownership_pointer()
+        if userdata < 0 or len(ship_ownsership_pointer) >= userdata:
+            print(f"UserData = {userdata} , value is invalid")
+            return None
+        return ship_ownsership_pointer[userdata]
 
     # Return pointer to PlayerFreighterName in save data
     def get_freighter_name(self):
@@ -227,6 +270,8 @@ class SaveFile:
         )
         
         return base_tuple == identifier_tuple
+    
+    
             
             
     

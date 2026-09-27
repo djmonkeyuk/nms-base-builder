@@ -14,8 +14,7 @@
     "S_ROOF_IC"
   ],
   "mirror_z_180_identifiers": [
-    "TRIFLOOR",
-    "B_WNG_R"
+    "TRIFLOOR"
   ],
   "position_offsets": {
     "STORAGEPANEL": [0.05444555, 0.0, 0.0]

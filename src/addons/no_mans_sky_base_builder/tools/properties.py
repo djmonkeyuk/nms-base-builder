@@ -4,8 +4,8 @@ import os
 import uuid
 from ..utils import blend_utils, curve
 from ..utils import python as python_utils
-from .. import builder, part
-from ..utils.mirror_utils import ShowMessageBox
+from .. import part
+from ..utils.blend_utils import ShowMessageBox
 
 FILE_PATH = os.path.dirname(os.path.realpath(__file__))
 NICE_JSON = os.path.join(FILE_PATH,"..","resources","nice_names.json")
@@ -14,7 +14,6 @@ GHOSTED_JSON = os.path.join(FILE_PATH,"..", "resources", "ghosted.json")
 ghosted_reference = python_utils.load_dictionary(GHOSTED_JSON)
 GHOSTED_ITEMS = ghosted_reference["GHOSTED"]
 nice_name_dictionary = python_utils.load_dictionary(NICE_JSON)
-BUILDER = builder.Builder()
 
 class Properties(bpy.types.PropertyGroup):
     
@@ -22,8 +21,8 @@ class Properties(bpy.types.PropertyGroup):
     active_curve_number_of_objects: bpy.props.IntProperty(
         name="Number of Objects",
         default = 10,
-        update = lambda self, context: self.on_number_of_objects_change(),
-        
+        update = lambda self, context: curve.update_selected_curves(),
+
         min=1,       # Absolute lowest value allowed
         max=1000,      # Absolute highest value allowed
         soft_min=5,  # Slider UI floor
@@ -34,14 +33,18 @@ class Properties(bpy.types.PropertyGroup):
     active_curve_radius_multiplier: bpy.props.FloatProperty(
         name="Overall Radius",
         default = 1.0,
-        update = lambda self, context: self.on_curve_radius_multiplier_change(),
-        
+        update = lambda self, context: curve.update_selected_curves(),
+
         min=0.0,       # Absolute lowest value allowed
         max=100.0,      # Absolute highest value allowed
         soft_min=0.01,  # Slider UI floor
         soft_max=5.0   # Slider UI ceiling
     )
-    
+
+    # slider values at the last curve update, the difference is applied to selected curves
+    prev_curve_number_of_objects: bpy.props.IntProperty(default=10)
+    prev_curve_radius_multiplier: bpy.props.FloatProperty(default=1.0)
+
     # For displaying name of target curve selected
     active_curve_name: bpy.props.StringProperty(
         name="active curve name",
@@ -65,66 +68,62 @@ class Properties(bpy.types.PropertyGroup):
     )
     
     active_object = None
-    
-    
-    def on_curve_radius_multiplier_change(self):
-        active = bpy.context.view_layer.objects.active
-        curve_obj = curve.get_curve_or_linked_curve(active)
-        
-        if curve_obj is None: 
-            return
-        
-        original_object_id = curve_obj.get("dup_ObjectID",None)
-        if curve_obj and original_object_id:
-            
-            old_radius_miltiplier = curve_obj.get("radius_multiplier")
-            if old_radius_miltiplier and old_radius_miltiplier == self.active_curve_radius_multiplier:
-                return
-            
-            curve.update_curve_children(curve_obj, self.active_curve_radius_multiplier)
-        
-    def on_number_of_objects_change(self):
-        active = bpy.context.view_layer.objects.active
-        curve_obj = curve.get_curve_or_linked_curve(active)
-        
-        if curve_obj is None: 
-            return
-        
-        original_object_id = curve_obj.get("dup_ObjectID",None)
-        if curve_obj and original_object_id:
-            
-            old_count = curve_obj.get("objects_count")
-            if old_count and old_count == self.active_curve_number_of_objects:
-                return
-            
-            curve.duplicate_along_curve(
-                None,
-                curve_obj,
-                self.active_curve_number_of_objects,
-                curve_obj.get("radius_multiplier",1.0)
-            )
-    
+
     def show_curve_edit_options(self,curve_obj):
         self.show_gap_edit_field = True
         self.active_curve_name = curve_obj.name
-        self.active_curve_number_of_objects = curve_obj.get("objects_count",10)
-        self.active_curve_radius_multiplier = curve_obj.get("radius_multiplier",1.0)
-        self.selected_curve_object_is_parent = curve_obj["parent_selected"]
+
+        # switching curves must not read as a slider change
+        with curve.suspend_updates():
+            self.prev_curve_number_of_objects = curve_obj.get("objects_count",10)
+            self.prev_curve_radius_multiplier = curve_obj.get("radius_multiplier",1.0)
+            self.active_curve_number_of_objects = self.prev_curve_number_of_objects
+            self.active_curve_radius_multiplier = self.prev_curve_radius_multiplier
+
+        self.selected_curve_object_is_parent = curve_obj.get("parent_selected", True)
 
     def hide_curve_edit_options(self):
         self.show_gap_edit_field = False
         self.active_curve_name = ""
-    
+
     def select_parent_curve(self):
         self.selected_curve_object_is_parent = True
+        selected_objects = list(bpy.context.selected_objects)
         active_object = bpy.context.active_object
-        curve.select_parent_curve(active_object)
-        
+        if active_object is not None and active_object not in selected_objects:
+            selected_objects.append(active_object)
+
+        curves_to_select = []
+        for obj in selected_objects:
+            if curve.Curve.PROP_CURVE_PARENT not in obj or curve.Curve.PROP_CURVE_ID in obj:
+                continue
+            parent_curve = curve.select_parent_curve(obj)
+            if parent_curve is not None and parent_curve not in curves_to_select:
+                curves_to_select.append(parent_curve)
+
+        if curves_to_select:
+            blend_utils.select(curves_to_select)
+
     def select_children_of_curve(self):
         self.selected_curve_object_is_parent = False
-        active_object = bpy.context.active_object
-        curve.select_children_of_curve(active_object)
-        
+        selected_objects = bpy.context.selected_objects
+
+        if any(curve.Curve.PROP_CURVE_ID not in obj for obj in selected_objects):
+            ShowMessageBox(
+                message="All selected objects are not curves",
+                title="Selection Failed"
+            )
+            return
+
+        children_to_select = []
+        for curve_obj in selected_objects:
+            children = curve.select_children_of_curve(curve_obj)
+            if children:
+                children_to_select.extend(children)
+
+        if children_to_select:
+            blend_utils.select(children_to_select)
+
     def active_curve_is_highlighted(self):
         selected_objects = bpy.context.selected_objects
         active_object = bpy.context.view_layer.objects.active
@@ -145,6 +144,9 @@ class Properties(bpy.types.PropertyGroup):
         return False
     
     def set_active_obect(self, obj):
+        if obj is None:
+            return
+
         curve_obj = curve.get_curve_or_linked_curve(obj)
         if curve_obj is not None:
             self.show_curve_edit_options(curve_obj)

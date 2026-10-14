@@ -557,7 +557,7 @@ Right click on a tab to pin it to the left of the tab bar.""",
         import no_mans_sky_base_builder.preset as preset
         import no_mans_sky_base_builder.utils.blend_utils as blend_utils
 
-        BUILDER = no_mans_sky_base_builder.BUILDER
+        BUILDER = no_mans_sky_base_builder.builder.get_builder()
 
         selection = blend_utils.get_current_selection()
 
@@ -590,7 +590,7 @@ Right click on a tab to pin it to the left of the tab bar.""",
         import no_mans_sky_base_builder.preset as preset
         import no_mans_sky_base_builder.utils.blend_utils as blend_utils
 
-        BUILDER = no_mans_sky_base_builder.BUILDER
+        BUILDER = no_mans_sky_base_builder.builder.get_builder()
 
         nms_tool = bpy.context.scene.nms_base_tool
         if item_id in preset.Preset.get_presets():

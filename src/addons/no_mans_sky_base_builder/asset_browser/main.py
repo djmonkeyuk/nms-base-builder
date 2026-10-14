@@ -487,6 +487,33 @@ class AssetBrowser(QtWidgets.QMainWindow):
         self.setWindowIcon(QtGui.QIcon(APP_ICON))
         self.__item_widgets = {}
         self.__search_buttons = {}
+        # id -> nice_name for every searchable part, independent of whether
+        # a search widget has actually been built for it yet - see
+        # _ensure_search_item_widget. Lets refresh_search() know what *could*
+        # match without needing one built-and-eagerly-hidden widget per part
+        # up front (half of every part widget built at startup used to be
+        # exactly that, used only if the user happened to search).
+        self.__search_item_data = {}
+        # base part id -> [(variant_id, nice_name), ...], built once
+        # alongside the main grid's own variant wiring (generate_contents)
+        # so a search widget built later by _ensure_search_item_widget can
+        # look its variants up instead of needing the original eager
+        # variant-wiring pass to have already found and touched it.
+        self.__variants_by_base = {}
+        # Category title -> (frame, layout) for its (possibly still-empty)
+        # tab container, and the set of categories whose contents have
+        # actually been built - see generate_contents/
+        # _ensure_category_tab_built. Set here, before any tab exists, not
+        # inside generate_contents: adding the very first tab (Favourites,
+        # in generate_favourites, called before generate_contents) makes
+        # Qt fire currentChanged immediately, which refresh_layouts reacts
+        # to - leaving these unset that early raised an AttributeError
+        # there (swallowed by Qt's slot exception handling, so harmless
+        # beyond a scary traceback and a skipped geometry refresh, but a
+        # real bug regardless).
+        self.__browser_data = {}
+        self.__category_tab_built = set()
+        self.__category_frames = {}
         self.__preset_search_buttons = {}
         self.__favourite_item_widgets = []
         self.__part_flow_layouts = []
@@ -510,11 +537,20 @@ class AssetBrowser(QtWidgets.QMainWindow):
         self._layout_ui()
         self._setup_ui()
 
+        # Applied before any part/preset widgets exist, not after: with
+        # ~2900 widgets already built, setStyleSheet() has to re-match CSS
+        # selectors and re-style the entire existing tree in one pass
+        # (~2s, confirmed by profiling). Styling each widget incrementally
+        # as it's constructed instead - which is what applying the sheet
+        # to the still-empty window first gets you, since Qt cascades a
+        # parent's stylesheet to children as they're added - cut total
+        # cold-start time from ~3.9s to ~2.5s in that same profile.
+        self.apply_style()
+
         self.generate_favourites()
         self.generate_contents()
         self._apply_thumbnail_view_settings()
         self.refresh_tab_bar()
-        self.apply_style()
 
     def _build_ui(self):
         # Main
@@ -612,6 +648,13 @@ class AssetBrowser(QtWidgets.QMainWindow):
                     return
                 self.tab_widget.setVisible(False)
                 self.search_scroll.setVisible(True)
+
+                # Build a search widget for any newly-matching part that
+                # doesn't have one yet - see _ensure_search_item_widget.
+                for item_id, nice_name in self.__search_item_data.items():
+                    if search in item_id.lower() or search in nice_name.lower():
+                        self._ensure_search_item_widget(item_id)
+
                 for data_pack in [self.__search_buttons, self.__preset_search_buttons]:
                     for button_data in data_pack.values():
                         match = (
@@ -632,6 +675,48 @@ class AssetBrowser(QtWidgets.QMainWindow):
         )
         item_widget.set_thumbnail_size(thumbnail_size)
         item_widget.set_view_mode(view_mode)
+
+    def _ensure_search_item_widget(self, item_id):
+        """Builds item_id's search-tab widget the first time it's actually
+        needed (a search that matches it), instead of generate_contents
+        building one eagerly for every part regardless of whether the user
+        ever searches - confirmed by profiling to be half of all part
+        widgets built at startup. Returns the existing widget on every
+        call after the first."""
+        existing = self.__search_buttons.get(item_id)
+        if existing is not None:
+            return existing["widget"]
+
+        nice_name = self.__search_item_data.get(item_id)
+        if nice_name is None:
+            return None
+
+        search_item_widget = Item(
+            item_id=item_id,
+            label=nice_name,
+            parent=self.search_parts_frame,
+        )
+        self.search_frame_layout.addWidget(search_item_widget)
+        search_item_widget.clicked.connect(
+            partial(self.send_part_command_to_blender, item_id)
+        )
+        search_item_widget.varClicked.connect(self.send_part_command_to_blender)
+        self.attach_favourites_menu(search_item_widget, item_id)
+        self._configure_item_widget(search_item_widget)
+        for variant_id, variant_nice_name in self.__variants_by_base.get(item_id, []):
+            search_item_widget.add_variant(variant_id, variant_nice_name)
+
+        self.__search_buttons[item_id] = {
+            "widget": search_item_widget,
+            "search_id": item_id.lower(),
+            "search_label": nice_name.lower(),
+        }
+        # _apply_thumbnail_view_settings (the thumbnail-size slider) walks
+        # every widget in here, so a widget built after that has already
+        # run once needs to be added too, not just the main-grid one
+        # generate_contents put there.
+        self.__item_widgets.setdefault(item_id, []).append(search_item_widget)
+        return search_item_widget
 
     def set_thumbnail_size_step(self, step):
         if step == self.__thumbnail_size_step:
@@ -744,92 +829,57 @@ Right click on a tab to pin it to the top of the tab bar.""",
 
     def generate_contents(self):
         browser_data = parts_definition.get_part_definition()
-        # Add Categories
-        for category_title, category_data in browser_data.items():
+        self.__browser_data = browser_data
 
-            # Main Category
+        # Variants index and the search index, both as pure data,
+        # independent of any widget existing yet - built once here so a
+        # category built lazily later (_ensure_category_tab_built) and a
+        # search widget built lazily (_ensure_search_item_widget) can each
+        # wire their own items' variants at creation time, however late
+        # that turns out to be, rather than needing a second pass over
+        # every category's widgets once they're all built - which is what
+        # used to force every category to be built eagerly in the first
+        # place. __search_item_data in particular has to be built for
+        # *every* part here regardless of category - search needs to find
+        # a part whether or not its category tab has ever been opened, so
+        # unlike __item_widgets, this index can't itself be built lazily
+        # per category without breaking search for anything in a category
+        # not yet visited.
+        for category_title, category_data in browser_data.items():
+            if not category_data:
+                continue
+            for sub_category_title, items in category_data.items():
+                for item_data in items:
+                    if item_data["showInDrawer"] == "True" and isinstance(
+                        item_data["id"], str
+                    ):
+                        self.__search_item_data[item_data["id"]] = item_data["nice_name"]
+
+                    variant_of = item_data["variantOf"]
+                    if variant_of != "None":
+                        variant_key = variant_of[1:]
+                        self.__variants_by_base.setdefault(variant_key, []).append(
+                            (item_data["id"], item_data["nice_name"])
+                        )
+
+        # Add Categories - just the empty tab/scroll/frame container for
+        # each one here; the actual contents (CollapsableFrame sections +
+        # Item widgets) are built on first visit, by
+        # _ensure_category_tab_built, not eagerly for every category
+        # regardless of whether the user ever opens it - confirmed by
+        # profiling to be the largest single cost at launch (~1.2s across
+        # all 16 categories' ~1470 part widgets).
+        for category_title, category_data in browser_data.items():
             scroll_frame = QtWidgets.QScrollArea(self)
             scroll_frame.setWidgetResizable(True)
             frame = QtWidgets.QFrame(scroll_frame)
             scroll_frame.setWidget(frame)
             layout = QtWidgets.QVBoxLayout(frame)
             layout.setAlignment(QtCore.Qt.AlignTop)
-            category_tab = self.tab_widget.addTab(scroll_frame, category_title)
-
+            self.tab_widget.addTab(scroll_frame, category_title)
+            self.__category_frames[category_title] = (frame, layout)
             if not category_data:
-                continue
-
-            # Sub Categories
-            for sub_category_title, items in category_data.items():
-                title_label = CollapsableFrame(label=sub_category_title, parent=frame)
-                title_label.setProperty("partList", True)
-                layout.addWidget(title_label)
-                self.__part_flow_layouts.append(title_label.inner_frame_layout)
-                if not items:
-                    continue
-                for item_data in items:
-                    item = item_data["id"]
-                    show_in_drawer = item_data["showInDrawer"]
-                    nice_name = item_data["nice_name"]
-                    if show_in_drawer == "True":
-                        if isinstance(item, str):
-                            # Add to tab.
-                            item_widget = Item(
-                                item_id=item,
-                                label=nice_name,
-                                parent=title_label,
-                            )
-                            title_label.addWidget(item_widget)
-                            item_widget.clicked.connect(
-                                partial(self.send_part_command_to_blender, item)
-                            )
-                            item_widget.varClicked.connect(
-                                self.send_part_command_to_blender
-                            )
-                            self.attach_favourites_menu(item_widget, item)
-                            self._configure_item_widget(item_widget)
-
-                            # Add to search frame.
-                            search_item_widget = Item(
-                                item_id=item,
-                                label=nice_name,
-                                parent=title_label,
-                            )
-                            self.search_frame_layout.addWidget(search_item_widget)
-                            search_item_widget.clicked.connect(
-                                partial(self.send_part_command_to_blender, item)
-                            )
-                            search_item_widget.varClicked.connect(
-                                self.send_part_command_to_blender
-                            )
-                            self.attach_favourites_menu(search_item_widget, item)
-                            self._configure_item_widget(search_item_widget)
-                            self.__search_buttons[item] = {
-                                "widget": search_item_widget,
-                                "search_id": item.lower(),
-                                "search_label": nice_name.lower(),
-                            }
-                            self.__item_widgets[item] = [
-                                item_widget,
-                                search_item_widget,
-                            ]
-
-        # Add Variants
-        for category_title, category_data in browser_data.items():
-            if not category_data:
-                continue
-            # Sub Categories
-            for sub_category_title, items in category_data.items():
-                for item_data in items:
-                    item = item_data["id"]
-                    nice_name = item_data["nice_name"]
-                    variant_of = item_data["variantOf"]
-                    if variant_of != "None":
-                        variant_key = variant_of[1:]
-                        if variant_key in self.__item_widgets:
-                            widgets = self.__item_widgets[variant_key]
-                            for widget in widgets:
-                                widget.add_variant(item, nice_name)
+                self.__category_tab_built.add(category_title)  # nothing to build
 
         # Add Presets.
         scroll_frame = QtWidgets.QScrollArea(self)
@@ -842,6 +892,67 @@ Right click on a tab to pin it to the top of the tab bar.""",
         self.generate_presets()
 
         self._build_prefab_share_tab()
+
+    def _ensure_category_tab_built(self, category_title):
+        """Builds category_title's CollapsableFrame sections and Item
+        widgets the first time its tab is actually opened - see
+        generate_contents, which only builds the empty tab container for
+        every category up front. A no-op on every call after the first."""
+        if category_title in self.__category_tab_built:
+            return
+        self.__category_tab_built.add(category_title)
+
+        category_data = self.__browser_data.get(category_title)
+        if not category_data:
+            return
+        frame, layout = self.__category_frames[category_title]
+        # _apply_thumbnail_view_settings only runs when the slider actually
+        # changes, so a category built after that (any category not yet
+        # open the last time it ran - which, with lazy building, is most
+        # of them) needs its own flow layout put in the current view mode
+        # itself, here, rather than staying stuck on FlowLayout's grid-mode
+        # default regardless of what the slider is actually set to.
+        view_mode, _ = self._thumbnail_view_for_step(self.__thumbnail_size_step)
+
+        for sub_category_title, items in category_data.items():
+            title_label = CollapsableFrame(label=sub_category_title, parent=frame)
+            title_label.setProperty("partList", True)
+            layout.addWidget(title_label)
+            title_label.inner_frame_layout.set_list_mode(view_mode == "list")
+            self.__part_flow_layouts.append(title_label.inner_frame_layout)
+            if not items:
+                continue
+            for item_data in items:
+                item = item_data["id"]
+                show_in_drawer = item_data["showInDrawer"]
+                nice_name = item_data["nice_name"]
+                if show_in_drawer == "True" and isinstance(item, str):
+                    item_widget = Item(
+                        item_id=item,
+                        label=nice_name,
+                        parent=title_label,
+                    )
+                    title_label.addWidget(item_widget)
+                    item_widget.clicked.connect(
+                        partial(self.send_part_command_to_blender, item)
+                    )
+                    item_widget.varClicked.connect(self.send_part_command_to_blender)
+                    self.attach_favourites_menu(item_widget, item)
+                    self._configure_item_widget(item_widget)
+                    for variant_id, variant_nice_name in self.__variants_by_base.get(
+                        item, []
+                    ):
+                        item_widget.add_variant(variant_id, variant_nice_name)
+
+                    # The search-tab widget is built separately, on demand,
+                    # by _ensure_search_item_widget (__search_item_data is
+                    # already populated for every part up front in
+                    # generate_contents, independent of category-build
+                    # state - see the comment there). setdefault+append
+                    # rather than a plain assignment because a search for
+                    # this part could already have built its search-tab
+                    # widget before this category was ever opened.
+                    self.__item_widgets.setdefault(item, []).append(item_widget)
 
     def _build_prefab_share_tab(self):
         scroll_frame = QtWidgets.QScrollArea(self)
@@ -1561,7 +1672,9 @@ Right click on a tab to pin it to the top of the tab bar.""",
         self.main_layout.addWidget(self.tab_widget)
         self.main_layout.addWidget(self.search_scroll)
         self.main_layout.addWidget(self.thumbnail_size_frame)
-        self.statusBar().addWidget(self.prefab_share_status, 1)
+        # prefab_share_status itself stays (its .setText() calls are used
+        # throughout the prefab-share code for status messages) - it's just
+        # not added to a status bar, so QMainWindow never creates/shows one.
 
     def _setup_ui(self):
         self.search_lineedit.textChanged.connect(self.refresh_search)
@@ -1667,10 +1780,15 @@ Right click on a tab to pin it to the top of the tab bar.""",
                 tabbar.moveTab(current_index, target_index)
 
     def refresh_layouts(self, tab_index):
-        if self.tab_widget.tabText(tab_index) == "prefab-share":
+        tab_name = self.tab_widget.tabText(tab_index)
+        if tab_name == "prefab-share":
             if not self.__prefab_share_has_loaded:
                 self.__prefab_share_has_loaded = True
                 self.refresh_prefab_share()
+        elif tab_name in self.__browser_data:
+            # Same lazy-build-on-first-visit idea as prefab-share just
+            # above - see _ensure_category_tab_built.
+            self._ensure_category_tab_built(tab_name)
         scroll_widget = self.tab_widget.currentWidget()
         widget = scroll_widget.widget()
         layout = widget.layout()

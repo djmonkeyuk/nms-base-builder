@@ -3,8 +3,8 @@ import json
 import os
 import sys
 import tempfile
-import time
 import threading
+import time
 import urllib.parse
 import urllib.request
 from functools import partial
@@ -662,6 +662,14 @@ class AssetBrowser(QtWidgets.QMainWindow):
                             or search in button_data["search_label"]
                         )
                         button_data["widget"].setVisible(match)
+
+                # FlowLayout now caches minimumSize() (see flow_layout.py)
+                # since the show()-time layout negotiation was asking it
+                # the same, unchanged answer over a dozen times in a row -
+                # setVisible() above changes what that answer *should* be
+                # without going through any of FlowLayout's own methods,
+                # so the search layout's cache needs telling explicitly.
+                self.search_frame_layout.invalidate()
 
     def _thumbnail_view_for_step(self, step):
         if step <= 0:
@@ -1808,17 +1816,16 @@ Right click on a tab to pin it to the top of the tab bar.""",
             self.setStyleSheet(stream.read())
 
     def send_part_command_to_blender(self, item_id):
-        import sys
-
-        path = os.path.join(FILE_DIR, "..", "..").replace("\\", "/")
-        if path not in sys.path:
-            sys.path.insert(0, path)
-
-        import no_mans_sky_base_builder
-        import no_mans_sky_base_builder.preset as preset
-        import no_mans_sky_base_builder.utils.blend_utils as blend_utils
-
-        BUILDER = no_mans_sky_base_builder.builder.get_builder()
+        # Relative imports, not a sys.path + absolute `import no_mans_sky_base_builder`
+        # - that used to re-import the whole addon a second time under a bare,
+        # non-namespaced name (this module is already part of the same package tree,
+        # loaded correctly however the addon itself was installed - legacy addon or
+        # Blender Extension), which is exactly what Blender's own extension policy
+        # checker flags as "Policy violation with top level module" for every single
+        # submodule the addon has, confirmed directly against the add-on preferences
+        # warning list.
+        from .. import BUILDER, preset
+        from ..utils import blend_utils
 
         selection = blend_utils.get_current_selection()
 
@@ -1840,17 +1847,11 @@ Right click on a tab to pin it to the top of the tab bar.""",
                 new_item.snap_to(builder_selection)
 
     def send_prefab_share_preset_to_blender(self, preset_id, data_path):
-        import sys
+        # See send_part_command_to_blender's own comment on why this is a relative
+        # import, not a sys.path + absolute re-import of the whole addon.
+        from .. import BUILDER, preset
+        from ..utils import blend_utils
 
-        path = os.path.join(FILE_DIR, "..", "..").replace("\\", "/")
-        if path not in sys.path:
-            sys.path.insert(0, path)
-
-        import no_mans_sky_base_builder
-        import no_mans_sky_base_builder.preset as preset
-        import no_mans_sky_base_builder.utils.blend_utils as blend_utils
-
-        BUILDER = no_mans_sky_base_builder.BUILDER
         selection = blend_utils.get_current_selection()
         new_item = preset.Preset(
             preset_id=preset_id,
@@ -1865,18 +1866,11 @@ Right click on a tab to pin it to the top of the tab bar.""",
                 new_item.snap_to(builder_selection)
 
     def send_edit_preset_command_to_blender(self, item_id):
-        import sys
-
-        path = os.path.join(FILE_DIR, "..", "..").replace("\\", "/")
-        if path not in sys.path:
-            sys.path.insert(0, path)
-
+        # See send_part_command_to_blender's own comment on why this is a relative
+        # import, not a sys.path + absolute re-import of the whole addon.
         import bpy
-        import no_mans_sky_base_builder
-        import no_mans_sky_base_builder.preset as preset
-        import no_mans_sky_base_builder.utils.blend_utils as blend_utils
 
-        BUILDER = no_mans_sky_base_builder.builder.get_builder()
+        from .. import BUILDER, preset
 
         nms_tool = bpy.context.scene.nms_base_tool
         if item_id in preset.Preset.get_presets():

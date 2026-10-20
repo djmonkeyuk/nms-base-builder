@@ -5,6 +5,7 @@ import sys
 import tempfile
 import threading
 import time
+import urllib.error
 import urllib.parse
 import urllib.request
 from functools import partial
@@ -52,6 +53,7 @@ CATEGORY_ICON_FILES = {
     "Stone Structures": "buildtab_stone copy.png",
     "Timber Structures": "buildtab_timber copy.png",
     "Wall Art": "buildtab_wallart copy.png",
+    "Space Station": "T_Icon_StationExt.png",
 }
 PREFAB_SHARE_TAB_ICON = os.path.join(CATEGORY_ICONS_DIR, "T_Icon_Hash.png")
 PREFAB_SHARE_URL = "https://api.djmonkey.uk"
@@ -1309,9 +1311,7 @@ Right click on a tab to pin it to the top of the tab bar.""",
 
         def load_post():
             try:
-                url = PREFAB_SHARE_URL.rstrip("/") + "/post?threadId=" + thread_id
-                payload = json.loads(self._download_bytes(url).decode("utf-8"))
-                message = payload.get("message") or {}
+                message = self._fetch_prefab_share_post_message(thread_id)
                 _save_cached_prefab_share_message(thread_id, message)
                 self.prefab_share_post_loaded.emit(record, message)
             except Exception as error:
@@ -1322,25 +1322,36 @@ Right click on a tab to pin it to the top of the tab bar.""",
 
         threading.Thread(target=load_post, daemon=True).start()
 
+    @staticmethod
+    def _fetch_prefab_share_post_message(thread_id):
+        """Fetch thread_id's Discord post from the backend API."""
+        url = PREFAB_SHARE_URL.rstrip("/") + "/post?threadId=" + thread_id
+        payload = json.loads(AssetBrowser._download_bytes(url).decode("utf-8"))
+        return payload.get("message") or {}
+
+    @staticmethod
+    def _match_prefab_share_attachments(message):
+        attachments = message.get("attachments") or []
+        return [
+            attachment
+            for attachment in attachments
+            if os.path.splitext(attachment.get("filename", ""))[1].lower()
+            in PREFAB_SHARE_EXTENSIONS
+        ]
+
     def _populate_prefab_share_post(self, record, message):
         if record["query_token"] != self.__prefab_share_query_token:
             return
         thread_id = record["id"]
         self.__prefab_share_post_requests.discard(thread_id)
         self.__prefab_share_posts[thread_id] = message
-        attachments = message.get("attachments") or []
-        matching_attachments = [
-            attachment
-            for attachment in attachments
-            if os.path.splitext(attachment.get("filename", ""))[1].lower()
-            in PREFAB_SHARE_EXTENSIONS
-        ]
+        matching_attachments = self._match_prefab_share_attachments(message)
         record["attachments"] = matching_attachments
         record["attachment"] = matching_attachments[0] if matching_attachments else None
         thumbnail_attachment = next(
             (
                 attachment
-                for attachment in attachments
+                for attachment in (message.get("attachments") or [])
                 if attachment.get("contentType", "").lower().startswith("image/")
             ),
             None,
@@ -1497,11 +1508,47 @@ Right click on a tab to pin it to the top of the tab bar.""",
 
         def load_attachment():
             try:
-                self.prefab_share_prefab_loaded.emit(record, self._download_bytes(record["attachment"]["url"]))
+                attachment_data = self._download_prefab_share_attachment(record)
+                self.prefab_share_prefab_loaded.emit(record, attachment_data)
             except Exception as error:
                 self.prefab_share_request_failed.emit("Unable to download {}: {}".format(record["name"], error))
 
         threading.Thread(target=load_attachment, daemon=True).start()
+
+    def _download_prefab_share_attachment(self, record):
+        """Download record's selected attachment.
+
+        Discord signs attachment URLs with an expiry of about a day, while
+        the thread's cached message/content is treated as permanently valid
+        (see _load_prefab_share_post) - so a 404 here means the cached URL
+        went stale, not that the attachment itself is gone. Re-fetch the
+        post once to get a fresh URL for the same file before giving up.
+        """
+        try:
+            return self._download_bytes(record["attachment"]["url"])
+        except urllib.error.HTTPError as error:
+            if error.code != 404:
+                raise
+
+        stale_filename = record["attachment"].get("filename")
+        thread_id = record["id"]
+        message = self._fetch_prefab_share_post_message(thread_id)
+        _save_cached_prefab_share_message(thread_id, message)
+        self.__prefab_share_posts[thread_id] = message
+        attachments = self._match_prefab_share_attachments(message)
+        record["attachments"] = attachments
+        record["attachment"] = next(
+            (
+                attachment
+                for attachment in attachments
+                if attachment.get("filename") == stale_filename
+            ),
+            attachments[0] if attachments else None,
+        )
+        if not record["attachment"]:
+            raise RuntimeError("the shared prefab no longer has a matching attachment")
+
+        return self._download_bytes(record["attachment"]["url"])
 
     def _import_prefab_share_prefab(self, record, attachment_data):
         try:
@@ -1680,9 +1727,7 @@ Right click on a tab to pin it to the top of the tab bar.""",
         self.main_layout.addWidget(self.tab_widget)
         self.main_layout.addWidget(self.search_scroll)
         self.main_layout.addWidget(self.thumbnail_size_frame)
-        # prefab_share_status itself stays (its .setText() calls are used
-        # throughout the prefab-share code for status messages) - it's just
-        # not added to a status bar, so QMainWindow never creates/shows one.
+        self.statusBar().addWidget(self.prefab_share_status, 1)
 
     def _setup_ui(self):
         self.search_lineedit.textChanged.connect(self.refresh_search)
@@ -1824,16 +1869,18 @@ Right click on a tab to pin it to the top of the tab bar.""",
         # checker flags as "Policy violation with top level module" for every single
         # submodule the addon has, confirmed directly against the add-on preferences
         # warning list.
-        from .. import BUILDER, preset
+        from .. import preset
+        from ..builder import get_builder
         from ..utils import blend_utils
-
+        
+        builder = get_builder()
         selection = blend_utils.get_current_selection()
 
         # Build item
         if item_id in preset.Preset.get_presets():
-            new_item = BUILDER.add_preset(item_id)
+            new_item = builder.add_preset(item_id)
         else:
-            new_item = BUILDER.add_part(item_id)
+            new_item = builder.add_part(item_id)
             if hasattr(new_item, "build_rig"):
                 new_item.build_rig()
 
@@ -1842,26 +1889,28 @@ Right click on a tab to pin it to the top of the tab bar.""",
 
         # If there was a previous selection, snap the new item to it.
         if selection:
-            builder_selection = BUILDER.get_builder_object_from_bpy_object(selection)
+            builder_selection = builder.get_builder_object_from_bpy_object(selection)
             if builder_selection:
                 new_item.snap_to(builder_selection)
 
     def send_prefab_share_preset_to_blender(self, preset_id, data_path):
         # See send_part_command_to_blender's own comment on why this is a relative
         # import, not a sys.path + absolute re-import of the whole addon.
-        from .. import BUILDER, preset
+        from .. import preset
+        from ..builder import get_builder
         from ..utils import blend_utils
 
+        builder = get_builder()
         selection = blend_utils.get_current_selection()
         new_item = preset.Preset(
             preset_id=preset_id,
             data_path=data_path,
-            builder_object=BUILDER,
+            builder_object=builder,
         )
         new_item.select()
 
         if selection:
-            builder_selection = BUILDER.get_builder_object_from_bpy_object(selection)
+            builder_selection = builder.get_builder_object_from_bpy_object(selection)
             if builder_selection:
                 new_item.snap_to(builder_selection)
 
@@ -1870,20 +1919,21 @@ Right click on a tab to pin it to the top of the tab bar.""",
         # import, not a sys.path + absolute re-import of the whole addon.
         import bpy
 
-        from .. import BUILDER, preset
-
+        from .. import preset
+        from ..builder import get_builder
+        builder = get_builder()
         nms_tool = bpy.context.scene.nms_base_tool
         if item_id in preset.Preset.get_presets():
             nms_tool.new_file()
             preset.Preset(
                 preset_id=item_id,
-                builder_object=BUILDER,
+                builder_object=builder,
                 create_control=False,
                 apply_shader=False,
                 build_rigs=True,
             )
-            BUILDER.build_rigs()
-            BUILDER.optimise_control_points()
+            builder.build_rigs()
+            builder.optimise_control_points()
 
     def sizeHint(self):
         return QtCore.QSize(1000, 1000)

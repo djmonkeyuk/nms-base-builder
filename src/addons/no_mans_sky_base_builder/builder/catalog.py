@@ -61,7 +61,7 @@ class Catalog(object):
         return sorted(
             part_file
             for part_file in os.listdir(category_path)
-            if part_file.endswith(".fbx")
+            if part_file.endswith(".glb")
         )
 
     def get_parts_from_category(self, category, pack=None):

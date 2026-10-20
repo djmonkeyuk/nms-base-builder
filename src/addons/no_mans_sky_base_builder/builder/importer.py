@@ -40,7 +40,7 @@ def import_objects(builder_object, objects_data, compensate_normal=True):
                 )
                 continue
 
-            bpy_object = build_fbx_part(
+            bpy_object = build_part(
                 builder_object,
                 object_id,
                 user_data,
@@ -69,14 +69,14 @@ def set_collection_excluded(collection_name, excluded):
 
 # colour is a flat material on the mesh, so objects can only share a mesh
 # when their ObjectID AND UserData match
-def build_fbx_part(
+def build_part(
     builder_object, object_id, user_data, import_collection, unique_objects, unique_materials
 ):
     material_key = (object_id, user_data)
 
     # import object from disk when visiting that object_id for first time
     if object_id not in unique_objects:
-        bpy_object = import_fbx_from_disk(builder_object, object_id)
+        bpy_object = import_part_from_disk(builder_object, object_id)
         if bpy_object is None:
             return None
 
@@ -101,22 +101,22 @@ def build_fbx_part(
     return bpy_object
 
 
-def import_fbx_from_disk(builder_object, object_id):
-    fbx_path = builder_object.get_obj_path(object_id)
+def import_part_from_disk(builder_object, object_id):
+    glb_path = builder_object.get_obj_path(object_id)
 
     objects_before = set(bpy.data.objects)
     try:
-        if fbx_path is None:
+        if glb_path is None:
             bpy.ops.mesh.primitive_cube_add()
         else:
-            bpy.ops.import_scene.fbx(filepath=fbx_path)
+            bpy.ops.import_scene.gltf(filepath=glb_path)
     except RuntimeError:
         pass
     new_objects = [item for item in bpy.data.objects if item not in objects_before]
 
     if not new_objects:
         # cube ops fail when the active collection is excluded
-        if fbx_path is not None:
+        if glb_path is not None:
             return None
         bpy_object = bpy.data.objects.new(object_id, bpy.data.meshes.new(object_id))
     else:

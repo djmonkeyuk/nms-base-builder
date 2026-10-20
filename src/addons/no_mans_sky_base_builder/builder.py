@@ -432,7 +432,7 @@ class Builder(object):
         # Get the associated model path.
         search_path = self.get_model_path_from_pack(pack)
         category_path = os.path.join(search_path, category)
-        all_objs = [part for part in os.listdir(category_path) if part.endswith(".fbx")]
+        all_objs = [part for part in os.listdir(category_path) if part.endswith(".glb")]
         file_names = sorted(all_objs)
         return file_names
 

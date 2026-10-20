@@ -299,7 +299,7 @@ class Part(object):
         # If it exists, import the obj.
         if obj_path and os.path.isfile(obj_path):
             prev_objects_capture = [x.name for x in bpy.data.objects]
-            bpy.ops.import_scene.fbx(filepath=obj_path)
+            bpy.ops.import_scene.gltf(filepath=obj_path)
             new_objects_capture = [x.name for x in bpy.data.objects]
             new_objects = [
                 x for x in new_objects_capture if x not in prev_objects_capture

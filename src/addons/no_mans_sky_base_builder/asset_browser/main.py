@@ -1175,9 +1175,6 @@ Right click on a tab to pin it to the top of the tab bar.""",
             self._resize_prefab_share_results
         )
         self._clear_prefab_share_details()
-        self.prefab_share_status.setText(
-            "Select #prefab-share to load shared prefabs."
-        )
 
     @staticmethod
     def _download_bytes(url):

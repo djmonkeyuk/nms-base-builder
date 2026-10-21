@@ -1,3 +1,8 @@
+release 7.0.1
+-------------
+* Fixed an issue where the default rotation mode was being set to Quaternion.
+
+
 release 7.0.0
 -------------
 • Added parts introduced by Cosmos.

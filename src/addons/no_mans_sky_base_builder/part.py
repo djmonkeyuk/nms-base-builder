@@ -307,6 +307,9 @@ class Part(object):
             item = bpy.data.objects[new_objects[0]]
             item.name = object_id
             item.data.materials.clear()
+            # glTF import sets this to QUATERNION; restore the XYZ Euler
+            # mode the rest of the addon (and the old FBX pipeline) expects.
+            item.rotation_mode = 'XYZ'
 
             # fails when the object's collection is excluded from the view layer
             try:

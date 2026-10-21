@@ -127,6 +127,9 @@ def import_part_from_disk(builder_object, object_id):
     bpy_object.name = object_id
     if bpy_object.data is not None:
         bpy_object.data.materials.clear()
+    # glTF import sets this to QUATERNION; restore the XYZ Euler mode the
+    # rest of the addon (and the old FBX pipeline) expects.
+    bpy_object.rotation_mode = 'XYZ'
 
     try:
         bpy_object.select_set(False)

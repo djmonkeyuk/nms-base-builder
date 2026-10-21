@@ -7,7 +7,6 @@ import re
 import bpy
 
 from ..utils import python as python_utils
-from ..utils import userdata
 
 # Get Colour Information.
 FILE_PATH = os.path.dirname(os.path.realpath(__file__))
@@ -46,6 +45,25 @@ BAKED_PALETTES_UI = [
     (f"{value}_{key}", key, key) for key, value in BAKED_PALETTES.items()
 ]
 
+
+def get_palette_categories():
+    # "Legacy - Rust" is the Rust variant of Legacy, a name without " - " is its own category
+    # variant ids match BAKED_PALETTES_UI so the chosen value means the same thing as before
+    categories = {}
+    for key, value in BAKED_PALETTES.items():
+        category, _, variant = key.partition(" - ")
+        categories.setdefault(category, []).append(
+            (f"{value}_{key}", variant or category, key)
+        )
+    for variants in categories.values():
+        variants.sort(key=lambda item: int(item[0].split("_")[0]))
+    return categories
+
+
+# built once, Blender needs dynamic enum items to stay referenced
+PALETTE_VARIANTS_UI = get_palette_categories()
+PALETTE_CATEGORIES_UI = [(category, category, category) for category in PALETTE_VARIANTS_UI]
+
 BAKED_INDEX_COLOURS = {}
 
 
@@ -68,19 +86,20 @@ def get_all_colours():
     return rows
 
 
+NICE_NAMES = {}
+
+
 def get_nice_name_from_indicies(colour_index, material_index):
-    with open(COLOURS_CSV, "r") as csv_file:
-        csv_reader = csv.reader((x.replace("\0", "") for x in csv_file), delimiter=",")
-        for idx, row in enumerate(csv_reader):
-            if idx == 0:
+    # built once from the baked rows, this runs for every coloured part on import
+    if not NICE_NAMES:
+        for row in BAKED_COLOURS:
+            try:
+                key = (int(row[3]), int(row[4]))
+                nice_name = f"{row[2]}: {row[5]}"
+            except (ValueError, IndexError):
                 continue
-            colour_id = row[3]
-            material_id = row[4]
-            if int(colour_index) == int(colour_id) and int(material_index) == int(
-                material_id
-            ):
-                return f"{row[2]}: {row[5]}"
-    return ""
+            NICE_NAMES.setdefault(key, nice_name)
+    return NICE_NAMES.get((int(colour_index), int(material_index)), "")
 
 
 BAKED_COLOURS = get_all_colours()
@@ -96,193 +115,98 @@ def get_colours_from_palette(palette):
     return data
 
 
-def validate_material(colour_name, colour_value):
-    """Creates or returns a material based on its name.
-
-    Args:
-        colour_name (str): The name of the material.
-        colour_value (list): RGBA values representing the colour.
-
-    Returns:
-        bpy.Material: The Blender material.
-    """
-    # Retrieve material if it already exists.
-    colour_material = bpy.data.materials.get(colour_name, None)
-    # Create material.
-    if not colour_material:
-        colour_material = bpy.data.materials.new(name=colour_name)
-        colour_material.diffuse_color = colour_value
-    return colour_material
-
-
-def set_material(item, material):
-    """Set the material on an item.
-
-    Args:
-        item (bpy.Object): The Blender object to assign the material to.
-        material (bpy.Material): The material to assign.
-
-    Returns:
-        bpy.Material: The Blender material.
-    """
-    # Don't bother if we can't even apply material to object.
-    if not hasattr(item.data, "materials"):
-        return
-    # Assign Material
-    if not item.data.materials:
-        # Add the material to the object
-        item.data.materials.append(material)
-    else:
-        # If a material already exists, swap it.
-        item.data.materials[0] = material
-    return material
-
-
-def assign_power_material(item):
-    """Assign light blue material to object.
-
-    Args:
-        item (bpy.Object): The Blender object to assign the material to.
-    """
-    material = validate_material("powerline_material", [0.0, 0.5, 1.0, 0.5])
-    set_material(item, material)
-
-
-def assign_portal_material(item):
-    """Assign teal material to object.
-
-    Args:
-        item (bpy.Object): The Blender object to assign the material to.
-    """
-    material = validate_material("portalline_material", [0.0, 1.0, 1.0, 0.5])
-    set_material(item, material)
-
-
-def assign_pipe_material(item):
-    """Assign grey material to object.
-
-    Args:
-        item (bpy.Object): The Blender object to assign the material to.
-    """
-    material = validate_material("pipeline_material", [0.3, 0.3, 0.3, 0.9])
-    set_material(item, material)
-
-
-def assign_bytebeat_material(item):
-    """Assign light purple material to object.
-
-    Args:
-        item (bpy.Object): The Blender object to assign the material to.
-    """
-    material = validate_material("bytebeat_material", [0.8, 0.0, 0.8, 0.5])
-    set_material(item, material)
-
-
-def assign_preset_material(item):
-    """Assign gold material to object.
-
-    Args:
-        item (bpy.Object): The Blender object to assign the material to.
-    """
-    # Material name.
-    material_name = "preset_material"
-    # Add transparent tag to material name.
-    item_name = item.get("ObjectID", "")
-    if item_name in GHOSTED_ITEMS:
-        material_name += "_transparent"
-
-    material = validate_material(material_name, [0.8, 0.300186, 0.178301, 1.0])
-    set_material(item, material)
-
-
-def assign_default_material(item, index=0):
-    """Given a blender object. Assign the default material,
-
-    Args:
-        item (bpy_types.Object): A Blender object.
-
-    Returns:
-        bpy_types.Material: The material that is applied.
-    """
-    # Apply Custom Variable.
-    item["UserData"] = str(index)
-    # Get colour values.
-    colour_values = [0.8, 0.8, 0.8, 1.0]
-    # Get or create the material.
-    material = validate_material("default_material", colour_values)
-    set_material(item, material)
-    return material
-
-
-def get_colour_from_palette_data(colour_index, material_index):
-    """Get colour data from palette data.
-
-    Args:
-        index (int): The colour index.
-    """
-    return BAKED_INDEX_COLOURS.get(colour_index, [0.8, 0.8, 0.8, 1.0])
-
-
 def darken_color(color, factor=0.6):
     """Return a darker version of an RGB color."""
     return [c * factor for c in color]
 
 
+def _provider():
+    # imported here because material_provider reads the palette data from this module
+    from .material_provider import get_material_provider
+
+    return get_material_provider()
+
+
+# the addon calls these, they forward to whichever provider is active
+
+
+def validate_material(colour_name, colour_value):
+    return _provider().validate_material(colour_name, colour_value)
+
+
+def set_material(item, material):
+    return _provider().set_material(item, material)
+
+
+def assign_power_material(item):
+    return _provider().assign_power_material(item)
+
+
+def assign_portal_material(item):
+    return _provider().assign_portal_material(item)
+
+
+def assign_pipe_material(item):
+    return _provider().assign_pipe_material(item)
+
+
+def assign_bytebeat_material(item):
+    return _provider().assign_bytebeat_material(item)
+
+
+def assign_preset_material(item):
+    return _provider().assign_preset_material(item)
+
+
+def assign_default_material(item, index=0):
+    return _provider().assign_default_material(item, index=index)
+
+
+def get_colour_from_palette_data(colour_index, material_index):
+    return _provider().get_colour_from_palette_data(colour_index, material_index)
+
+
 def restore_material(item, user_data_value):
-    # Validate material+color index
-    try:
-        user_data_value = int(user_data_value)
-    except ValueError:
-        return
-    col = userdata.get_colour(user_data_value)
-    mat = userdata.get_material(user_data_value)
-    assign_material(item, col, mat)
+    return _provider().restore_material(item, user_data_value)
 
 
 def assign_material(item, colour_index=0, material_index=0):
-    """Given a blender object. assign a material and UserData index.
+    return _provider().assign_material(item, colour_index, material_index)
 
-    Args:
-        item (bpy_types.Object): A Blender object.
-        colour_index (int): The colour index determined by No Man's Sky.
-        material (str): The material type.
 
-    Returns:
-        bpy_types.Material: The material that is applied.
-    """
-    # Some Defaults
-    alpha_value = 1.0
+# parts with the same ObjectID and UserData share one mesh
+# override classes and curve followers are left alone, they manage their own meshes
+# returns (parts relinked, meshes removed)
+def optimise_materials():
+    from ..builder import overrides
 
-    # Apply Custom Variable.
-    reference_value = int(item.get("UserData", 0))
-    new_userdata_value = userdata.update_colour_material(
-        reference_value, colour_index=colour_index, material_index=material_index
-    )
-    item["UserData"] = str(new_userdata_value)
+    shared_meshes = {}
+    replaced_meshes = set()
+    relinked = 0
 
-    # Create Material
-    colour_name = "{0}_material".format(new_userdata_value)
-    # Add transparent tag to material name.
-    item_name = item.get("ObjectID", "")
-    if item_name in GHOSTED_ITEMS:
-        colour_name += "_transparent"
+    for obj in bpy.data.objects:
+        if obj.type != "MESH" or "ObjectID" not in obj or "curve_parent" in obj:
+            continue
+        if overrides.get_override_class(obj["ObjectID"]) is not None:
+            continue
 
-    # Get colour values.
-    primary = get_colour_from_palette_data(colour_index, material_index)
-    if isinstance(primary, str):
-        primary = eval(primary)
-    if len(primary) < 4:
-        primary.append(alpha_value)
+        mesh = obj.data
+        # a shape key or an open edit session would be lost by swapping the mesh
+        if mesh.shape_keys or mesh.is_editmode:
+            continue
 
-    # Get or create the material.
-    material = validate_material(colour_name, primary)
+        # the first part's mesh is reused, nothing is copied
+        key = (obj["ObjectID"], str(obj.get("UserData", 0)))
+        shared_mesh = shared_meshes.setdefault(key, mesh)
+        if shared_mesh != mesh:
+            obj.data = shared_mesh
+            replaced_meshes.add(mesh)
+            relinked += 1
 
-    # Add Metadata to object.
-    nice_name = get_nice_name_from_indicies(colour_index, material_index)
-    if nice_name and ":" in nice_name:
-        item["readonly:Material"] = nice_name.split(":")[0].strip()
-        item["readonly:Colour"] = nice_name.split(":")[1].strip()
+    # one batch, a remove() per mesh re-syncs the whole file each time
+    unused_meshes = [mesh for mesh in replaced_meshes if mesh.users == 0]
+    if unused_meshes:
+        bpy.data.batch_remove(unused_meshes)
 
-    set_material(item, material)
-    return material
+    return relinked, len(unused_meshes)
 

@@ -25,14 +25,20 @@ class Settings:
         self.file_path = os.path.join(self.folder_path, "settings.json")
         self.__favourites = []
         self.__pinned_tabs = []
+        self.__thumbnail_size_step = None
         self.load_from_file()
 
     def serialise(self):
-        return {"favourites": self.__favourites, "pinned_tabs": self.__pinned_tabs}
+        return {
+            "favourites": self.__favourites,
+            "pinned_tabs": self.__pinned_tabs,
+            "thumbnail_size_step": self.__thumbnail_size_step,
+        }
 
     def deserialise(self, data):
         self.__favourites = data.get("favourites", [])
         self.__pinned_tabs = data.get("pinned_tabs", [])
+        self.__thumbnail_size_step = data.get("thumbnail_size_step")
 
     def save_to_file(self):
         os.makedirs(self.folder_path, exist_ok=True)
@@ -110,4 +116,13 @@ class Settings:
     def remove_pinned_tab(self, tab_id):
         if tab_id in self.__pinned_tabs:
             self.__pinned_tabs.remove(tab_id)
+            self.save_to_file()
+
+    # Part list thumbnail size ---
+    def get_thumbnail_size_step(self):
+        return self.__thumbnail_size_step
+
+    def set_thumbnail_size_step(self, step):
+        if step != self.__thumbnail_size_step:
+            self.__thumbnail_size_step = step
             self.save_to_file()

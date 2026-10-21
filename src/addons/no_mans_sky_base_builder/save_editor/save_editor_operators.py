@@ -1,7 +1,7 @@
 import bpy
 
 from . import save_editor_utils
-ADDON_ID = __package__.rsplit(".", 1)[0]
+from .. import addon_preferences
 
 # Operator for button to select save folder directory
 class SelectSaveFolder(bpy.types.Operator):
@@ -15,30 +15,25 @@ class SelectSaveFolder(bpy.types.Operator):
     )
 
     def execute(self, context):
-        prefs = context.scene
         print("folder is :", self.directory)
         if save_editor_utils.validate_save_folder(str(self.directory)):
-            
-            prefs = context.preferences.addons[ADDON_ID].preferences
-            prefs.nms_save_folder_path = self.directory
-            bpy.ops.wm.save_userpref()
-            
+
+            addon_preferences.set_save_folder_path(self.directory)
+
             scene = context.scene
             save_data = scene.nms_save_data
             save_data.on_check_plugin_enabled(context)
             save_data.nms_account_selected = "Default"
             
             self.report({'INFO'}, f"Selected folder is valid NMS save folder")
-            print("Selected folder is valid:", prefs.nms_save_folder_path)
+            print("Selected folder is valid:", addon_preferences.get_save_folder_path())
         else :
             self.report({'ERROR'}, f"Selected folder is not a NMS save folder. Please select the correct folder.")
             print("Selected folder is invalid:", self.directory)
         return {'FINISHED'}
 
     def invoke(self, context, event):
-        prefs = context.preferences.addons[ADDON_ID].preferences
-        save_root_folder = prefs.nms_save_folder_path
-        self.directory = save_root_folder
+        self.directory = addon_preferences.get_save_folder_path() or ""
         context.window_manager.fileselect_add(self)
         return {'RUNNING_MODAL'}
     
@@ -54,6 +49,8 @@ class ImportBaseFromSave(bpy.types.Operator):
         result = save_data.import_base_from_save_file(context)
         if result is not None:
             self.report({'INFO'}, result)
+        else:
+            self.report({'ERROR'}, "Error importing base")
         return {"FINISHED"}
 
 # Button to export base selected from list of bases in save editor section
@@ -65,9 +62,11 @@ class ExportBaseToSave(bpy.types.Operator):
     def execute(self, context):
         scene = context.scene
         save_data = scene.nms_save_data
-        result = save_data.export_base_to_save_file(context)
-        if result is not None:
-            self.report({'INFO'}, result)
+        success, message = save_data.export_base_to_save_file(context)
+        if not success:
+            self.report({'ERROR'}, message)
+            return {"CANCELLED"}
+        self.report({'INFO'}, message)
         return {"FINISHED"}
     
 # Button to pin base to top of the editor
@@ -79,7 +78,16 @@ class PinBase(bpy.types.Operator):
     def execute(self, context):
         scene = context.scene
         save_data = scene.nms_save_data
+        base_tool = scene.nms_base_tool
+        
         save_data.pin_base()
+        pinned_base = save_data.get_pinned_base_data()
+        
+        if pinned_base is not None:
+            base_tool.deserialise_from_data(nms_data = pinned_base, start_new_file = False)
+        else:
+            self.report({'ERROR'}, "Base not found")
+        
         return {"FINISHED"}
     
 # Button to unpin base from top of editor
@@ -122,16 +130,16 @@ class ExoprtPinnedBase(bpy.types.Operator):
         "Check export base name to update name along with objects.\n"
         "Base Name will be taken from 'Base Name' field in Base properties section"
     )
+    
         
     def execute(self, context):
         scene = context.scene
         save_data = scene.nms_save_data
-        result = save_data.export_pinned_base(context)
-        if result is not None:
-            self.report({'INFO'}, result)
-        else: 
-            self.report({'ERROR'}, "Update Failed, repinning the base may resolve this issue ")
-            print("result is none")
+        success, message = save_data.export_pinned_base(context)
+        if not success:
+            self.report({'ERROR'}, message)
+            return {"CANCELLED"}
+        self.report({'INFO'}, message)
         return {"FINISHED"}
     
 # a button to manually backup save files

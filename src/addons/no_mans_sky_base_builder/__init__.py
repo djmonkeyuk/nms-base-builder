@@ -16,46 +16,44 @@ from bpy.props import (BoolProperty, EnumProperty, FloatProperty, IntProperty,
 from bpy.types import Panel, PropertyGroup
 from numpy import isin
 
-from . import builder, icons, part, preset
+from . import addon_preferences, icons, part, preset
+from .addon_preferences import NMSAddonPreferences
+from .builder import get_builder
+from .group import Group
 from .part_overrides import line
 from .save_editor import save_editor_operators, save_editor_utils
 from .save_editor.save_editor_presentation import NMS_PT_save_editor_panel
 from .save_editor.save_manager import SaveManager
-from .tools import batch_tool_operators, build_tool_operators
+from .tools import (batch_tool_operators, build_tool_operators,
+                    transformation_operators)
 from .tools.batch_tool import BatchTool
 from .tools.batch_tool_presentation import NMS_PT_batch_tools_panel
 from .tools.build_tool import BuildTool
 from .tools.build_tool_presentation import NMS_PT_tools_panel
 from .tools.properties import Properties
 from .tools.properties_presentation import NMS_PT_base_prop_panel
+from .tools.transformation import Transformation
+from .tools.transformation_presentation import NMS_PT_transformation_panel
 from .utils import blend_utils, collection_utils, curve, curve_utils
 from .utils import material as _material
 from .utils import python as python_utils
 from .utils import workspace
+from .utils.blend_utils import ShowMessageBox
 
 FILE_PATH = os.path.dirname(os.path.realpath(__file__))
 USER_PATH = os.path.join(os.path.expanduser("~"), "NoMansSkyBaseBuilder")
 PRESET_PATH = os.path.join(USER_PATH, "presets")
 ASSET_BROWSER_PATH = os.path.join(FILE_PATH, "asset_browser")
 
-BUILDER = builder.Builder()
 GHOSTED_JSON = os.path.join(FILE_PATH, "resources", "ghosted.json")
 ghosted_reference = python_utils.load_dictionary(GHOSTED_JSON)
 GHOSTED_ITEMS = ghosted_reference["GHOSTED"]
 NICE_JSON = os.path.join(FILE_PATH, "resources", "nice_names.json")
 nice_name_dictionary = python_utils.load_dictionary(NICE_JSON)
 
-ADDON_ID = __package__
 
 
 # Setting Support Methods ---
-def ShowMessageBox(message="", title="Message Box", icon="INFO"):
-    def draw(self, context):
-        self.layout.label(text=message)
-
-    bpy.context.window_manager.popup_menu(draw, title=title, icon=icon)
-
-
 def part_switch(self, context):
     """Toggle method for switching between parts and presets."""
     scene = context.scene
@@ -65,6 +63,15 @@ def part_switch(self, context):
         refresh_ui_part_list(scene, part_list, pack=list(self.enum_switch)[0])
     else:
         refresh_ui_part_list(scene, part_list)
+
+
+def palette_variant_items(self, context):
+    return _material.PALETTE_VARIANTS_UI.get(self.palette_category, [])
+
+
+def palette_category_switch(self, context):
+    # the variant enum stores an index, point it at the new category's first variant
+    self.material_switch = palette_variant_items(self, context)[0][0]
 
 
 def get_line_type_from_enum(context):
@@ -87,7 +94,7 @@ def get_line_type_from_enum(context):
 class NMSSettings(PropertyGroup):
     # Build Array of base part types. (Vanilla Parts - Mods - Presets)
     enum_items = []
-    for pack, _ in BUILDER.available_packs:
+    for pack, _ in get_builder().available_packs:
         enum_items.append((pack, pack, "View {0}...".format(pack)))
     enum_items.append(("PRESETS", "Prefabs", "View Prefabs..."))
 
@@ -101,10 +108,18 @@ class NMSSettings(PropertyGroup):
         update=part_switch,
     )
 
+    palette_category: EnumProperty(
+        name="Palette",
+        description="Decide what type of material to apply",
+        items=_material.PALETTE_CATEGORIES_UI,
+        update=palette_category_switch,
+    )
+
+    # variants of the chosen palette_category, e.g. "0_Legacy - Concrete"
     material_switch: EnumProperty(
         name="Material Palette",
-        description="Decide what type of material to apply",
-        items=_material.BAKED_PALETTES_UI,
+        description="Decide which variant of the palette to apply",
+        items=palette_variant_items,
     )
 
     line_switch: EnumProperty(
@@ -298,6 +313,8 @@ class NMSSettings(PropertyGroup):
     is_workspace_cleaned: BoolProperty(
         name="Is Workspace Cleaned", description="Check if workspace has been cleaned by user", default=False
     )
+    # what simplifying changed, so restoring can put it back
+    workspace_state: StringProperty(name="Workspace State", default="")
 
     room_vis_switch: IntProperty(name="room_vis_switch", default=0)
     
@@ -310,9 +327,10 @@ class NMSSettings(PropertyGroup):
         update = lambda self, context: self.on_color_picked()
     )
 
-    def deserialise_from_data(self, nms_data):
-        # Start new file
-        self.new_file()
+    def deserialise_from_data(self, nms_data, start_new_file=True):
+        # pinning a base only reads its properties, the scene is kept
+        if start_new_file:
+            self.new_file()
 
         # Start bringing the data in.
         if "GalacticAddress" in nms_data:
@@ -426,7 +444,7 @@ class NMSSettings(PropertyGroup):
             "AutoPowerSetting": {"BaseAutoPowerSetting": self.auto_power_setting},
         }
         # Capture Individual Objects
-        objects_data = BUILDER.serialise(get_presets=get_presets)
+        objects_data = get_builder().serialise(get_presets=get_presets)
         if objects_only:
             return objects_data["Objects"]
 
@@ -454,7 +472,7 @@ class NMSSettings(PropertyGroup):
 
         # Start a new file
         self.deserialise_from_data(nms_import_data)
-        BUILDER.deserialise_from_data(nms_import_data)
+        get_builder().deserialise_from_data(nms_import_data)
 
     def export_nms_data(self, objects_only=False):
         """Generate data and place it into the user's clipboard.
@@ -496,7 +514,7 @@ class NMSSettings(PropertyGroup):
                 return
         # Build from Data
         self.deserialise_from_data(save_data)
-        BUILDER.deserialise_from_data(save_data)
+        get_builder().deserialise_from_data(save_data)
 
     def new_file(self):
         """Reset's the entire Blender scene to default.
@@ -507,7 +525,7 @@ class NMSSettings(PropertyGroup):
             * Removes all items with ObjectID, PresetID and NMS_LIGHT properties.
             * Resets the room visibility switch to default.
         """
-        BUILDER.clear_caches()
+        get_builder().clear_caches()
 
         # Remove basic blender default items.
         blend_utils.remove_object("Cube")
@@ -547,16 +565,29 @@ class NMSSettings(PropertyGroup):
         self.auto_power_setting = "UseDefault"
 
         # Remove all no mans sky items from scene.
-        # Deselect all
-        bpy.ops.object.select_all(action="DESELECT")
-        # Select NMS Items
-        for bpy_object in bpy.data.objects:
-            id_check = "ObjectID" in bpy_object
-            preset_check = "PresetID" in bpy_object
-            light_check = "NMS_LIGHT" in bpy_object
-            rig_check = "rig_item" in bpy_object
-            if any([id_check, preset_check, light_check, rig_check]):
-                blend_utils.remove_object(bpy_object.name)
+        # collected first and removed in one batch, removing one at a time
+        # is slow on large bases and mutates bpy.data.objects mid-iteration
+        nms_props = (
+            "ObjectID",
+            "PresetID",
+            "NMS_LIGHT",
+            "rig_item",
+            curve.Curve.PROP_CURVE_ID,
+            Group.PROP_GROUP_ID,
+        )
+        doomed = [
+            bpy_object
+            for bpy_object in bpy.data.objects
+            if any(prop in bpy_object for prop in nms_props)
+        ]
+        if doomed:
+            meshes = {obj.data for obj in doomed if obj.type == "MESH" and obj.data}
+            bpy.data.batch_remove(doomed)
+
+            # meshes left unused would pile up in the file with every import
+            orphan_meshes = [mesh for mesh in meshes if mesh.users == 0]
+            if orphan_meshes:
+                bpy.data.batch_remove(orphan_meshes)
 
         # Reset room vis
         self.room_vis_switch = 0
@@ -636,9 +667,14 @@ class NMSSettings(PropertyGroup):
                         _material.assign_material(child_obj, int(colour_index), int(maeterial_index))
                         obj["dup_UserData"] = child_obj["UserData"]
                         break
+            elif Group.PROP_GROUP_ID in obj:
+                Group.apply_colour(obj, int(colour_index), int(maeterial_index))
             # for any other object
             else :
                 _material.assign_material(obj, int(colour_index), int(maeterial_index))
+
+        # recolouring gives parts their own mesh, parts now the same colour share one again
+        _material.optimise_materials()
 
         # Refresh the viewport.
         bpy.ops.wm.redraw_timer(type="DRAW_WIN_SWAP", iterations=1)
@@ -655,10 +691,15 @@ class NMSSettings(PropertyGroup):
         # Apply Colour Material.
         for obj in selected_objects:
             index = 0
+            if Group.PROP_GROUP_ID in obj:
+                default_material = _material.assign_default_material(obj, index=index)
+                for slot_index in range(len(obj.data.materials)):
+                    obj.data.materials[slot_index] = default_material
+                continue
             # Figure out default index.
-            object_id = obj["ObjectID"]
+            object_id = obj.get("ObjectID")
             if object_id:
-                parent_folder = BUILDER.get_obj_parent_folder(object_id)
+                parent_folder = get_builder().get_obj_parent_folder(object_id)
                 if parent_folder:
                     if parent_folder == "alloy_structures":
                         index = 37
@@ -667,6 +708,9 @@ class NMSSettings(PropertyGroup):
                     elif parent_folder == "stone_structures":
                         index = 23
             _material.assign_default_material(obj, index=index)
+
+        # recolouring gives parts their own mesh, parts now the same colour share one again
+        _material.optimise_materials()
 
         # Refresh the viewport.
         bpy.ops.wm.redraw_timer(type="DRAW_WIN_SWAP", iterations=1)
@@ -765,7 +809,9 @@ class NMS_PT_hero_panel(Panel):
         workspace_column = workspace_box.column(align = True)
         workspace_column.label(text = "Workspace")
         workspace_column.operator("object.nms_launch_asset_browser", text = "Launch Asset Browser", icon = "DESKTOP")
-        if not nms_tool.is_workspace_cleaned:
+        if nms_tool.is_workspace_cleaned:
+            workspace_column.operator("object.nms_cleanup_workspace", text = "Restore Blender Workspace", icon = "LOOP_BACK")
+        else:
             workspace_column.operator("object.nms_cleanup_workspace", text = "Simplify Blender Workspace", icon = "WORKSPACE")
 
 
@@ -831,8 +877,12 @@ class NMS_PT_colour_panel(Panel):
         colour_area = layout.box().column(align=False)
         material_row = colour_area.row(align = True)
         
-        material_row.prop(nms_tool, "material_switch",text = "Palette")
-        colour_area.separator()
+        material_row.prop(nms_tool, "palette_category", text = "Palette")
+        # single variant categories like Freighter have nothing to choose
+        if len(_material.PALETTE_VARIANTS_UI.get(nms_tool.palette_category, [])) > 1:
+            variant_row = colour_area.row(align = True)
+            variant_row.prop(nms_tool, "material_switch", expand = True)
+        #colour_area.separator()
         grid = colour_area.grid_flow(columns=12, even_columns=True, align = True)
         grid.scale_x = 0.6
         grid.scale_y = 1.0
@@ -928,7 +978,7 @@ class NMS_PT_build_panel(Panel):
         col = main_col.column(align=True)
         col.label(text = "Asset Browser")
         col.operator("object.nms_launch_asset_browser", icon = "DESKTOP" )# icon="COLLECTION_COLOR_03"
-        
+
         presets_box = main_col.column(align = True)
         presets_box.label(text = "Prefabs")
         preset_row = presets_box.row(align = True)
@@ -986,11 +1036,11 @@ class NMS_UL_actions_list(bpy.types.UIList):
                 for part in all_parts:
                     operator = part_row.operator(
                         "object.list_build_operator",
-                        text=BUILDER.get_nice_name(part),
+                        text=get_builder().get_nice_name(part),
                     )
                     operator.part_id = part
                     operator.tooltip = (
-                        f"Name: {BUILDER.get_nice_name(part)}\nID: ({part})"
+                        f"Name: {get_builder().get_nice_name(part)}\nID: ({part})"
                     )
 
             # Draw Presets
@@ -1050,25 +1100,25 @@ def generate_ui_list_data(item_type="parts", pack=None):
     ui_list_data = []
     # Presets
     if "presets" in item_type:
-        preset_categories = BUILDER.get_preset_categories()
+        preset_categories = get_builder().get_preset_categories()
         for category in preset_categories:
-            presets = BUILDER.get_presets_from_category(category)
+            presets = get_builder().get_presets_from_category(category)
             if presets:
                 ui_list_data.append((category, ""))
                 for _preset in sorted(presets):
                     ui_list_data.append(("", _preset))
         # Uncategorized.
-        presets = BUILDER.get_uncategorized_presets()
+        presets = get_builder().get_uncategorized_presets()
         if presets:
             ui_list_data.append(("Uncategorized Prefabs", ""))
             for _preset in sorted(presets):
                 ui_list_data.append(("", _preset))
     else:
         # Packs/Parts
-        for category in BUILDER.get_categories(pack=pack):
+        for category in get_builder().get_categories(pack=pack):
             ui_list_data.append((category, ""))
-            category_parts = BUILDER.get_parts_from_category(category, pack=pack)
-            category_parts = sorted(category_parts, key=BUILDER.get_nice_name)
+            category_parts = get_builder().get_parts_from_category(category, pack=pack)
+            category_parts = sorted(category_parts, key=get_builder().get_nice_name)
             new_parts = create_sublists(category_parts)
             for part in new_parts:
                 joined_list = ",".join(part)
@@ -1185,15 +1235,19 @@ class ExportObjectsData(bpy.types.Operator):
     
     
 class SwitchWorkspace(bpy.types.Operator):
-    """Switch to a simpler workspace"""
+    """Switch to a simpler workspace, or back to how blender was before"""
     bl_idname = "object.nms_cleanup_workspace"
     bl_label = "Switch workspace"
 
     def execute(self, context):
-        scene = context.scene
-        nms_tool = scene.nms_base_tool
-        nms_tool.is_workspace_cleaned = True
-        workspace.cleanup_workspace(context)
+        nms_tool = context.scene.nms_base_tool
+        if nms_tool.is_workspace_cleaned:
+            workspace.restore_workspace(context, nms_tool.workspace_state)
+            nms_tool.workspace_state = ""
+            nms_tool.is_workspace_cleaned = False
+        else:
+            nms_tool.workspace_state = workspace.cleanup_workspace(context) or ""
+            nms_tool.is_workspace_cleaned = True
         return {"FINISHED"}
 
 class SaveAsPreset(bpy.types.Operator):
@@ -1205,7 +1259,7 @@ class SaveAsPreset(bpy.types.Operator):
 
     def execute(self, context):
         # Save Preset.
-        BUILDER.save_preset_to_file(self.preset_name)
+        get_builder().save_preset_to_file(self.preset_name)
         # Refresh Preset List.
         scene = context.scene
         nms_tool = scene.nms_base_tool
@@ -1376,9 +1430,9 @@ class ListBuildOperator(bpy.types.Operator):
 
         # Build item
         if self.part_id in preset.Preset.get_presets():
-            new_item = BUILDER.add_preset(self.part_id)
+            new_item = get_builder().add_preset(self.part_id)
         else:
-            new_item = BUILDER.add_part(self.part_id)
+            new_item = get_builder().add_part(self.part_id)
             if hasattr(new_item, "build_rig"):
                 new_item.build_rig()
 
@@ -1387,7 +1441,7 @@ class ListBuildOperator(bpy.types.Operator):
 
         # If there was a previous selection, snap the new item to it.
         if selection:
-            builder_selection = BUILDER.get_builder_object_from_bpy_object(selection)
+            builder_selection = get_builder().get_builder_object_from_bpy_object(selection)
             if builder_selection:
                 new_item.snap_to(builder_selection)
         return {"FINISHED"}
@@ -1407,13 +1461,13 @@ class ListEditOperator(bpy.types.Operator):
             nms_tool.new_file()
             preset.Preset(
                 preset_id=self.part_id,
-                builder_object=BUILDER,
+                builder_object=get_builder(),
                 create_control=False,
                 apply_shader=False,
                 build_rigs=True,
             )
-            BUILDER.build_rigs()
-            BUILDER.optimise_control_points()
+            get_builder().build_rigs()
+            get_builder().optimise_control_points()
         return {"FINISHED"}
 
     def invoke(self, context, event):
@@ -1498,13 +1552,13 @@ class Point(bpy.types.Operator):
             return {"CANCELLED"}
 
         # Create a new point at the cursor.
-        point = line.Line.create_point(BUILDER, name="ARBITRARY_POINT")
+        point = line.Line.create_point(get_builder(), name="ARBITRARY_POINT")
         point.location = context.scene.cursor.location
 
         # If another powerline was already selected, connect it
         if selection and "rig_item" in selection:
             line_object = selection.get("power_line", "U_POWERLINE").split(".")[0]
-            power_line = BUILDER.add_part(line_object, build_rigs=False)
+            power_line = get_builder().add_part(line_object, build_rigs=False)
             # Create controls.
             power_line.build_rig(start=selection, end=point)
 
@@ -1523,7 +1577,7 @@ class Connect(bpy.types.Operator):
     def execute(self, context):
         # Validate selection.
         selected_objects = [
-            BUILDER.get_builder_object_from_bpy_object(o)
+            get_builder().get_builder_object_from_bpy_object(o)
             for o in bpy.context.selected_objects
         ]
         selected_objects = [o for o in selected_objects if o.has_snap_point("POWER")]
@@ -1538,7 +1592,7 @@ class Connect(bpy.types.Operator):
             ShowMessageBox(message=message, title="Connect")
             return {"FINISHED"}
 
-        active_object = BUILDER.get_builder_object_from_bpy_object(
+        active_object = get_builder().get_builder_object_from_bpy_object(
             bpy.context.active_object
         )
         if not active_object.has_snap_point("POWER"):
@@ -1553,7 +1607,7 @@ class Connect(bpy.types.Operator):
                 continue
             # Build and perform connection.
             start_point, end_point = line.Line.generate_control_points(
-                active_object, selected_object, BUILDER
+                active_object, selected_object, get_builder()
             )
             if not start_point or not end_point:
                 # should have been tested by filtering selected_objects above
@@ -1568,7 +1622,7 @@ class Connect(bpy.types.Operator):
 
             # if "power_line" in start_point:
             #     line_object_id = start_point["power_line"].split(".")[0]
-            power_line = BUILDER.add_part(line_object_id, build_rigs=False)
+            power_line = get_builder().add_part(line_object_id, build_rigs=False)
             # Create controls.
             power_line.build_rig(start=start_point, end=end_point)
 
@@ -1601,7 +1655,7 @@ class Divide(bpy.types.Operator):
             return {"FINISHED"}
 
         # Perform split.
-        power_line = BUILDER.get_builder_object_from_bpy_object(target)
+        power_line = get_builder().get_builder_object_from_bpy_object(target)
         power_line.divide()
         return {"FINISHED"}
 
@@ -1631,7 +1685,7 @@ class Split(bpy.types.Operator):
             return {"FINISHED"}
 
         # Perform split.
-        power_line = BUILDER.get_builder_object_from_bpy_object(target)
+        power_line = get_builder().get_builder_object_from_bpy_object(target)
         power_line.split()
         return {"FINISHED"}
 
@@ -1645,7 +1699,7 @@ class SelectConnected(bpy.types.Operator):
 
     def execute(self, context):
         selected_objects = [
-            BUILDER.get_builder_object_from_bpy_object(o)
+            get_builder().get_builder_object_from_bpy_object(o)
             for o in bpy.context.selected_objects
         ]
 
@@ -1665,10 +1719,10 @@ class SelectFloating(bpy.types.Operator):
     bl_options = {"UNDO", "REGISTER"}
 
     def execute(self, context):
-        for part in BUILDER.get_all_parts(include_lines=True):
+        for part in get_builder().get_all_parts(include_lines=True):
             if not "SnapID" in part:
                 continue
-            part = BUILDER.get_builder_object_from_bpy_object(part)
+            part = get_builder().get_builder_object_from_bpy_object(part)
             if part.snap_id != "POWER_CONTROL":
                 continue
             is_connected_to_object = False
@@ -1699,10 +1753,10 @@ class LogicButton(bpy.types.Operator):
         # Get Selected item.
         selection = blend_utils.get_current_selection()
         # Build button.
-        button = BUILDER.add_part("U_SWITCHBUTTON")
+        button = get_builder().add_part("U_SWITCHBUTTON")
         # Snap to selection.
         if selection:
-            selection = BUILDER.get_builder_object_from_bpy_object(selection)
+            selection = get_builder().get_builder_object_from_bpy_object(selection)
             button.snap_to(selection)
 
         # Select new item.
@@ -1720,10 +1774,10 @@ class LogicWallSwitch(bpy.types.Operator):
     def execute(self, context):
         # Get Selected item.
         selection = blend_utils.get_current_selection()
-        button = BUILDER.add_part("U_SWITCHWALL")
+        button = get_builder().add_part("U_SWITCHWALL")
         # Snap to selection.
         if selection:
-            selection = BUILDER.get_builder_object_from_bpy_object(selection)
+            selection = get_builder().get_builder_object_from_bpy_object(selection)
             button.snap_to(selection)
         # Select new item.
         button.select()
@@ -1740,10 +1794,10 @@ class LogicProxSwitch(bpy.types.Operator):
     def execute(self, context):
         # Get Selected item.
         selection = blend_utils.get_current_selection()
-        button = BUILDER.add_part("U_SWITCHPROX")
+        button = get_builder().add_part("U_SWITCHPROX")
         # Snap to selection.
         if selection:
-            selection = BUILDER.get_builder_object_from_bpy_object(selection)
+            selection = get_builder().get_builder_object_from_bpy_object(selection)
             button.snap_to(selection)
         # Select new item.
         button.select()
@@ -1760,10 +1814,10 @@ class LogicInvSwitch(bpy.types.Operator):
     def execute(self, context):
         # Get Selected item.
         selection = blend_utils.get_current_selection()
-        button = BUILDER.add_part("U_TRANSISTOR1")
+        button = get_builder().add_part("U_TRANSISTOR1")
         # Snap to selection.
         if selection:
-            selection = BUILDER.get_builder_object_from_bpy_object(selection)
+            selection = get_builder().get_builder_object_from_bpy_object(selection)
             button.snap_to(selection)
         # Select new item.
         button.select()
@@ -1780,10 +1834,10 @@ class LogicAutoSwitch(bpy.types.Operator):
     def execute(self, context):
         # Get Selected item.
         selection = blend_utils.get_current_selection()
-        button = BUILDER.add_part("U_TRANSISTOR2")
+        button = get_builder().add_part("U_TRANSISTOR2")
         # Snap to selection.
         if selection:
-            selection = BUILDER.get_builder_object_from_bpy_object(selection)
+            selection = get_builder().get_builder_object_from_bpy_object(selection)
             button.snap_to(selection)
         # Select new item.
         button.select()
@@ -1800,10 +1854,10 @@ class LogicFloorSwitch(bpy.types.Operator):
     def execute(self, context):
         # Get Selected item.
         selection = blend_utils.get_current_selection()
-        button = BUILDER.add_part("U_SWITCHPRESS")
+        button = get_builder().add_part("U_SWITCHPRESS")
         # Snap to selection.
         if selection:
-            selection = BUILDER.get_builder_object_from_bpy_object(selection)
+            selection = get_builder().get_builder_object_from_bpy_object(selection)
             button.snap_to(selection)
         # Select new item.
         button.select()
@@ -1820,15 +1874,90 @@ class LogicBeatSwitch(bpy.types.Operator):
     def execute(self, context):
         # Get Selected item.
         selection = blend_utils.get_current_selection()
-        button = BUILDER.add_part("BYTEBEATSWITCH")
+        button = get_builder().add_part("BYTEBEATSWITCH")
         # Snap to selection.
         if selection:
-            selection = BUILDER.get_builder_object_from_bpy_object(selection)
+            selection = get_builder().get_builder_object_from_bpy_object(selection)
             button.snap_to(selection)
         # Select new item.
         button.select()
         return {"FINISHED"}
     
+
+class GroupObjects(bpy.types.Operator):
+    """Merge the selected parts into one group"""
+
+    bl_idname = "object.nms_group_objects"
+    bl_label = "Group Objects together"
+    bl_options = {"REGISTER", "UNDO"}
+
+    origin_type: EnumProperty(
+        name="Select Origin",
+        description="Choose the origin of the group",
+        items=[
+            ("median", "Median", "Use median of objects in viewport as origin of Group", "PIVOT_MEDIAN", 0),
+            ("active", "Active Object", "Use active object in viewport as origin of Group", "CON_PIVOT", 1),
+            ("cursor", "3D Cursor", "Use 3D cursor in viewport as origin of Group", "CURSOR", 2),
+        ],
+        default="active",
+    )
+
+    def invoke(self, context, event):
+        if len(context.selected_objects) < 2:
+            ShowMessageBox("Please select at least two objects", title="Group Objects", icon="ERROR")
+            return {"CANCELLED"}
+        return context.window_manager.invoke_props_dialog(self, title="Group Objects", confirm_text="Group")
+
+    def execute(self, context):
+        selected_objects = context.selected_objects
+        if len(selected_objects) < 2:
+            return {"CANCELLED"}
+
+        if self.origin_type == "active" and context.active_object:
+            target_matrix = context.active_object.matrix_world.copy()
+        elif self.origin_type == "cursor":
+            target_matrix = context.scene.cursor.matrix.copy()
+        else:
+            target_matrix = None
+
+        if any(Group.PROP_GROUP_ID in obj for obj in selected_objects):
+            self.report({"ERROR"}, "A group can't be grouped again, ungroup it first")
+            return {"CANCELLED"}
+
+        part_count = sum(1 for obj in selected_objects if "ObjectID" in obj)
+        merged_object = Group.group_objects(selected_objects, target_matrix)
+        if merged_object is None:
+            self.report({"ERROR"}, "Nothing to group, select at least one part")
+            return {"CANCELLED"}
+
+        self.report({"INFO"}, f"{part_count} parts merged into {merged_object.name}")
+        return {"FINISHED"}
+
+    def draw(self, context):
+        layout = self.layout
+        layout.label(text="Select Origin of Merged Object", icon="OUTLINER_OB_POINTCLOUD")
+        layout.row(align=True).prop(self, "origin_type", expand=True)
+        layout.label(text="This point will act as transformations pivot point")
+
+
+class UngroupObjects(bpy.types.Operator):
+    """Split the selected groups back into parts"""
+
+    bl_idname = "object.nms_ungroup_objects"
+    bl_label = "Ungroup Objects"
+    bl_options = {"REGISTER", "UNDO"}
+
+    def execute(self, context):
+        restored_objects = []
+        for item in list(context.selected_objects):
+            if Group.PROP_GROUP_ID in item:
+                restored_objects += Group.ungroup_objects(get_builder(), item) or []
+
+        if restored_objects:
+            self.report({"INFO"}, f"Ungrouped into {len(restored_objects)} parts")
+            blend_utils.select(restored_objects)
+        return {"FINISHED"}
+
 
 class SplitPreset(bpy.types.Operator):
     """Split the selected prefab into individual parts"""
@@ -1857,29 +1986,52 @@ class SplitPreset(bpy.types.Operator):
             names.append(pid)
 
         # Clear builder caches
-        BUILDER.clear_caches()
+        get_builder().clear_caches()
         
         self.report({"INFO"}, f"Prefabs split: {len(names)}, parts: {total}")
         return {"FINISHED"}
     
 
 
-# Track  curve objects
-known_curves = set()
+# Track curve objects by name, object references die with undo
+known_curve_names = set()
 
 # To reset toggle button of save editor and initialize curve registry
 @persistent
 def reset_plugin_state(dummy):
-    
+
     # collect all curves when a blend file is reopened
-    global known_curves
-    known_curves = set( obj for obj in bpy.data.objects  if obj.type == 'CURVE' and obj.get("has_linked_objects", False) )
-    curve.update_curves(known_curves)
+    global known_curve_names
+    known_curves = [
+        obj for obj in bpy.context.scene.objects
+        if obj.type == 'CURVE' and obj.get("has_linked_objects", False)
+    ]
+    for curve_obj in known_curves:
+        curve.migrate_legacy_curve(curve_obj)
+    known_curve_names = set(obj.name for obj in known_curves)
+
+    # followers are saved in place, so nothing is rebuilt on load, and the saved
+    # slider difference must never be applied to every curve in the file
+    for scene in bpy.data.scenes:
+        properties = scene.nms_properties
+        properties.prev_curve_number_of_objects = properties.active_curve_number_of_objects
+        properties.prev_curve_radius_multiplier = properties.active_curve_radius_multiplier
     
     # reset save editor's state to closed
     for scene in bpy.data.scenes:
         save_data = scene.nms_save_data
         save_data.check_plugin_enabled = False
+
+    # identical parts share one mesh, which keeps big bases light in memory and on disk
+    relinked, removed = _material.optimise_materials()
+    if relinked:
+        print(f"NMS: {relinked} parts now share meshes, {removed} duplicate meshes removed")
+
+    # the toolbar trim isn't saved in the file, so apply it again for a simplified workspace
+    if bpy.context.scene.nms_base_tool.is_workspace_cleaned:
+        workspace.hide_viewport_tools()
+    else:
+        workspace.restore_viewport_tools()
 
 last_active = None
 # keep track of active object to display or hide additional options related to that object
@@ -1899,78 +2051,72 @@ def active_object_watcher(scene, depsgraph):
 # Whenever a curve is modified, automatically update whatever child objects that are associated with that curve.
 @persistent
 def curve_udpate_handler(scene, depsgraph):
-    global known_curves
-    
-    # check each object in scene to detect if their parent curve has been deleted by user or not
-    # if not, we update object's base scale to keep track of transformation changes made by user
-    current_curves = set()
-    for obj in bpy.data.objects:
-        # if object type is a linked curve
-        if obj.type == 'CURVE' and obj.get("has_linked_objects", False):
-            current_curves.add(obj)
-        # if object type is a child of curve
-        elif "curve_parent" in obj:
-            parent_curve = bpy.data.objects.get(obj["curve_parent"])
-            # remove object if it's parent curve has been deleted
-            if parent_curve is None:
-                bpy.data.objects.remove(obj, do_unlink=True)
-            # Update base scale to persiste changes to scale made by user when curve mode is switched
-            elif not parent_curve.get("parent_selected", True):
-                obj["base_scale"] = curve.calculate_base_scale(parent_curve, obj)
-    
-    # Detect dead curves, cuerves that have been deleted by user through blender
-    dead_curves = known_curves - current_curves
-    if dead_curves:
-        known_curves.difference_update(dead_curves)
-    
-    # identify new curves
-    new_curves_detected = []
-    
+    global known_curve_names
+    Curve = curve.Curve
+
+    # fired from inside a curve rebuild, the rebuild isn't finished yet
+    if curve.is_busy():
+        return
+
     # Collect curves that have recieved updates by user
-    updated_curves = set()
+    updated_curve_names = set()
     for update in depsgraph.updates:
-        if isinstance(update.id, bpy.types.Object):
-            # validate each object
-            orig_obj = bpy.data.objects.get(update.id.name)
-            if orig_obj and orig_obj.type == 'CURVE' and orig_obj.get("has_linked_objects", False):
-                updated_curves.add(orig_obj)
-                if orig_obj not in known_curves and orig_obj not in new_curves_detected:
-                    # a completely new curve should not exist in know_curves set
-                    new_curves_detected.append(orig_obj)
-                    
-    # Handle duplication syncing
-    if new_curves_detected and known_curves:
-        for new_curve in new_curves_detected:
-            # if two curves have equal "unique_id", that means they have been duplicated using shift+d
-            # we need to duplicate objects in similar way on new curve too
+        if not isinstance(update.id, bpy.types.Object):
+            continue
+        # by reference because a name lookup is O(n) per update
+        orig_obj = update.id.original
+        # linked objects can't take the property writes below
+        if orig_obj is None or orig_obj.library is not None:
+            continue
+        if orig_obj.type == 'CURVE' and Curve.PROP_CURVE_ID in orig_obj:
+            updated_curve_names.add(orig_obj.name)
+        elif Curve.PROP_CURVE_PARENT in orig_obj:
+            # keep scale changes the user makes to a follower while its curve isn't selected
+            parent_curve = scene.objects.get(orig_obj[Curve.PROP_CURVE_PARENT])
+            if parent_curve is not None and not parent_curve.get(Curve.PROP_PARENT_SELECTED, True):
+                orig_obj[Curve.PROP_BASE_SCALE] = curve.calculate_base_scale(parent_curve, orig_obj)
+
+    # a new curve sharing a CurveID with a known one was duplicated with shift+d
+    new_curve_names = updated_curve_names - known_curve_names
+    if new_curve_names and known_curve_names:
+        for new_curve_name in new_curve_names:
             try:
-                new_uuid = new_curve.get("unique_id")
-                # Look for curves that have same unique_id as new curve
-                # if a duplciate unique_id found, new curve must be duplicate of that curve
-                matching_curve = next((c for c in known_curves if c.get("unique_id") == new_uuid and c != new_curve), None)
-                if matching_curve is not None:
-                    curve.sync_curves(new_curve, matching_curve)
+                new_curve = scene.objects.get(new_curve_name)
+                if new_curve is None:
+                    continue
+                new_uuid = new_curve.get(Curve.PROP_CURVE_ID)
+                for curve_name in known_curve_names:
+                    matching_curve = scene.objects.get(curve_name)
+                    if (matching_curve is not None
+                            and matching_curve.get(Curve.PROP_CURVE_ID) == new_uuid
+                            and matching_curve.name != new_curve.name):
+                        curve.sync_curves(new_curve, matching_curve)
+                        break
             except ReferenceError as error:
                 print("Reference error :", error)
                 continue
-    
-    # Loop through all curves and update their children's transformations
-    curve.update_curves(known_curves)
-        
-    # Sync back down to the global tracking set 
-    known_curves = current_curves
+
+    # only rebuild curves that changed, the sliders apply themselves through their update callback
+    curves_to_update = [
+        obj for obj in (scene.objects.get(name) for name in updated_curve_names)
+        if obj is not None
+    ]
+    if curves_to_update:
+        curve.update_curves(curves_to_update, children_by_curve=curve.get_curve_children_map())
+
+    # remove followers of curves the user deleted
+    dead_curve_names = set(name for name in known_curve_names if scene.objects.get(name) is None)
+    if dead_curve_names:
+        known_curve_names.difference_update(dead_curve_names)
+        orphans = [
+            obj for obj in curve.get_follower_objects()
+            if obj.get(Curve.PROP_CURVE_PARENT) in dead_curve_names
+        ]
+        if orphans:
+            bpy.data.batch_remove(orphans)
+
+    known_curve_names |= updated_curve_names
             
-
-class NMSAddonPreferences(bpy.types.AddonPreferences):
-    bl_idname = ADDON_ID
-
-    nms_save_folder_path: StringProperty(
-        name="Save Directory",
-        description="Folder where save files are stored",
-        subtype='DIR_PATH',
-        default = str(save_editor_utils.get_default_save_folder())
-    )
-    
 
 preview_collections = {}
 
@@ -2018,12 +2164,14 @@ classes = (
     BuildTool,
     Properties,
     BatchTool,
+    Transformation,
     
     NMS_UL_actions_list,
     NMS_PT_hero_panel,
     NMS_PT_file_buttons_panel,
     NMS_PT_save_editor_panel,
     NMS_PT_base_prop_panel,
+    NMS_PT_transformation_panel,
     NMS_PT_colour_panel,
     NMS_PT_logic_panel,
     NMS_PT_tools_panel,
@@ -2034,10 +2182,12 @@ classes = (
     NMSAddonPreferences,
     
     SwitchWorkspace,
-    SplitPreset
+    SplitPreset,
+    GroupObjects,
+    UngroupObjects,
 )
 
-classes = classes  + save_editor_operators.classes + build_tool_operators.classes + batch_tool_operators.classes
+classes = classes  + save_editor_operators.classes + build_tool_operators.classes + batch_tool_operators.classes + transformation_operators.classes
 
 
 
@@ -2078,6 +2228,7 @@ def register():
     bpy.types.Scene.nms_build_tool = bpy.props.PointerProperty(type=BuildTool)
     bpy.types.Scene.nms_properties = bpy.props.PointerProperty(type=Properties)
     bpy.types.Scene.nms_batch_tool = bpy.props.PointerProperty(type=BatchTool)
+    bpy.types.Scene.nms_transformation = bpy.props.PointerProperty(type=Transformation)
     
     if reset_plugin_state not in bpy.app.handlers.load_post:
         bpy.app.handlers.load_post.append(reset_plugin_state)
@@ -2087,11 +2238,14 @@ def register():
     
     if curve_udpate_handler not in bpy.app.handlers.depsgraph_update_post:
         bpy.app.handlers.depsgraph_update_post.append(curve_udpate_handler)
-        
-        
-    
+
+    addon_preferences.apply_duplicate_mesh_setting()
+
 
 def unregister():
+    # put blender's Duplicate Data > Mesh back the way it was
+    addon_preferences.restore_duplicate_mesh_setting()
+
     for pcoll in preview_collections.values():
         bpy.utils.previews.remove(pcoll)
     preview_collections.clear()
@@ -2099,12 +2253,13 @@ def unregister():
 
     for _class in reversed(classes):
         bpy.utils.unregister_class(_class)
-        
+
     del bpy.types.Scene.nms_base_tool
     del bpy.types.Scene.nms_save_data
     del bpy.types.Scene.nms_build_tool
     del bpy.types.Scene.nms_properties
     del bpy.types.Scene.nms_batch_tool
+    del bpy.types.Scene.nms_transformation
     
     if reset_plugin_state in bpy.app.handlers.load_post:
         bpy.app.handlers.load_post.remove(reset_plugin_state)
@@ -2114,8 +2269,11 @@ def unregister():
         
     if curve_udpate_handler in bpy.app.handlers.depsgraph_update_post:
         bpy.app.handlers.depsgraph_update_post.remove(curve_udpate_handler)
-        
-        
+
+    # the toolbar is patched while the workspace is simplified
+    workspace.restore_viewport_tools()
+
+
 
 
 if __name__ == "__main__":

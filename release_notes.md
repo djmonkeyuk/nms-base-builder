@@ -1,3 +1,15 @@
+release 7.0.0
+-------------
+• Added parts introduced by Cosmos.
+• Asset Browser refresh:
+•    Blender 🔄 #prefab-share - There is now a direct feed to the Discord #prefab-share channel with easy import functionality and community links.
+•    Visual parity with BBA with left aligned category buttons. 
+•    Load time improvements.
+•    General bugfixes.
+• Significant disk space optimization by switching from FBX to compressed GLB format. What would have been a total of 200mb has now dropped to around 60mb.
+• Rolled in the latest from Kuma-The-Wizard, including space station and space base save data management, and other tooling like groups, curve updates, and performance.
+
+
 release 6.5.2
 -------------
 

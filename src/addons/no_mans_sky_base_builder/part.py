@@ -6,8 +6,10 @@ from copy import copy
 import bpy
 import mathutils
 
-from .utils import blend_utils, material
+from .utils import blend_utils, material, snap_utils
 from .utils import python as python_utils
+
+z_compensate = mathutils.Matrix.Rotation(math.radians(-90.0), 4, "X")
 
 
 class Part(object):
@@ -18,10 +20,27 @@ class Part(object):
     SNAP_MATRIX_JSON = os.path.join(FILE_PATH, "resources", "snapping_info.json")
     SNAP_PAIR_JSON = os.path.join(FILE_PATH, "resources", "snapping_pairs.json")
 
-    SNAP_MATRIX_DICTIONARY = python_utils.load_dictionary(SNAP_MATRIX_JSON)
+    SNAP_MATRIX_DICTIONARY = snap_utils.add_game_props(python_utils.load_dictionary(SNAP_MATRIX_JSON))
     SNAP_PAIR_DICTIONARY = python_utils.load_dictionary(SNAP_PAIR_JSON)
 
+    # part property names
+    PROP_OBJECT_ID = "ObjectID"
+    PROP_SNAP_ID = "SnapID"
+    PROP_USER_DATA = "UserData"
+    PROP_TIMESTAMP = "Timestamp"
+    PROP_MESSAGE = "Message"
+
+    PROP_POSITION = "Position"
+    PROP_UP = "Up"
+    PROP_AT = "At"
+
+    PROP_BELONGS_TO_PRESET = "belongs_to_preset"
+    PROP_ORDER = "order"
+
     SNAP_CACHE = {}
+
+    # False for parts that always get a fixed material, like lines
+    RESTORE_USERDATA_MATERIAL = True
 
     def __init__(
         self,
@@ -61,7 +80,10 @@ class Part(object):
             self.belongs_to_preset = self.DEFAULT_BELONGS_TO_PRESET
             self.order = len(bpy.data.objects)
             # Assign material.
-            material.restore_material(self.__object, user_data)
+            if self.RESTORE_USERDATA_MATERIAL:
+                material.restore_material(self.__object, user_data)
+            else:
+                self.user_data = user_data
             # Set to origin.
             self.reset_transforms()
 
@@ -218,12 +240,8 @@ class Part(object):
     def duplicate(self):
         """Duplicate the part and return it."""
         # Create new object as whole.
+        # the mesh stays shared, set_material copies it only when the colour differs
         new_object = self.__object.copy()
-        # Transfer a copy of the mesh and material.
-        new_object.data = self.__object.data.copy()
-
-        if self.__object.active_material:
-            new_object.active_material = self.__object.active_material.copy()
 
         # Clear Parent
         if new_object.parent:
@@ -281,22 +299,39 @@ class Part(object):
         # If it exists, import the obj.
         if obj_path and os.path.isfile(obj_path):
             prev_objects_capture = [x.name for x in bpy.data.objects]
-            bpy.ops.import_scene.fbx(filepath=obj_path)
+            bpy.ops.import_scene.gltf(filepath=obj_path)
             new_objects_capture = [x.name for x in bpy.data.objects]
             new_objects = [
                 x for x in new_objects_capture if x not in prev_objects_capture
             ]
             item = bpy.data.objects[new_objects[0]]
             item.name = object_id
-            # for convenience if saving obj/mtl files, delete any imported materials
             item.data.materials.clear()
-            item.select_set(False)
+            # glTF import sets this to QUATERNION; restore the XYZ Euler
+            # mode the rest of the addon (and the old FBX pipeline) expects.
+            item.rotation_mode = 'XYZ'
+
+            # fails when the object's collection is excluded from the view layer
+            try:
+                item.select_set(False)
+            except RuntimeError:
+                pass
+
             blend_utils.add_to_scene(item)
             return item
 
-        # Create cube.
-        bpy.ops.mesh.primitive_cube_add()
-        item = bpy.data.objects[bpy.context.object.name]
+        # Create cube, at data level if the active collection is excluded
+        # or the context has no active object (timers, other restricted contexts).
+        item = None
+        try:
+            bpy.ops.mesh.primitive_cube_add()
+            item = bpy.context.view_layer.objects.active
+        except (RuntimeError, AttributeError):
+            pass
+        if item is None:
+            mesh = bpy.data.meshes.new(object_id)
+            item = bpy.data.objects.new(object_id, mesh)
+
         item.name = object_id
         blend_utils.add_to_scene(item)
         return item
@@ -311,30 +346,18 @@ class Part(object):
         # Get Matrix Data
         world_matrix = self.matrix_world
         # Bring the matrix from Blender Z-Up space into standard Y-up space.
-        z_compensate = mathutils.Matrix.Rotation(math.radians(-90.0), 4, "X")
         world_matrix_offset = z_compensate @ world_matrix
         # Retrieve Position, Up and At vectors.
-        pos = world_matrix_offset.decompose()[0]
-        up = [
-            world_matrix_offset[0][1],
-            world_matrix_offset[1][1],
-            world_matrix_offset[2][1],
-        ]
-        at = mathutils.Vector(
-            (
-                world_matrix_offset[0][2],
-                world_matrix_offset[1][2],
-                world_matrix_offset[2][2],
-            )
-        )
-        at = at.normalized()
+        pos = world_matrix_offset.translation
+        up = world_matrix_offset.col[1].to_3d()
+        at = world_matrix_offset.col[2].to_3d().normalized()
         return {
-            "ObjectID": self.object_id_format,
-            "Position": [pos[0], pos[1], pos[2]],
-            "Up": [up[0], up[1], up[2]],
-            "At": [at[0], at[1], at[2]],
-            "Timestamp": int(self.time_stamp),
-            "UserData": int(self.user_data),
+            Part.PROP_OBJECT_ID: self.object_id_format,
+            Part.PROP_POSITION: list(pos),
+            Part.PROP_UP: list(up),
+            Part.PROP_AT: list(at),
+            Part.PROP_TIMESTAMP: int(self.time_stamp),
+            Part.PROP_USER_DATA: int(self.user_data),
         }
 
     # Class Methods ---
@@ -375,50 +398,63 @@ class Part(object):
         part.message = data.get("Message", "")
         return part
 
+    SUFFIX_COMPASS_ID_PAIRS = [
+        ("_NE", "_NW"),
+        ("_NE1", "_NW1"),
+        ("_NE2", "_NW2"),
+        ("_NE3", "_NW3"),
+        ("_NETB", "_NWTB"),
+        ("_NETB1", "_NWTB1"),
+        ("_NETB2", "_NWTB2"),
+        ("_NETB3", "_NWTB3"),
+        ("_E", "_W"),
+        ("_N", "_S"),
+        ("_0", "_1"),
+    ]
+
+    FLIP_COMPASS_IDS = [
+        "N",
+        "E",
+        "W",
+        "S",
+        "NE",
+        "NE1",
+        "NE2",
+        "NE3",
+        "NW",
+        "NW1",
+        "NW2",
+        "NW3",
+        "NETB",
+        "NETB1",
+        "NETB2",
+        "NETB3",
+        "NWTB",
+        "NWTB1",
+        "NWTB2",
+        "NWTB3",
+    ]
+
     # Static Methods ---
     @staticmethod
     def get_mirror_part_id(object_id):
-        # Handle Compass
-        east_compass_ids = [
-            "NE",
-            "NE1",
-            "NE2",
-            "NE3",
-            "NETB",
-            "NETB1",
-            "NETB2",
-            "NETB3",
-        ]
-        west_compass_ids = [
-            "NW",
-            "NW1",
-            "NW2",
-            "NW3",
-            "NWTB",
-            "NWTB1",
-            "NWTB2",
-            "NWTB3",
-        ]
-        for idx, east_compass_id in enumerate(east_compass_ids):
-            if object_id.endswith(f"_{east_compass_id}"):
-                return (
-                    object_id[: -(len(east_compass_id) + 1)]
-                    + "_"
-                    + west_compass_ids[idx]
-                )
-        for idx, west_compass_id in enumerate(west_compass_ids):
-            if object_id.endswith(f"_{west_compass_id}"):
-                return (
-                    object_id[: -(len(west_compass_id) + 1)]
-                    + "_"
-                    + east_compass_ids[idx]
-                )
+        # Wing letters/numbers identify models, not compass directions or sides.
+        # Resolve them first: E -> E_R, N -> N_R, O_0 -> O_0_R, O_1 -> O_1_R.
+        if object_id.startswith("B_WNG_"):
+            # These vertical Aeron variants have no separate handed counterpart.
+            if object_id in ("B_WNG_P_T", "B_WNG_P_B", "B_WNG_R_T", "B_WNG_R_B"):
+                return None
+            # The base Aeron blade itself ends in R.
+            if object_id in ("B_WNG_R", "B_WNG_R_R"):
+                return "B_WNG_R_R" if object_id == "B_WNG_R" else "B_WNG_R"
+            return object_id[:-2] if object_id.endswith("_R") else object_id + "_R"
 
-        # Handle Winged
-        if object_id.endswith("_R"):
-            return object_id[:-2]
-        else:
-            return object_id + "_R"
+        for east_str, west_str in Part.SUFFIX_COMPASS_ID_PAIRS:
+            if object_id.endswith(east_str):
+                return object_id[: -len(east_str)] + west_str
+            if object_id.endswith(west_str):
+                return object_id[: -len(west_str)] + east_str
+        return None
 
     @staticmethod
     def get_flip_part_id(object_id):
@@ -426,29 +462,7 @@ class Part(object):
         if "_Y_" in object_id:
             return object_id.replace("_Y_", "_")
         # Then check for unflipped.
-        compass_ids = [
-            "N",
-            "E",
-            "W",
-            "S",
-            "NE",
-            "NE1",
-            "NE2",
-            "NE3",
-            "NW",
-            "NW1",
-            "NW2",
-            "NW3",
-            "NETB",
-            "NETB1",
-            "NETB2",
-            "NETB3",
-            "NWTB",
-            "NWTB1",
-            "NWTB2",
-            "NWTB3",
-        ]
-        for compass_id in compass_ids:
+        for compass_id in Part.FLIP_COMPASS_IDS:
             if object_id.endswith(f"_{compass_id}"):
                 return object_id[: -(len(compass_id) + 1)] + "_Y_" + compass_id
         return None
@@ -499,12 +513,11 @@ class Part(object):
         if not use_group:
             return
 
-        # Further validation.
-        if "snap_points" not in self.SNAP_MATRIX_DICTIONARY[use_group]:
-            return
+        # parts with no hand made group only have the points read from the game
+        hand_group = self.SNAP_MATRIX_DICTIONARY.get(use_group, {})
 
-        # Get the snap points from the dictionary.
-        return self.SNAP_MATRIX_DICTIONARY[use_group]["snap_points"]
+        # Get the snap points from the dictionary, with any read from the game added.
+        return snap_utils.get_snap_points(self.object_id, hand_group.get("snap_points"))
 
     def get_snap_group(self):
         """Search through the grouping dictionary and return the snap group.
@@ -516,6 +529,7 @@ class Part(object):
             parts = value["parts"]
             if self.object_id in parts:
                 return group
+        return snap_utils.get_game_group(self.object_id)
 
     def get_snap_pair_options(self, target_item):
         """Get the compatible snap points
@@ -537,6 +551,10 @@ class Part(object):
             if source_group in snapping_dictionary:
                 return snapping_dictionary[source_group]
 
+        # parts read from the game have no pairs made by hand, they pair by their sockets
+        if snap_utils.is_game_part(self.object_id) or snap_utils.is_game_part(target_item.object_id):
+            return snap_utils.get_socket_pairing(target_item.get_snap_points(), self.get_snap_points())
+
     def snap_to(
         self,
         target,
@@ -544,6 +562,8 @@ class Part(object):
         prev_target=False,
         next_source=False,
         prev_source=False,
+        steps=0,
+        cycle_start=None,
     ):
         """Snap this item to the specified builder object.
 
@@ -553,7 +573,11 @@ class Part(object):
             prev_target (bool): Cycle to the prev target snap point.
             next_source (bool): Cycle to the next source snap point.
             prev_source (bool): Cycle to the prev source snap point.
+            steps (int): How many points this cycle has already passed over.
+            cycle_start (mathutils.Matrix): Where the part was before the cycle.
         """
+        if cycle_start is None:
+            cycle_start = copy(self.matrix_world)
         # For preset targets, just snap them together.
         if hasattr(target, "control"):
             mat_rot = mathutils.Matrix.Rotation(math.radians(90.0), 4, "X")
@@ -617,6 +641,17 @@ class Part(object):
 
         # Find corresponding dict.
         source_local_matrix_datas = self.get_snap_points()
+
+        # points read from the game know their sockets, only offer the ones that fit the target point
+        if source_local_matrix_datas and target_local_matrix_datas:
+            target_point = target_local_matrix_datas[target_key]
+            fitting_options = [
+                key
+                for key in source_pairing_options
+                if snap_utils.sockets_fit(target_point, source_local_matrix_datas.get(key, {}))
+            ]
+            source_pairing_options = fitting_options or source_pairing_options
+
         if source_local_matrix_datas:
             default_source_key = source_pairing_options[0]
 
@@ -650,6 +685,17 @@ class Part(object):
             if prev_source:
                 source_key = python_utils.get_adjacent_dict_key(
                     source_pairing_options, source_key, step="prev"
+                )
+
+            # the game lets you turn some parts on one spot, like a corvette wall on a hab's
+            # side, so unless a turn was picked use the one that sits inside the target
+            if not (next_source or prev_source) and target_local_matrix_datas:
+                source_key = snap_utils.get_best_turn(
+                    self.object,
+                    target.object,
+                    target_local_matrix_datas[target_key],
+                    source_key,
+                    {key: source_local_matrix_datas[key] for key in source_pairing_options},
                 )
 
         # If no keys were found, don't snap.
@@ -717,6 +763,87 @@ class Part(object):
         self.SNAP_CACHE[self.name] = source_item_snap_reference
         self.SNAP_CACHE[target.name] = target_item_snap_reference
 
+        # two points can land the part the same way, like a corvette's in and out
+        # points on one side, so a cycle carries on until the part moves
+        cycled_options = target_pairing_options if (next_target or prev_target) else source_pairing_options
+        if (next_target or prev_target or next_source or prev_source) and steps < len(cycled_options):
+            moved = max(abs(a - b) for row, start_row in zip(target_location, cycle_start) for a, b in zip(row, start_row))
+            if moved < 1e-3:
+                return self.snap_to(
+                    target, next_target, prev_target, next_source, prev_source, steps + 1, cycle_start
+                )
+
+        return True
+
+    def snap_to_nearest(self, search_distance=30.0):
+        """Snap this item to the nearest point it fits on any other part.
+
+        Points are compared where they are now, so moving the item close to
+        where it should go picks that point. Of the ways to land on one spot
+        the one turned least from how the item sits now is used.
+
+        Args:
+            search_distance (float): Parts further than this are not looked at.
+        """
+        source_points = self.get_snap_points()
+        if not source_points:
+            return False
+
+        current_rotation = self.matrix_world.to_quaternion()
+        best = None
+        for bpy_object in self.builder.get_all_parts():
+            if bpy_object == self.object:
+                continue
+            if (bpy_object.matrix_world.translation - self.matrix_world.translation).length > search_distance:
+                continue
+            target = self.builder.get_builder_object_from_bpy_object(bpy_object)
+            if not target or hasattr(target, "control") or "SnapID" not in bpy_object:
+                continue
+            target_points = target.get_snap_points()
+            pairing_options = self.get_snap_pair_options(target)
+            if not target_points or not pairing_options:
+                continue
+
+            target_keys = [key.strip() for key in pairing_options[0].split(",")]
+            source_keys = [key.strip() for key in pairing_options[1].split(",")]
+            for target_key in target_keys:
+                if target_key not in target_points:
+                    continue
+                target_position = (
+                    bpy_object.matrix_world @ mathutils.Matrix(target_points[target_key]["matrix"])
+                ).translation
+                for source_key in source_keys:
+                    if source_key not in source_points:
+                        continue
+                    if not snap_utils.sockets_fit(target_points[target_key], source_points[source_key]):
+                        continue
+                    source_position = (
+                        self.matrix_world @ mathutils.Matrix(source_points[source_key]["matrix"])
+                    ).translation
+                    distance = (source_position - target_position).length
+                    landing = snap_utils.get_landing(
+                        bpy_object.matrix_world, target_points[target_key], source_points[source_key]
+                    )
+                    turn = current_rotation.rotation_difference(landing.to_quaternion()).angle
+                    rank = (round(distance, 3), round(turn, 3))
+                    if best is None or rank < best[0]:
+                        best = (rank, target, target_key, source_key, landing)
+
+        if not best:
+            return False
+
+        _, target, target_key, source_key, landing = best
+        self.matrix_world = landing
+        self.rotation = landing.to_euler()
+        self.snapped_to = target.name
+        self.select()
+
+        # remembered like any snap, so the prev and next buttons carry on from here
+        self.SNAP_CACHE[self.name] = {
+            "source": source_key,
+            "target": source_points[source_key].get("opposite"),
+        }
+        self.SNAP_CACHE[target.name] = dict(self.SNAP_CACHE.get(target.name, {}), target=target_key)
         return True
 
     def get_closest_snap_points(self, target, source_filter=None, target_filter=None):

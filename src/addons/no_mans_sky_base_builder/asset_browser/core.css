@@ -79,6 +79,192 @@ Item:pressed {
     background-color: rgba(0, 0, 0, 1);
 }
 
+#PrefabShareCard {
+    background-color: #17202c;
+    border: 1px solid #0a1018;
+    border-radius: 4px;
+}
+
+#PrefabShareCard:hover {
+    background-color: #1e2835;
+    border: 1px solid #D8D02E;
+}
+
+#PrefabShareCard:pressed {
+    background-color: #090d12;
+    border: 1px solid #eec920;
+}
+
+#PrefabShareThumbnail {
+    background-color: #0a1b2e;
+    border: 1px solid #060e18;
+    border-radius: 3px;
+    color: #b0cada;
+}
+
+#PrefabShareName {
+    background-color: transparent;
+    color: #FFFFFF;
+    font-weight: bold;
+}
+
+#PrefabShareAuthor {
+    background-color: transparent;
+    color: #b0cada;
+    font-size: 11px;
+    font-style: italic;
+    margin: 0px;
+    padding: 0px;
+}
+
+#PrefabShareLoadMore {
+    background-color: #0a1b2e;
+    border: 1px solid #060e18;
+    border-radius: 4px;
+    color: #D8D02E;
+    font-weight: bold;
+    padding: 7px 16px;
+}
+
+#PrefabShareLoadMore:hover {
+    background-color: #1e2835;
+    border: 1px solid #D8D02E;
+}
+
+#PrefabShareLoadMore:pressed {
+    background-color: #000000;
+}
+
+#PrefabShareSearch,
+#PrefabShareSort,
+#PrefabShareAttachmentCombo {
+    background-color: #0a1b2e;
+    border: 1px solid #060e18;
+    border-radius: 4px;
+    color: #FFFFFF;
+    min-height: 25px;
+    padding: 3px 6px;
+}
+
+#PrefabShareSearch:focus,
+#PrefabShareSort:hover,
+#PrefabShareAttachmentCombo:hover {
+    background-color: #102844;
+    border: 1px solid #D8D02E;
+}
+
+QSplitter::handle {
+    background-color: #17202c;
+}
+
+QSplitter::handle:horizontal {
+    width: 6px;
+    margin: 2px 0px;
+    border-radius: 3px;
+}
+
+QSplitter::handle:hover {
+    background-color: #D8D02E;
+}
+
+#PrefabShareDetails {
+    background-color: #17202c;
+    border: 1px solid #0a1018;
+    border-radius: 4px;
+}
+
+#PrefabShareIntro {
+    background-color: #17202c;
+    border: 1px solid #0a1018;
+    border-radius: 4px;
+    margin-bottom: 6px;
+}
+
+#PrefabShareIntroLabel {
+    background-color: transparent;
+    color: #b0cada;
+    font-size: 12px;
+}
+
+#PrefabShareDetailsThumbnail {
+    background-color: #0a1b2e;
+    border: 1px solid #060e18;
+    border-radius: 3px;
+    color: #b0cada;
+}
+
+#PrefabShareDetailsName {
+    background-color: transparent;
+    color: #FFFFFF;
+    font-size: 15px;
+    font-weight: bold;
+    margin: 0px;
+    padding: 0px;
+}
+
+#PrefabShareDetailsAuthor {
+    background-color: transparent;
+    color: #b0cada;
+    font-style: italic;
+    margin: 0px;
+    padding: 0px;
+}
+
+#PrefabShareDetailsContent {
+    background-color: #0a1b2e;
+    border: 1px solid #060e18;
+    border-radius: 3px;
+    color: #FFFFFF;
+    padding: 6px;
+}
+
+#PrefabShareImport {
+    background-color: #0a1b2e;
+    border: 1px solid #060e18;
+    border-radius: 4px;
+    color: #D8D02E;
+    font-weight: bold;
+    padding: 6px 8px;
+}
+
+#PrefabShareImport:hover {
+    background-color: #1e2835;
+    border: 1px solid #D8D02E;
+}
+
+#PrefabShareImport:pressed {
+    background-color: #000000;
+}
+
+#PrefabShareImport:disabled {
+    color: #71808d;
+}
+
+/* Discord's official brand colour ("Blurple"). */
+#PrefabShareDiscord {
+    background-color: #5865F2;
+    border: 1px solid #4752C4;
+    border-radius: 4px;
+    color: #FFFFFF;
+    font-weight: bold;
+    padding: 6px 8px;
+}
+
+#PrefabShareDiscord:hover {
+    background-color: #4752C4;
+    border: 1px solid #4752C4;
+}
+
+#PrefabShareDiscord:pressed {
+    background-color: #3C45A5;
+}
+
+#PrefabShareDiscord:disabled {
+    background-color: #2b3270;
+    border: 1px solid #232748;
+    color: #9aa0d6;
+}
+
 Item QLabel {
     background-color: rgba(0, 0, 0, 0);
     color: #FFF;
@@ -174,6 +360,11 @@ QTabWidget::tab-bar:top {
     background-color: #333;
 }
 
+QTabWidget::tab-bar:left {
+    left: 0px;
+    background-color: #333;
+}
+
 QTabBar QToolButton {
     background-color: #17202c;
     border-top-right-radius: 10px;
@@ -245,4 +436,38 @@ QTabBar::tab:bottom:only-one {
 QToolTip {
     background: white;
     color: black;
+}
+
+#ThumbnailSizeBar {
+    background-color: #1a232f;
+    border-top: 1px solid #060e18;
+}
+
+#ThumbnailSizeLabel {
+    color: #b0cada;
+    font-size: 11px;
+}
+
+#ThumbnailSizeSlider::groove:horizontal {
+    height: 4px;
+    background: #0a1b2e;
+    border: 1px solid #060e18;
+    border-radius: 2px;
+}
+
+#ThumbnailSizeSlider::handle:horizontal {
+    width: 14px;
+    height: 14px;
+    margin: -6px 0px;
+    background: #D8D02E;
+    border-radius: 7px;
+}
+
+#ThumbnailSizeSlider::handle:horizontal:hover {
+    background: #eec920;
+}
+
+#ThumbnailSizeSlider::sub-page:horizontal {
+    background: #4a5a75;
+    border-radius: 2px;
 }

@@ -17,12 +17,10 @@ from bpy.props import (BoolProperty, EnumProperty, FloatProperty, IntProperty,
 from bpy.types import Panel, PropertyGroup
 from numpy import isin
 
-from . import icons, part, preset
+from . import addon_preferences, icons, part, preset
+from .addon_preferences import NMSAddonPreferences
 from .builder import get_builder
 from .group import Group
-from . import addon_preferences
-from .addon_preferences import NMSAddonPreferences
-from .utils.blend_utils import ShowMessageBox
 from .part_overrides import line
 from .save_editor import save_editor_operators, save_editor_utils
 from .save_editor.save_editor_presentation import NMS_PT_save_editor_panel
@@ -42,6 +40,7 @@ from .utils import blend_utils, collection_utils, curve, curve_utils
 from .utils import material as _material
 from .utils import python as python_utils
 from .utils import workspace
+from .utils.blend_utils import ShowMessageBox
 
 FILE_PATH = os.path.dirname(os.path.realpath(__file__))
 USER_PATH = os.path.join(os.path.expanduser("~"), "NoMansSkyBaseBuilder")
@@ -1014,7 +1013,7 @@ class NMS_PT_build_panel(Panel):
         col = main_col.column(align=True)
         col.label(text = "Asset Browser")
         col.operator("object.nms_launch_asset_browser", icon = "DESKTOP" )# icon="COLLECTION_COLOR_03"
-        
+
         presets_box = main_col.column(align = True)
         presets_box.label(text = "Prefabs")
         preset_row = presets_box.row(align = True)
@@ -2289,7 +2288,7 @@ def unregister():
 
     for _class in reversed(classes):
         bpy.utils.unregister_class(_class)
-        
+
     del bpy.types.Scene.nms_base_tool
     del bpy.types.Scene.nms_save_data
     del bpy.types.Scene.nms_build_tool

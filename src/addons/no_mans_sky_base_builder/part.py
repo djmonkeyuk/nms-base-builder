@@ -299,7 +299,7 @@ class Part(object):
         # If it exists, import the obj.
         if obj_path and os.path.isfile(obj_path):
             prev_objects_capture = [x.name for x in bpy.data.objects]
-            bpy.ops.import_scene.fbx(filepath=obj_path)
+            bpy.ops.import_scene.gltf(filepath=obj_path)
             new_objects_capture = [x.name for x in bpy.data.objects]
             new_objects = [
                 x for x in new_objects_capture if x not in prev_objects_capture
@@ -307,6 +307,9 @@ class Part(object):
             item = bpy.data.objects[new_objects[0]]
             item.name = object_id
             item.data.materials.clear()
+            # glTF import sets this to QUATERNION; restore the XYZ Euler
+            # mode the rest of the addon (and the old FBX pipeline) expects.
+            item.rotation_mode = 'XYZ'
 
             # fails when the object's collection is excluded from the view layer
             try:

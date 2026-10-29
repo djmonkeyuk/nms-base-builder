@@ -1,5 +1,4 @@
 import json
-import math
 import os
 import subprocess
 import sys
@@ -156,13 +155,12 @@ class NMSSettings(PropertyGroup):
         default="NORMAL",
     )
 
-    pipe_rotate_angle: FloatProperty(
+    pipe_angle: FloatProperty(
         name="Angle",
-        description="How far the clockwise and anticlockwise buttons turn the pipe",
+        description="How far the selected pipe is spun around its run, type an angle to spin it there",
         subtype="ANGLE",
-        default=math.radians(90.0),
-        min=0.0,
-        max=math.radians(360.0),
+        get=pipe_tool_operators.get_pipe_angle,
+        set=pipe_tool_operators.set_pipe_angle,
     )
 
     preset_name: StringProperty(

@@ -46,7 +46,11 @@ class Catalog(object):
             list: List of folders underneath category path.
         """
         search_path = self.get_model_path_from_pack(pack or "Parts")
-        return os.listdir(search_path)
+        return [
+            category
+            for category in os.listdir(search_path)
+            if os.path.join(search_path, category) != paths.PIPE_SHAPES_PATH
+        ]
 
     def get_objs_from_category(self, category, pack=None):
         """Get a list of parts belonging to a category.

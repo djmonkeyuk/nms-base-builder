@@ -26,6 +26,7 @@ OVERRIDE_CLASSES = {
     u_bytebeatline.U_BYTEBEATLINE: ["U_BYTEBEATLINE"],
     power_control.POWER_CONTROL: ["POWER_CONTROL"],
     pipe.BASE_BUBPIPE: ["BASE_BUBPIPE"],
+    pipe.PIPE: ["PIPE"],
     locked.LOCKED: [
         "BASE_FLAG",
         "BRIDGECONNECTOR",

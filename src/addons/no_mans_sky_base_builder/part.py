@@ -412,6 +412,15 @@ class Part(object):
         ("_0", "_1"),
     ]
 
+    # Zenith/Medusa reactors, Reinforced Hull Link/Industrial Cargo Link,
+    # Girder Array/Light Scaffold.
+    NOT_MIRROR_PAIRS = (
+        "B_GEN_0", "B_GEN_1",
+        "B_CON2_0", "B_CON2_1",
+        "B_CON_L_0", "B_CON_L_1",
+        "B_CON_R_0", "B_CON_R_1",
+    )
+
     FLIP_COMPASS_IDS = [
         "N",
         "E",
@@ -448,6 +457,10 @@ class Part(object):
             if object_id in ("B_WNG_R", "B_WNG_R_R"):
                 return "B_WNG_R_R" if object_id == "B_WNG_R" else "B_WNG_R"
             return object_id[:-2] if object_id.endswith("_R") else object_id + "_R"
+
+        # These end in _0 and _1 but are different parts, not a left/right pair.
+        if object_id in Part.NOT_MIRROR_PAIRS:
+            return None
 
         for east_str, west_str in Part.SUFFIX_COMPASS_ID_PAIRS:
             if object_id.endswith(east_str):

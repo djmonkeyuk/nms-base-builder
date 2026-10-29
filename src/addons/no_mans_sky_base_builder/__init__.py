@@ -94,8 +94,7 @@ def get_line_type_from_enum(context):
         line_object = "U_PIPELINE"
     elif line_value == "BYTEBEAT":
         line_object = "U_BYTEBEATLINE"
-        
-    print("line value is :", line_value)
+
     return line_object
 
 

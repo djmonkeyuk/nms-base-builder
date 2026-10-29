@@ -1,4 +1,5 @@
 import json
+import math
 import os
 import subprocess
 import sys
@@ -27,11 +28,12 @@ from .save_editor import save_editor_operators, save_editor_utils
 from .save_editor.save_editor_presentation import NMS_PT_save_editor_panel
 from .save_editor.save_manager import SaveManager
 from .tools import (batch_tool_operators, build_tool_operators,
-                    transformation_operators)
+                    pipe_tool_operators, transformation_operators)
 from .tools.batch_tool import BatchTool
 from .tools.batch_tool_presentation import NMS_PT_batch_tools_panel
 from .tools.build_tool import BuildTool
 from .tools.build_tool_presentation import NMS_PT_tools_panel
+from .tools import pipe_tool_presentation
 from .tools.properties import Properties
 from .tools.properties_presentation import NMS_PT_base_prop_panel
 from .tools.transformation import Transformation
@@ -68,6 +70,14 @@ def part_switch(self, context):
 
 def palette_variant_items(self, context):
     return _material.PALETTE_VARIANTS_UI.get(self.palette_category, [])
+
+
+def current_material(nms_tool):
+    # a value saved by an older build can match no variant of the category, Blender then gives ""
+    if nms_tool.material_switch:
+        return nms_tool.material_switch
+    variants = _material.PALETTE_VARIANTS_UI.get(nms_tool.palette_category, [])
+    return variants[0][0] if variants else ""
 
 
 def palette_category_switch(self, context):
@@ -131,9 +141,29 @@ class NMSSettings(PropertyGroup):
             ("TELEPORT", "Teleport Wire", "Teleport Wire"),
             ("BYTEBEAT", "Byte-Beat Cable", "Byte-Beat Cable"),
             ("PIPE", "Pipe", "Pipe"),
+            ("PIPES_DUCTS", "Pipes & Ducts", "Build decorative pipes and bubble ducts piece by piece"),
         ],
         #options={"ENUM_FLAG"},
         default="POWER",
+    )
+
+    pipe_type: EnumProperty(
+        name="pipe_type",
+        description="Decide what type of pipe to add",
+        items=[
+            ("NORMAL", "Normal Pipe", "Straight pipes that turn with elbows"),
+            ("BUBBLE", "Bubble Pipe", "Bubble ducts, the game shapes each one from the ducts beside it"),
+        ],
+        default="NORMAL",
+    )
+
+    pipe_rotate_angle: FloatProperty(
+        name="Angle",
+        description="How far the clockwise and anticlockwise buttons turn the pipe",
+        subtype="ANGLE",
+        default=math.radians(90.0),
+        min=0.0,
+        max=math.radians(360.0),
     )
 
     preset_name: StringProperty(
@@ -872,14 +902,14 @@ class NMS_PT_colour_panel(Panel):
         layout = self.layout
         scene = context.scene
         nms_tool = scene.nms_base_tool
-        colours = _material.get_colours_from_palette(nms_tool.material_switch)
+        colours = _material.get_colours_from_palette(current_material(nms_tool))
         pcoll = preview_collections["main"]
         
         colour_area = layout.box().column(align=False)
         material_row = colour_area.row(align = True)
         
         material_row.prop(nms_tool, "palette_category", text = "Palette")
-        # single variant categories like Freighter have nothing to choose
+        # single variant categories like Flags have nothing to choose
         if len(_material.PALETTE_VARIANTS_UI.get(nms_tool.palette_category, [])) > 1:
             variant_row = colour_area.row(align = True)
             variant_row.prop(nms_tool, "material_switch", expand = True)
@@ -929,6 +959,11 @@ class NMS_PT_logic_panel(Panel):
         col = box.column(align = True)
         enum_row = col.row(align = True)
         enum_row.prop(nms_tool, "line_switch", text = "Cable")
+
+        # pipes and ducts are built piece by piece, so the cable operations make no sense for them
+        if nms_tool.line_switch == "PIPES_DUCTS":
+            pipe_tool_presentation.draw_pipes(col, nms_tool)
+            return
         
         col.separator()
         col.label(text = "Operations")
@@ -1511,7 +1546,7 @@ class ApplyColour(bpy.types.Operator):
     def execute(self, context):
         scene = context.scene
         nms_tool = scene.nms_base_tool
-        material = nms_tool.material_switch
+        material = current_material(nms_tool)
         nms_tool.apply_colour(colour_index=self.colour_index, material=material)
         return {"FINISHED"}
     
@@ -2188,7 +2223,7 @@ classes = (
     UngroupObjects,
 )
 
-classes = classes  + save_editor_operators.classes + build_tool_operators.classes + batch_tool_operators.classes + transformation_operators.classes
+classes = classes  + save_editor_operators.classes + build_tool_operators.classes + batch_tool_operators.classes + transformation_operators.classes + pipe_tool_operators.classes
 
 
 

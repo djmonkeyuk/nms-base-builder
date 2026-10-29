@@ -435,21 +435,23 @@ class Part(object):
     # Static Methods ---
     @staticmethod
     def get_mirror_part_id(object_id):
-        # Handle Compass
+        # Wing letters/numbers identify models, not compass directions or sides.
+        # Resolve them first: E -> E_R, N -> N_R, O_0 -> O_0_R, O_1 -> O_1_R.
+        if object_id.startswith("B_WNG_"):
+            # These vertical Aeron variants have no separate handed counterpart.
+            if object_id in ("B_WNG_P_T", "B_WNG_P_B", "B_WNG_R_T", "B_WNG_R_B"):
+                return None
+            # The base Aeron blade itself ends in R.
+            if object_id in ("B_WNG_R", "B_WNG_R_R"):
+                return "B_WNG_R_R" if object_id == "B_WNG_R" else "B_WNG_R"
+            return object_id[:-2] if object_id.endswith("_R") else object_id + "_R"
+
         for east_str, west_str in Part.SUFFIX_COMPASS_ID_PAIRS:
             if object_id.endswith(east_str):
                 return object_id[: -len(east_str)] + west_str
             if object_id.endswith(west_str):
                 return object_id[: -len(west_str)] + east_str
-
-        # Handle Winged
-        if object_id.startswith("B_WNG"):
-            # default Aeron wing is B_WNG_R, so its mirror is B_WNG_R_R
-            if object_id in ("B_WNG_R", "B_WNG_R_R"):
-                return "B_WNG_R_R" if object_id == "B_WNG_R" else "B_WNG_R"
-            if object_id.endswith("_R"):
-                return object_id[:-2]
-            return object_id + "_R"
+        return None
 
     @staticmethod
     def get_flip_part_id(object_id):

@@ -108,7 +108,9 @@ BAKED_COLOURS = get_all_colours()
 def get_colours_from_palette(palette):
     data = []
     # palette_index = palette.split("_")[0]
-    palette_string = palette.split("_")[1]
+    _, _, palette_string = palette.partition("_")
+    if not palette_string:
+        return data
     for row in BAKED_COLOURS:
         if palette_string == get_palette_from_row(row):
             data.append(row)

@@ -1,7 +1,7 @@
 import os
 
 from ..part import Part
-from ..part_overrides import (bone, bone_replacer, locked, message,
+from ..part_overrides import (bone, bone_replacer, locked, message, pipe,
                               power_control, turret, u_bytebeatline, u_pipeline,
                               u_portalline, u_powerline)
 from . import paths
@@ -25,6 +25,8 @@ OVERRIDE_CLASSES = {
     u_portalline.U_PORTALLINE: ["U_PORTALLINE"],
     u_bytebeatline.U_BYTEBEATLINE: ["U_BYTEBEATLINE"],
     power_control.POWER_CONTROL: ["POWER_CONTROL"],
+    pipe.BASE_BUBPIPE: ["BASE_BUBPIPE"],
+    pipe.PIPE: ["PIPE"],
     locked.LOCKED: [
         "BASE_FLAG",
         "BRIDGECONNECTOR",

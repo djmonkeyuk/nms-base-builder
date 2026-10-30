@@ -6,7 +6,7 @@ from copy import copy
 import bpy
 import mathutils
 
-from .utils import blend_utils, material
+from .utils import blend_utils, material, snap_utils
 from .utils import python as python_utils
 
 z_compensate = mathutils.Matrix.Rotation(math.radians(-90.0), 4, "X")
@@ -20,7 +20,7 @@ class Part(object):
     SNAP_MATRIX_JSON = os.path.join(FILE_PATH, "resources", "snapping_info.json")
     SNAP_PAIR_JSON = os.path.join(FILE_PATH, "resources", "snapping_pairs.json")
 
-    SNAP_MATRIX_DICTIONARY = python_utils.load_dictionary(SNAP_MATRIX_JSON)
+    SNAP_MATRIX_DICTIONARY = snap_utils.add_game_props(python_utils.load_dictionary(SNAP_MATRIX_JSON))
     SNAP_PAIR_DICTIONARY = python_utils.load_dictionary(SNAP_PAIR_JSON)
 
     # part property names
@@ -438,21 +438,23 @@ class Part(object):
     # Static Methods ---
     @staticmethod
     def get_mirror_part_id(object_id):
-        # Handle Compass
+        # Wing letters/numbers identify models, not compass directions or sides.
+        # Resolve them first: E -> E_R, N -> N_R, O_0 -> O_0_R, O_1 -> O_1_R.
+        if object_id.startswith("B_WNG_"):
+            # These vertical Aeron variants have no separate handed counterpart.
+            if object_id in ("B_WNG_P_T", "B_WNG_P_B", "B_WNG_R_T", "B_WNG_R_B"):
+                return None
+            # The base Aeron blade itself ends in R.
+            if object_id in ("B_WNG_R", "B_WNG_R_R"):
+                return "B_WNG_R_R" if object_id == "B_WNG_R" else "B_WNG_R"
+            return object_id[:-2] if object_id.endswith("_R") else object_id + "_R"
+
         for east_str, west_str in Part.SUFFIX_COMPASS_ID_PAIRS:
             if object_id.endswith(east_str):
                 return object_id[: -len(east_str)] + west_str
             if object_id.endswith(west_str):
                 return object_id[: -len(west_str)] + east_str
-
-        # Handle Winged
-        if object_id.startswith("B_WNG"):
-            # default Aeron wing is B_WNG_R, so its mirror is B_WNG_R_R
-            if object_id in ("B_WNG_R", "B_WNG_R_R"):
-                return "B_WNG_R_R" if object_id == "B_WNG_R" else "B_WNG_R"
-            if object_id.endswith("_R"):
-                return object_id[:-2]
-            return object_id + "_R"
+        return None
 
     @staticmethod
     def get_flip_part_id(object_id):
@@ -511,12 +513,11 @@ class Part(object):
         if not use_group:
             return
 
-        # Further validation.
-        if "snap_points" not in self.SNAP_MATRIX_DICTIONARY[use_group]:
-            return
+        # parts with no hand made group only have the points read from the game
+        hand_group = self.SNAP_MATRIX_DICTIONARY.get(use_group, {})
 
-        # Get the snap points from the dictionary.
-        return self.SNAP_MATRIX_DICTIONARY[use_group]["snap_points"]
+        # Get the snap points from the dictionary, with any read from the game added.
+        return snap_utils.get_snap_points(self.object_id, hand_group.get("snap_points"))
 
     def get_snap_group(self):
         """Search through the grouping dictionary and return the snap group.
@@ -528,6 +529,7 @@ class Part(object):
             parts = value["parts"]
             if self.object_id in parts:
                 return group
+        return snap_utils.get_game_group(self.object_id)
 
     def get_snap_pair_options(self, target_item):
         """Get the compatible snap points
@@ -549,6 +551,10 @@ class Part(object):
             if source_group in snapping_dictionary:
                 return snapping_dictionary[source_group]
 
+        # parts read from the game have no pairs made by hand, they pair by their sockets
+        if snap_utils.is_game_part(self.object_id) or snap_utils.is_game_part(target_item.object_id):
+            return snap_utils.get_socket_pairing(target_item.get_snap_points(), self.get_snap_points())
+
     def snap_to(
         self,
         target,
@@ -556,6 +562,8 @@ class Part(object):
         prev_target=False,
         next_source=False,
         prev_source=False,
+        steps=0,
+        cycle_start=None,
     ):
         """Snap this item to the specified builder object.
 
@@ -565,7 +573,11 @@ class Part(object):
             prev_target (bool): Cycle to the prev target snap point.
             next_source (bool): Cycle to the next source snap point.
             prev_source (bool): Cycle to the prev source snap point.
+            steps (int): How many points this cycle has already passed over.
+            cycle_start (mathutils.Matrix): Where the part was before the cycle.
         """
+        if cycle_start is None:
+            cycle_start = copy(self.matrix_world)
         # For preset targets, just snap them together.
         if hasattr(target, "control"):
             mat_rot = mathutils.Matrix.Rotation(math.radians(90.0), 4, "X")
@@ -629,6 +641,17 @@ class Part(object):
 
         # Find corresponding dict.
         source_local_matrix_datas = self.get_snap_points()
+
+        # points read from the game know their sockets, only offer the ones that fit the target point
+        if source_local_matrix_datas and target_local_matrix_datas:
+            target_point = target_local_matrix_datas[target_key]
+            fitting_options = [
+                key
+                for key in source_pairing_options
+                if snap_utils.sockets_fit(target_point, source_local_matrix_datas.get(key, {}))
+            ]
+            source_pairing_options = fitting_options or source_pairing_options
+
         if source_local_matrix_datas:
             default_source_key = source_pairing_options[0]
 
@@ -662,6 +685,17 @@ class Part(object):
             if prev_source:
                 source_key = python_utils.get_adjacent_dict_key(
                     source_pairing_options, source_key, step="prev"
+                )
+
+            # the game lets you turn some parts on one spot, like a corvette wall on a hab's
+            # side, so unless a turn was picked use the one that sits inside the target
+            if not (next_source or prev_source) and target_local_matrix_datas:
+                source_key = snap_utils.get_best_turn(
+                    self.object,
+                    target.object,
+                    target_local_matrix_datas[target_key],
+                    source_key,
+                    {key: source_local_matrix_datas[key] for key in source_pairing_options},
                 )
 
         # If no keys were found, don't snap.
@@ -729,6 +763,87 @@ class Part(object):
         self.SNAP_CACHE[self.name] = source_item_snap_reference
         self.SNAP_CACHE[target.name] = target_item_snap_reference
 
+        # two points can land the part the same way, like a corvette's in and out
+        # points on one side, so a cycle carries on until the part moves
+        cycled_options = target_pairing_options if (next_target or prev_target) else source_pairing_options
+        if (next_target or prev_target or next_source or prev_source) and steps < len(cycled_options):
+            moved = max(abs(a - b) for row, start_row in zip(target_location, cycle_start) for a, b in zip(row, start_row))
+            if moved < 1e-3:
+                return self.snap_to(
+                    target, next_target, prev_target, next_source, prev_source, steps + 1, cycle_start
+                )
+
+        return True
+
+    def snap_to_nearest(self, search_distance=30.0):
+        """Snap this item to the nearest point it fits on any other part.
+
+        Points are compared where they are now, so moving the item close to
+        where it should go picks that point. Of the ways to land on one spot
+        the one turned least from how the item sits now is used.
+
+        Args:
+            search_distance (float): Parts further than this are not looked at.
+        """
+        source_points = self.get_snap_points()
+        if not source_points:
+            return False
+
+        current_rotation = self.matrix_world.to_quaternion()
+        best = None
+        for bpy_object in self.builder.get_all_parts():
+            if bpy_object == self.object:
+                continue
+            if (bpy_object.matrix_world.translation - self.matrix_world.translation).length > search_distance:
+                continue
+            target = self.builder.get_builder_object_from_bpy_object(bpy_object)
+            if not target or hasattr(target, "control") or "SnapID" not in bpy_object:
+                continue
+            target_points = target.get_snap_points()
+            pairing_options = self.get_snap_pair_options(target)
+            if not target_points or not pairing_options:
+                continue
+
+            target_keys = [key.strip() for key in pairing_options[0].split(",")]
+            source_keys = [key.strip() for key in pairing_options[1].split(",")]
+            for target_key in target_keys:
+                if target_key not in target_points:
+                    continue
+                target_position = (
+                    bpy_object.matrix_world @ mathutils.Matrix(target_points[target_key]["matrix"])
+                ).translation
+                for source_key in source_keys:
+                    if source_key not in source_points:
+                        continue
+                    if not snap_utils.sockets_fit(target_points[target_key], source_points[source_key]):
+                        continue
+                    source_position = (
+                        self.matrix_world @ mathutils.Matrix(source_points[source_key]["matrix"])
+                    ).translation
+                    distance = (source_position - target_position).length
+                    landing = snap_utils.get_landing(
+                        bpy_object.matrix_world, target_points[target_key], source_points[source_key]
+                    )
+                    turn = current_rotation.rotation_difference(landing.to_quaternion()).angle
+                    rank = (round(distance, 3), round(turn, 3))
+                    if best is None or rank < best[0]:
+                        best = (rank, target, target_key, source_key, landing)
+
+        if not best:
+            return False
+
+        _, target, target_key, source_key, landing = best
+        self.matrix_world = landing
+        self.rotation = landing.to_euler()
+        self.snapped_to = target.name
+        self.select()
+
+        # remembered like any snap, so the prev and next buttons carry on from here
+        self.SNAP_CACHE[self.name] = {
+            "source": source_key,
+            "target": source_points[source_key].get("opposite"),
+        }
+        self.SNAP_CACHE[target.name] = dict(self.SNAP_CACHE.get(target.name, {}), target=target_key)
         return True
 
     def get_closest_snap_points(self, target, source_filter=None, target_filter=None):

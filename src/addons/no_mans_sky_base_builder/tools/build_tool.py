@@ -343,6 +343,13 @@ class BuildTool(bpy.types.PropertyGroup):
         # use.
         if len(selected_objects) == 1:
             source = bpy.context.view_layer.objects.active
+            # the snap button on its own lands the part on the nearest point it fits
+            if not (next_source or prev_source or next_target or prev_target):
+                source = get_builder().get_builder_object_from_bpy_object(selected_objects[0])
+                if not source or not source.snap_to_nearest():
+                    message = "Nothing near this item that it can snap to."
+                    ShowMessageBox(message=message, title="Snap")
+                return {"FINISHED"}
             if "snapped_to" in source:
                 target = bpy.data.objects[source["snapped_to"]]
             else:

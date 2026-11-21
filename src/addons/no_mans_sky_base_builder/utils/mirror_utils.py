@@ -25,12 +25,6 @@ POSITION_OFFSETS = {
 }
 
 
-def ShowMessageBox(message="", title="Message Box", icon="INFO"):
-    def draw(self, context):
-        self.layout.label(text=message)
-    bpy.context.window_manager.popup_menu(draw, title=title, icon=icon)
-
-
 #This function mirrors matrix world across x axis
 def mirror_matrix_world(object_id, old_matrix_world, across_x=True):
 
@@ -61,6 +55,16 @@ def mirror_matrix_world(object_id, old_matrix_world, across_x=True):
 
 def reflect_point_across(source,origin):
     return (2 * origin) - source
+
+# reflect a location across origin along one axis ("X", "Y" or "Z")
+def reflect_point(source, origin, axis):
+    if origin is None:
+        return source
+
+    x = reflect_point_across(source.x, origin.x) if axis == "X" else source.x
+    y = reflect_point_across(source.y, origin.y) if axis == "Y" else source.y
+    z = reflect_point_across(source.z, origin.z) if axis == "Z" else source.z
+    return Vector((x, y, z))
 
 # This function mirrors matrix world according to parameters passed
 # Axis has three possible string values : X, Y and Z

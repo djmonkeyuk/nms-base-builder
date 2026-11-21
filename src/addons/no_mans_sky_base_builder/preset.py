@@ -14,10 +14,12 @@ class Preset(object):
 
     USER_PATH = os.path.join(os.path.expanduser("~"), "NoMansSkyBaseBuilder")
     PRESET_PATH = os.path.join(USER_PATH, "presets")
+    PREFAB_SHARE_PATH = os.path.join(USER_PATH, "prefab-share")
 
     def __init__(
         self,
         preset_id=None,
+        data_path=None,
         bpy_object=None,
         builder_object=None,
         create_control=True,
@@ -39,6 +41,7 @@ class Preset(object):
 
         # Assign private variables.
         self.__preset_id = preset_id
+        self.__data_path = data_path
         self.__builder_object = builder_object
         self.__create_control = create_control
         self.__apply_shader = apply_shader
@@ -72,6 +75,8 @@ class Preset(object):
     @property
     def data_path(self):
         """Get the JSON data file for the preset."""
+        if self.__data_path:
+            return self.__data_path
         presets = self.get_presets()
         path = presets[self.preset_id]
         return path
@@ -79,27 +84,31 @@ class Preset(object):
     @staticmethod
     def get_presets():
         """Get the list of presets."""
-        presets = os.listdir(Preset.PRESET_PATH)
         all_presets = {}
-        for preset in presets:
-            full_path = os.path.join(Preset.PRESET_PATH, preset)
+        for preset_path in (Preset.PRESET_PATH, Preset.PREFAB_SHARE_PATH):
+            if not os.path.isdir(preset_path):
+                continue
+            presets = os.listdir(preset_path)
+            for preset in presets:
+                full_path = os.path.join(preset_path, preset)
             # Handle category presets.
-            if os.path.isdir(full_path):
-                sub_presets = os.listdir(full_path)
-                for sub_preset in sub_presets:
-                    full_sub_preset_path = os.path.join(full_path, sub_preset)
-                    if os.path.isfile(full_sub_preset_path) and (
-                        sub_preset.endswith(".json")
-                        or sub_preset.endswith(".nmsprefab")
-                    ):
-                        preset_name = os.path.splitext(sub_preset)[0]
-                        all_presets[preset_name] = full_sub_preset_path
-            # Handle root presets.
-            if os.path.isfile(full_path) and (
-                preset.endswith(".json") or preset.endswith(".nmsprefab")
-            ):
-                preset_name = os.path.splitext(preset)[0]
-                all_presets[preset_name] = full_path
+                if os.path.isdir(full_path):
+                    sub_presets = os.listdir(full_path)
+                    for sub_preset in sub_presets:
+                        full_sub_preset_path = os.path.join(full_path, sub_preset)
+                        if os.path.isfile(full_sub_preset_path) and (
+                            sub_preset.lower().endswith(".json")
+                            or sub_preset.lower().endswith(".nmsprefab")
+                        ):
+                            preset_name = os.path.splitext(sub_preset)[0]
+                            all_presets[preset_name] = full_sub_preset_path
+                # Handle root presets.
+                if os.path.isfile(full_path) and (
+                    preset.lower().endswith(".json")
+                    or preset.lower().endswith(".nmsprefab")
+                ):
+                    preset_name = os.path.splitext(preset)[0]
+                    all_presets[preset_name] = full_path
         return all_presets
 
     @property

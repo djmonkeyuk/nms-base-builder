@@ -13,6 +13,33 @@ class FlowLayout(QtWidgets.QLayout):
         #     self.setContentsMargins(QtCore.QMargins(0, 0, 0, 0))
 
         self._item_list = []
+        self._list_mode = False
+        self._cached_minimum_size = None
+
+    def invalidate(self):
+        # Qt's own layout negotiation (e.g. during a QMainWindow.show())
+        # calls sizeHint()/minimumSize() on a layout several times in a
+        # row for an unchanged item list - confirmed by profiling: 16
+        # calls for a 4-item layout during one show(), ~30ms each, since
+        # minimumSize() previously recomputed from scratch - querying
+        # every item's own minimumSize() - on every single call. Cached
+        # here and invalidated the same way Qt's own layouts are: only on
+        # an actual change (add/remove/mode switch, each of which already
+        # calls invalidate() - see addItem/takeAt/set_list_mode below -
+        # plus refresh_search() in main.py, which changes item visibility
+        # directly via setVisible() rather than through this layout, so it
+        # calls this explicitly too).
+        self._cached_minimum_size = None
+        super(FlowLayout, self).invalidate()
+
+    def set_list_mode(self, enabled):
+        """Switch between wrapping grid layout and a single-column list layout."""
+        if self._list_mode != enabled:
+            self._list_mode = enabled
+            self.invalidate()
+
+    def is_list_mode(self):
+        return self._list_mode
 
     def __del__(self):
         item = self.takeAt(0)
@@ -58,6 +85,9 @@ class FlowLayout(QtWidgets.QLayout):
         return self.minimumSize()
 
     def minimumSize(self):
+        if self._cached_minimum_size is not None:
+            return self._cached_minimum_size
+
         size = QtCore.QSize()
 
         for item in self._item_list:
@@ -69,9 +99,13 @@ class FlowLayout(QtWidgets.QLayout):
         size += QtCore.QSize(
             2 * self.contentsMargins().top(), 2 * self.contentsMargins().top()
         )
+        self._cached_minimum_size = size
         return size
 
     def _do_layout(self, rect, test_only):
+        if self._list_mode:
+            return self._do_list_layout(rect, test_only)
+
         x = rect.x()
         y = rect.y()
         line_height = 0
@@ -108,5 +142,32 @@ class FlowLayout(QtWidgets.QLayout):
             line_height = max(line_height, item.sizeHint().height())
 
         new_height = y + line_height - rect.y()
+        self.heightChanged.emit(new_height)
+        return new_height
+
+    def _do_list_layout(self, rect, test_only):
+        x = rect.x()
+        y = rect.y()
+        spacing = self.spacing()
+
+        for item in self._item_list:
+            widget = item.widget()
+            if widget is not None and widget.isHidden():
+                continue
+            style = widget.style()
+            layout_spacing_y = style.layoutSpacing(
+                QtWidgets.QSizePolicy.ControlType.PushButton,
+                QtWidgets.QSizePolicy.ControlType.PushButton,
+                QtCore.Qt.Orientation.Vertical,
+            )
+            space_y = max(spacing, 0) + layout_spacing_y
+            height = item.sizeHint().height()
+
+            if not test_only:
+                item.setGeometry(QtCore.QRect(x, y, rect.width(), height))
+
+            y += height + space_y
+
+        new_height = y - rect.y()
         self.heightChanged.emit(new_height)
         return new_height

@@ -1,6 +1,6 @@
 import bpy
 from ..utils import blend_utils, curve
-from ..utils.mirror_utils import ShowMessageBox
+from ..utils.blend_utils import ShowMessageBox
 
 from mathutils import Vector
 
@@ -278,15 +278,19 @@ class CurveBreakApart(bpy.types.Operator):
     bl_description = "Break apart objects from curve and make them independent"
 
     def execute(self, context):
-        active_object = bpy.context.active_object
-        try:
-            curve_obj, duplicates = curve.apply_curve_transforms_and_detach(active_object)
-            if duplicates is not None:
-                blend_utils.select(duplicates)
-            detached_count = len(duplicates)
-            self.report({'INFO'}, f"Created {detached_count} objects")
-        except TypeError as error_message:
-            self.report({'ERROR'}, str(error_message))
+        unlinked_objects = []
+        for obj in bpy.context.selected_objects:
+            if curve.Curve.PROP_CURVE_ID not in obj:
+                continue
+            try:
+                curve_obj, duplicates = curve.apply_curve_transforms_and_detach(obj)
+                unlinked_objects += duplicates
+            except TypeError as error_message:
+                self.report({'ERROR'}, str(error_message))
+
+        if unlinked_objects:
+            blend_utils.select(unlinked_objects)
+        self.report({'INFO'}, f"Created {len(unlinked_objects)} objects")
         return {"FINISHED"}
     
 

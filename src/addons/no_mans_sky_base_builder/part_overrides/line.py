@@ -1,6 +1,5 @@
 import math
 import os
-from copy import copy
 
 import bpy
 import mathutils
@@ -25,7 +24,14 @@ class Line(part.Part):
             self.object.lock_rotation = [True, True, True]
             self.object.lock_scale = [True, True, True]
 
-            material.assign_power_material(self.object)
+            self.assign_line_material()
+
+    # lines are one flat colour, so their duplicates share a mesh
+    RESTORE_USERDATA_MATERIAL = False
+
+    def assign_line_material(self):
+        """Colour the line, subclasses override it for their own colour."""
+        material.assign_power_material(self.object)
 
     @property
     def start_control(self):
@@ -61,8 +67,16 @@ class Line(part.Part):
             start (object): Pass a start control, if None a new one is made.
             end (object): Pass an end control, if None a new one is made.
         """
-        # Start creating controls.
-        world_pos = copy(self.object.matrix_world)
+        # built from local transforms, matrix_world can be stale before a depsgraph update
+        world_pos = mathutils.Matrix.LocRotScale(
+            self.object.location, self.object.rotation_euler, self.object.scale
+        )
+        if self.object.parent:
+            world_pos = (
+                self.object.parent.matrix_world
+                @ self.object.matrix_parent_inverse
+                @ world_pos
+            )
         world_loc = world_pos.decompose()[0]
         if not start:
             start = Line.create_point(
@@ -97,67 +111,60 @@ class Line(part.Part):
         end["power_line"] = self.object.name
 
     def split(self):
-        # Middle control.
+        prev_start_control = blend_utils.get_item_by_name(self.object["start_control"])
+        prev_end_control = blend_utils.get_item_by_name(self.object["end_control"])
+
+        # Middle controls, placed between the existing controls.
         middle_control_a = self.create_point(
             self.builder, "_".join([self.name, "MID_A"])
         )
         middle_control_b = self.create_point(
             self.builder, "_".join([self.name, "MID_B"])
         )
-        # Snap the middle locations to the middle of power line.
-        world_pos = copy(self.matrix_world)
-        world_loc = world_pos.decompose()[0]
-        mid_a_pos = mathutils.Vector(
-            [world_pos[0][2] * 0.4, world_pos[1][2] * 0.4, world_pos[2][2] * 0.4]
+        middle_control_a.location = prev_start_control.location.lerp(
+            prev_end_control.location, 0.4
         )
-        middle_a_location = world_loc + mid_a_pos
-        middle_control_a.location = middle_a_location
+        middle_control_b.location = prev_start_control.location.lerp(
+            prev_end_control.location, 0.6
+        )
 
-        mid_b_pos = mathutils.Vector(
-            [world_pos[0][2] * 0.6, world_pos[1][2] * 0.6, world_pos[2][2] * 0.6]
-        )
-        middle_b_location = world_loc + mid_b_pos
-        middle_control_b.location = middle_b_location
         # Create new powerline.
         new_powerline = self.builder.add_part(self.object_id, build_rigs=False)
-        # Create additional controls.
-        prev_start_control_name = self.object["start_control"]
-        prev_end_control_name = self.object["end_control"]
-        prev_start_control = blend_utils.get_item_by_name(prev_start_control_name)
-        prev_end_control = blend_utils.get_item_by_name(prev_end_control_name)
         # Remove constraints of the original power line.
         self.remove_constraints()
         # Assign new controls to the power lines.
         self.build_rig(prev_start_control, middle_control_a)
         new_powerline.build_rig(middle_control_b, prev_end_control)
-        # Select the middle controller.
-        blend_utils.select([middle_control_a, middle_control_b])
+
+        # fails when the controls are in an excluded collection
+        try:
+            blend_utils.select([middle_control_a, middle_control_b])
+        except RuntimeError:
+            pass
 
     def divide(self):
-        # Middle control.
+        prev_start_control = blend_utils.get_item_by_name(self.object["start_control"])
+        prev_end_control = blend_utils.get_item_by_name(self.object["end_control"])
+
+        # Middle control, placed between the existing controls.
         middle_control = self.create_point(self.builder, "_".join([self.name, "MID"]))
-        # Snap the middle location to the middle of power line.
-        world_pos = copy(self.matrix_world)
-        world_loc = world_pos.decompose()[0]
-        at_vec = mathutils.Vector(
-            [world_pos[0][2] / 2, world_pos[1][2] / 2, world_pos[2][2] / 2]
+        middle_control.location = prev_start_control.location.lerp(
+            prev_end_control.location, 0.5
         )
-        middle_location = world_loc + at_vec
-        middle_control.location = middle_location
+
         # Create new powerline.
         new_powerline = self.builder.add_part(self.object_id, build_rigs=False)
-        # Create additional controls.
-        prev_start_control_name = self.object["start_control"]
-        prev_end_control_name = self.object["end_control"]
-        prev_start_control = blend_utils.get_item_by_name(prev_start_control_name)
-        prev_end_control = blend_utils.get_item_by_name(prev_end_control_name)
         # Remove constraints of the original power line.
         self.remove_constraints()
         # Assign new controls to the power lines.
         self.build_rig(prev_start_control, middle_control)
         new_powerline.build_rig(middle_control, prev_end_control)
-        # Select the middle controller.
-        blend_utils.select(middle_control)
+
+        # fails when the control is in an excluded collection
+        try:
+            blend_utils.select(middle_control)
+        except RuntimeError:
+            pass
 
     # Class Methods ---
     @classmethod
@@ -233,7 +240,9 @@ class Line(part.Part):
             name = "{}.{:0=3d}".format(base_name, n)
 
         point.name = name
-        point.data.name = name + "_SHAPE"
+        # controls share one mesh, renaming it for each would just churn the name
+        if point.data.users == 1:
+            point.data.name = name + "_SHAPE"
         builder.add_to_part_cache("POWER_CONTROL", point)
 
         return bpy.data.objects[point.name]

@@ -1,11 +1,9 @@
 import bpy
-import json
-from .. import builder
+from ..builder import get_builder
 from . import save_editor_dependencies
 from . import save_editor_utils
 from .save_editor_utils import BaseType, BaseData
 
-BUILDER = builder.Builder()
 
 #save data to persist within blend files.
 class SaveManager(bpy.types.PropertyGroup):
@@ -33,8 +31,9 @@ class SaveManager(bpy.types.PropertyGroup):
     # stores index of selected base in alternative tab when tabs are switched
     selected_base_type_tabs = {
         BaseType.CORVETTE : "Default",
-        BaseType.BASE: "Default",
-        BaseType.EXTERNAL_BASE: "Default"
+        BaseType.BASE : "Default",
+        BaseType.SPACE_BASE : "Default",
+        BaseType.EXTERNAL_BASE : "Default"
     }
     
     # A toggle button at top of Save Editor section
@@ -81,8 +80,9 @@ class SaveManager(bpy.types.PropertyGroup):
         description="Type of the base, it can be a corvette and a normal planet base.",
         items = [
             (BaseType.CORVETTE, "Corvette", "show list of corvettes and freighters",'AUTO',0),
-            (BaseType.BASE, "Base", "show list of bases",'HOME',1),
-            (BaseType.EXTERNAL_BASE, "", "show list of External",'INTERNET',2),
+            (BaseType.BASE, "Planet", "show list of bases",'HOME',1),
+            (BaseType.SPACE_BASE, "Space", "show list of space bases",'LIGHT_SUN',2),
+            (BaseType.EXTERNAL_BASE, "", "show list of External",'INTERNET',3),
         ],
         update = lambda self, context: self.on_base_type_selected(),
         options={'SKIP_SAVE'},
@@ -190,10 +190,7 @@ class SaveManager(bpy.types.PropertyGroup):
         accounts_list = save_editor_utils.get_accounts_list(context)
         accounts_enum_list = []
         for account in accounts_list:
-            folder = account["folder"]
-            steam_persona = account["steam_persona"]
-            label = folder.name if steam_persona is None else f"{steam_persona} ( {folder.name[-3:]} )"
-            accounts_enum_list.append((str(folder), label, ""))
+            accounts_enum_list.append((str(account["folder"]), account["label"], ""))
         accounts_enum_list.insert(0, default_account_list_item)
         return accounts_enum_list
     
@@ -258,22 +255,28 @@ class SaveManager(bpy.types.PropertyGroup):
         
         enum_bases = []
         base_type_key = self.get_base_type_key(self.nms_base_type)
-        
+        bases_list = extracted_base_data[base_type_key]
+
         # convert list of bases into list for UI
-        for index, base_data in enumerate(extracted_base_data[base_type_key]):
-            
+        for base_data in bases_list:
             base_data: BaseData
             
-            list_entry = ""
+           
             base_name = base_data.base_name
             user_data = str(base_data.user_data)
             base_index = str(base_data.base_index)
             parts_count = str(base_data.parts_count)
+            
+            m_base_type = str(base_data.base_type)
+            
+            prefix = ""
             if self.nms_base_type == BaseType.CORVETTE:
                 # if base is a corvette, add user_data in front of its name that represents its ingame slot number
-                list_entry = f"{user_data.rjust(2)}. {base_name}  [ {parts_count} parts ]"
-            else :
-                list_entry = f"{base_name}  [ {parts_count} parts ]"
+                prefix = f"{user_data.rjust(2)}. "
+            elif self.nms_base_type == BaseType.SPACE_BASE and m_base_type == BaseType.SPACESTATION_BASE:
+                prefix = f"(SpaceStation) "
+                
+            list_entry = prefix + f"{base_name}  [ {parts_count} parts ]"
             # base index is stored here to make it easier to traverse save file, it is index of base within persistent player bases array
             enum_bases.append((base_index, list_entry, " base desc"))
         
@@ -330,48 +333,54 @@ class SaveManager(bpy.types.PropertyGroup):
     def import_base(self, context, base_identifiers, save_links):
         
         #try to import json data from savefile and return error if data was not found
-        newly_imported_base = save_editor_utils.import_paticular_base_from_save(base_identifiers, save_links)
-        if newly_imported_base is None:
+        # translation already returns a fresh copy of the base, so it can be used directly
+        nms_base_json = save_editor_utils.import_paticular_base_from_save(base_identifiers, save_links)
+        if nms_base_json is None:
             return "Error Importing base, base data is None"
-        
-        try:
-            # convert imported base data to json
-            nms_import_data = json.dumps(newly_imported_base)
-            nms_base_json = json.loads(nms_import_data)
-        except:
-            return "Could not import base data, Incorrect json"
 
         # Import json into scene
         nms_tools = context.scene.nms_base_tool
         nms_tools.deserialise_from_data(nms_base_json)
-        BUILDER.deserialise_from_data(nms_base_json)
-        
+        get_builder().deserialise_from_data(nms_base_json)
         #return a string for operators for status message
         return "Base/Corvette imported sucessfully"
     
     # called from operators/UI to export objects in scene to save file
+    # returns (success, message)
     def export_base_to_save_file(self,context):
-        
+
         # validate save slots
         current_slot_data = self.get_current_slot_data()
         if current_slot_data is None:
-            return "Error Exporting bases, slot data is None"
-        
+            return False, "Error Exporting bases, slot data is None"
+
         #collect base identifiers
         base_identifiers = self.get_current_base_identifiers()
         if base_identifiers is None:
-            return "Error Exporting bases, base identifiers are None"
-        
+            return False, "Error Exporting bases, base identifiers are None"
+
         # provide data to real export function
         return self.export_base(context, base_identifiers, current_slot_data["saves"])
-        
+
     # collect data from scene and export it to save file
-    def export_base(self,context,  base_identifiers, save_links, new_base_name = None):
+    # returns (success, message)
+    def export_base(self,context,  base_identifiers, save_links):
         # convert scene to json representing base data
         nms_tools = context.scene.nms_base_tool
         serialised_base_objects_data  = nms_tools.serialise(objects_only = True)
-        # provide data to utils and return status string to calling function
-        return save_editor_utils.save_base_to_save_file(serialised_base_objects_data, base_identifiers, save_links, new_base_name)
+        prefs = context.scene.nms_base_tool
+        new_base_name = prefs.string_base
+        if not new_base_name or len(new_base_name) > 0:
+            new_base_name = None
+        
+        # provide data to utils and return status to calling function
+        success, message = save_editor_utils.save_base_to_save_file(serialised_base_objects_data, base_identifiers, save_links, base_name = new_base_name)
+
+        # refresh UI, a pinned base can be exported while no save slot is selected
+        if success and self.get_current_slot_data() is not None:
+            self.refresh_bases_list()
+
+        return success, message
       
     # This functin collects data realated to base so that it can be identified in save file
     # since there is no unique property to identify a base, we prepare a fingerprint of that base with collection of properties
@@ -425,7 +434,8 @@ class SaveManager(bpy.types.PropertyGroup):
         SaveManager.selected_base_type_tabs = {
             BaseType.CORVETTE: "Default",
             BaseType.BASE: "Default",
-            BaseType.EXTERNAL_BASE: "Default"
+            BaseType.EXTERNAL_BASE: "Default",
+            BaseType.SPACE_BASE: "Default"
         }
         
         if SaveManager.enum_base_list is not None:
@@ -492,8 +502,10 @@ class SaveManager(bpy.types.PropertyGroup):
         self.pinned_galactic_address = str(identifiers.galactic_address)
         self.pinned_save_account = self.nms_account_selected
         self.pinned_save_slot_name = save_slot_name
-        self.pinned_base_save_1 = save_slot["saves"][0]
-        self.pinned_base_save_2 = save_slot["saves"][1]
+        # a Game Pass slot can have a single save
+        saves = save_slot["saves"]
+        self.pinned_base_save_1 = saves[0]
+        self.pinned_base_save_2 = saves[1] if len(saves) > 1 else "None"
       
     # called from operators to unpin a pinned base
     def unpin_base(self):
@@ -509,31 +521,14 @@ class SaveManager(bpy.types.PropertyGroup):
         self.import_base(context,base_identifiers, base_identifiers.save_slot)
     
     # called to save scene data to save file
+    # returns (success, message)
     def export_pinned_base(self, context):
         base_identifiers = self.get_pinned_base_identifiers()
-        
+
         if base_identifiers is None:
-            return "Pinned base identifiers are none"
-        
-        # base name will not be udpated if it is None
-        new_base_name = None
-        
-        # check if export base name check box is checked
-        if self.check_also_update_name:
-            scene = context.scene
-            nms_tool = scene.nms_base_tool
-            string_base_name = nms_tool.string_base.strip()
-            # update of new base name after validating string base name
-            if string_base_name:
-                new_base_name = string_base_name
-        
-        result = self.export_base(context, base_identifiers, base_identifiers.save_slot, new_base_name)
-        
-        # upate base name if base name was sucessfully changed in save file
-        if result is not None and new_base_name is not None:
-            self.update_base_name(new_base_name)
-            
-        return result
+            return False, "Pinned base identifiers are none"
+
+        return self.export_base(context, base_identifiers, base_identifiers.save_slot)
         
     # collect data of pinned base and return it
     def get_pinned_base_identifiers(self):
@@ -543,11 +538,10 @@ class SaveManager(bpy.types.PropertyGroup):
         if self.pinned_base_name == "None":
             return None
         
-        save_links = [ 
-            self.pinned_base_save_1, 
-            self.pinned_base_save_2 
-        ]
-        
+        save_links = self.get_pinned_save_links()
+        if not save_links:
+            return None
+
         base_data = BaseData()
         base_data.base_index = self.pinned_base_index
         base_data.base_name = self.pinned_base_name
@@ -566,10 +560,20 @@ class SaveManager(bpy.types.PropertyGroup):
         
     # for pinned backup button operator to call, will make backup of pinned base/corvette
     def backup_pinned_save_files(self):
-        save_1 = self.pinned_base_save_1
-        save_2 = self.pinned_base_save_2
-        save_links = [save_1,save_2]
-        save_editor_utils.backup_save_files(save_links)
+        save_links = self.get_pinned_save_links()
+        if save_links:
+            save_editor_utils.backup_save_files(save_links)
+
+    # save links of the pinned base, "None" marks an unused link
+    def get_pinned_save_links(self):
+        return [
+            link for link in (self.pinned_base_save_1, self.pinned_base_save_2)
+            if link and link != "None"
+        ]
+
+    # for the UI, the folder prompt isn't needed when Game Pass accounts were found
+    def has_accounts(self):
+        return len(SaveManager.enum_accounts_list) > 1
         
     # for backup button operator to call, will make backup of selected save slot
     def backup_save_files(self):
@@ -599,7 +603,24 @@ class SaveManager(bpy.types.PropertyGroup):
                 return "bases"
             case BaseType.EXTERNAL_BASE:
                 return "external"
+            case BaseType.SPACE_BASE:
+                return "space"
+            case BaseType.SPACESTATION_BASE:
+                return "space"
         return "bases"
     
     def get_total_parts_count(self):
         return str(SaveManager.extracted_base_data["total_parts_count"])
+    
+    # returns pinned base data extracted from save file
+    def get_pinned_base_data(self):
+        identifiers = self.get_pinned_base_identifiers()
+        save_slot = identifiers.save_slot
+        pinned_base = save_editor_utils.import_paticular_base_from_save(identifiers, save_slot)
+        return pinned_base
+    
+    # refresh list of bases/corvettes by importing fresh data form save file
+    def refresh_bases_list(self):
+        current_slot_data = self.get_current_slot_data()
+        SaveManager.extracted_base_data = save_editor_utils.extract_bases_list_from_save(current_slot_data["saves"])
+        self.on_base_type_selected()

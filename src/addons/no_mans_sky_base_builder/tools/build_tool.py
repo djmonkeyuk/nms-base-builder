@@ -4,8 +4,10 @@ import os
 import uuid
 from ..utils import blend_utils, curve
 from ..utils import python as python_utils
-from .. import builder, part
-from ..utils.mirror_utils import ShowMessageBox
+from .. import part
+from ..builder import get_builder
+from ..group import Group
+from ..utils.blend_utils import ShowMessageBox
 
 FILE_PATH = os.path.dirname(os.path.realpath(__file__))
 NICE_JSON = os.path.join(FILE_PATH,"..","resources","nice_names.json")
@@ -14,7 +16,6 @@ GHOSTED_JSON = os.path.join(FILE_PATH,"..", "resources", "ghosted.json")
 ghosted_reference = python_utils.load_dictionary(GHOSTED_JSON)
 GHOSTED_ITEMS = ghosted_reference["GHOSTED"]
 nice_name_dictionary = python_utils.load_dictionary(NICE_JSON)
-BUILDER = builder.Builder()
 
 from mathutils import Vector
 
@@ -94,7 +95,8 @@ class BuildTool(bpy.types.PropertyGroup):
 
         # Get Selected item.
         new_items = []
-        for target in selected_objects:
+        existing_groups = None
+        for target in list(selected_objects):
             # Part
             if "ObjectID" in target :
                 object_id = target["ObjectID"]
@@ -108,7 +110,7 @@ class BuildTool(bpy.types.PropertyGroup):
                 # Build Item.
                 mirror_part_exist =  mirror_id in nice_name_dictionary.keys()
                 if mirror_part_exist:
-                    new_item = BUILDER.mirror_part(target)
+                    new_item = get_builder().mirror_part(target)
 
                 if not change_orientation:
                     mirrored_matrix_world = mirror_utils.mirror_matrix_world_universal(object_id, new_item.matrix_world, axis,center)
@@ -131,8 +133,20 @@ class BuildTool(bpy.types.PropertyGroup):
                 new_curve_obj = curve.mirror_curve(target, axis, center, should_auto_duplicate)
                 if new_curve_obj is not None:
                     new_items.append(new_curve_obj)
-                
-        blend_utils.select(new_items)
+
+            # mirror if object is a group, change orientation doesn't apply to groups
+            elif Group.PROP_GROUP_ID in target and not change_orientation:
+                if existing_groups is None:
+                    existing_groups = Group.get_all_groups()
+                mirrored_group = Group.mirror_group(
+                    get_builder(), target, axis, center, auto_duplicate, existing_groups
+                )
+                if mirrored_group is not None:
+                    existing_groups.append(mirrored_group)
+                    new_items.append(mirrored_group)
+
+        if new_items:
+            blend_utils.select(new_items)
         return {"FINISHED"}
     
     # called my Perform Mirror button in advanced mirroring options
@@ -184,7 +198,7 @@ class BuildTool(bpy.types.PropertyGroup):
                 new_item = target
                 if mirror_id in nice_name_dictionary.keys():
                     # Build Item.
-                    new_item = BUILDER.flip_part(target)
+                    new_item = get_builder().flip_part(target)
                     new_items.append(new_item)
 
                 if hasattr(new_item, "object"):
@@ -228,7 +242,7 @@ class BuildTool(bpy.types.PropertyGroup):
             curve_object = new_curve_object
         
         else :
-            curve_object["unique_id"] = str(uuid.uuid4())
+            curve_object[curve.Curve.PROP_CURVE_ID] = str(uuid.uuid4())
             curve_object["parent_selected"] = True
             curve_object.show_in_front = True
             self.selected_curve_object_is_parent = True
@@ -261,7 +275,10 @@ class BuildTool(bpy.types.PropertyGroup):
             return
 
         for item in selected_objects:
-            blend_utils.delete(item)
+            if curve.Curve.PROP_CURVE_ID in item:
+                curve.delete_curve_and_children(item)
+            else:
+                blend_utils.delete(item)
 
     def duplicate(self):
         """Snaps one object to another based on selection."""
@@ -278,6 +295,14 @@ class BuildTool(bpy.types.PropertyGroup):
         # Get Selected item.
         target = blend_utils.get_current_selection()
 
+        if curve.Curve.PROP_CURVE_ID in target:
+            blend_utils.select(curve.duplicate_curve(target))
+            return
+
+        if Group.PROP_GROUP_ID in target:
+            blend_utils.select(blend_utils.duplicate_part(target))
+            return
+
         if "ObjectID" not in target and "PresetID" not in target:
             message = (
                 "This item can not be duplicated via the No Man's Sky tool. "
@@ -291,19 +316,19 @@ class BuildTool(bpy.types.PropertyGroup):
             object_id = target["ObjectID"]
             user_data = target["UserData"]
             # Build Item.
-            new_item = BUILDER.add_part(object_id, user_data=user_data)
+            new_item = get_builder().add_part(object_id, user_data=user_data)
             new_item.select()
         if "PresetID" in target:
             preset_id = target["PresetID"]
             # Build Item.
-            new_item = BUILDER.add_preset(preset_id)
+            new_item = get_builder().add_preset(preset_id)
             new_item.select()
 
         # Build Rig if need to.
         if hasattr(new_item, "build_rig"):
             new_item.build_rig()
         # Snap.
-        target = BUILDER.get_builder_object_from_bpy_object(target)
+        target = get_builder().get_builder_object_from_bpy_object(target)
         new_item.snap_to(target)
         
     def snap(
@@ -318,6 +343,13 @@ class BuildTool(bpy.types.PropertyGroup):
         # use.
         if len(selected_objects) == 1:
             source = bpy.context.view_layer.objects.active
+            # the snap button on its own lands the part on the nearest point it fits
+            if not (next_source or prev_source or next_target or prev_target):
+                source = get_builder().get_builder_object_from_bpy_object(selected_objects[0])
+                if not source or not source.snap_to_nearest():
+                    message = "Nothing near this item that it can snap to."
+                    ShowMessageBox(message=message, title="Snap")
+                return {"FINISHED"}
             if "snapped_to" in source:
                 target = bpy.data.objects[source["snapped_to"]]
             else:
@@ -343,8 +375,8 @@ class BuildTool(bpy.types.PropertyGroup):
             return {"FINISHED"}
 
         # Perform Snap
-        source = BUILDER.get_builder_object_from_bpy_object(source)
-        target = BUILDER.get_builder_object_from_bpy_object(target)
+        source = get_builder().get_builder_object_from_bpy_object(source)
+        target = get_builder().get_builder_object_from_bpy_object(target)
         if source and target:
             source.snap_to(
                 target,

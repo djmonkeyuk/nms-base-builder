@@ -1,23 +1,13 @@
-from ..utils import mirror_utils
 import bpy
-import os
-import uuid
+
+from ..builder import get_builder
+from ..group import Group
 from ..utils import blend_utils, curve, material
-from ..utils import python as python_utils
-from .. import builder, part
-from ..utils.mirror_utils import ShowMessageBox
+from ..utils.blend_utils import ShowMessageBox
 
-FILE_PATH = os.path.dirname(os.path.realpath(__file__))
-NICE_JSON = os.path.join(FILE_PATH,"..","resources","nice_names.json")
-
-GHOSTED_JSON = os.path.join(FILE_PATH,"..", "resources", "ghosted.json")
-ghosted_reference = python_utils.load_dictionary(GHOSTED_JSON)
-GHOSTED_ITEMS = ghosted_reference["GHOSTED"]
-nice_name_dictionary = python_utils.load_dictionary(NICE_JSON)
-BUILDER = builder.Builder()
 
 class BatchTool(bpy.types.PropertyGroup):
-    
+
     nms_batch_replace_type: bpy.props.EnumProperty(
         name="Swap With",
         description="Replace all selected objects with another object of choosing",
@@ -28,21 +18,21 @@ class BatchTool(bpy.types.PropertyGroup):
         options={'SKIP_SAVE'},
         default = "target"
     )
-    
+
     object_id: bpy.props.StringProperty(
         name="ObjectID",
         description="Enter ObjectID of object you want selections to be replaced with",
         default="",
         maxlen=1024,
     )
-    
+
     target_object: bpy.props.PointerProperty(
         name="Target Object",
         type=bpy.types.Object,
         options={'SKIP_SAVE'},
-        description = "This object's origin will be take in to account for center of reflection"
+        description = "Object the selection is replaced with"
     )
-    
+
     color_picker: bpy.props.PointerProperty(
         name="Colour Picker",
         type=bpy.types.Object,
@@ -50,183 +40,142 @@ class BatchTool(bpy.types.PropertyGroup):
         description = "Pick an object to use are reference for colouring",
         update = lambda self, context: self.on_color_picked()
     )
-    
-    
-    
+
     def on_color_picked(self):
         target_object = self.color_picker
         if target_object is None:
             return
-        
+
         if "UserData" in target_object:
             target_userdata = target_object["UserData"]
             selected_objects = bpy.context.selected_objects
             for obj in selected_objects:
                 material.restore_material(obj, target_userdata)
         self.color_picker = None
-        
 
+    # Replace ---
     def batch_replace_with_target_object(self):
         """Replace all selected objects with duplicates of the target object."""
-
         selected_objects = list(bpy.context.selected_objects)
-        bpy.ops.object.select_all(action='DESELECT')
+        blend_utils.deselect_all()
 
+        title = "Batch Replace Objects"
         if not selected_objects:
-            title="Batch Replace Objects"
-            message="Make sure you have an item selected."
-            ShowMessageBox( message= message, title=title )
+            ShowMessageBox(message="Make sure you have an item selected.", title=title)
             return 0
-
-        if self.nms_batch_replace_type == "target" and not self.target_object:
-            title="Batch Replace Objects"
-            message="Choose valid a target object to replace the selection with."
-            ShowMessageBox( message= message, title=title )
-            return 0
-        elif self.nms_batch_replace_type == "object_id" and self.object_id not in nice_name_dictionary:
-            title="Batch Replace Objects"
-            message="Enter a valid ObjectID to replace the selection with."
-            ShowMessageBox( message= message, title=title )
-            return 0
-        
 
         if self.nms_batch_replace_type == "target":
             target_object = self.target_object
-            if "ObjectID" not in target_object:
-                title="Batch Replace Objects"
-                message="Target Object is Invalid"
-                ShowMessageBox(message=message, title=title )
+            if target_object is None:
+                ShowMessageBox(message="Choose valid a target object to replace the selection with.", title=title)
                 return 0
-        else :
-            # create a temp object if "ObjectID" is provided
-            object_id = self.object_id
-            new_obj = BUILDER.add_part(object_id)
-            target_object = new_obj.object
-        
+            if "ObjectID" not in target_object and Group.PROP_GROUP_ID not in target_object:
+                ShowMessageBox(message="Target Object is Invalid", title=title)
+                return 0
+            replaced_objects = self.batch_replace(target_object, selected_objects)
+        else:
+            if self.object_id not in get_builder().nice_name_dictionary:
+                ShowMessageBox(message="Enter a valid ObjectID to replace the selection with.", title=title)
+                return 0
+            replaced_objects = self.batch_replace_with_object_id(self.object_id, selected_objects)
+
+        if not replaced_objects:
+            return 0
+
+        try:
+            blend_utils.select(replaced_objects)
+        except ReferenceError as error:
+            print(error)
+
+        return len(replaced_objects)
+
+    def batch_replace_with_object_id(self, object_id, objects_to_replace):
+        # a temporary part to copy from, removed once the replace is done
+        target_object = get_builder().add_part(object_id).object
+        replaced_objects = self.batch_replace(target_object, objects_to_replace)
+        bpy.data.objects.remove(target_object, do_unlink=True)
+        return replaced_objects
+
+    def batch_replace(self, target_object, objects_to_replace):
         replaced_objects_list = []
         objects_to_delete = []
-        
+
         # Get the current active collection to link the new objects to
         current_collection = bpy.context.collection
 
-        for source_object in selected_objects:
-            if source_object == target_object:
+        for source_object in objects_to_replace:
+            if source_object is None or source_object == target_object:
                 continue
-            
-            if source_object is None:
-                continue
-            
-            if "ObjectID" in source_object:
-                # This create a linked duplicate
+
+            if "ObjectID" in source_object or Group.PROP_GROUP_ID in source_object:
                 replaced_object = target_object.copy()
+                # colour lives on the mesh material, so every replacement needs its own mesh
                 if replaced_object.data:
                     replaced_object.data = replaced_object.data.copy()
 
-                # Copy transforms
                 replaced_object.matrix_world = source_object.matrix_world.copy()
-                # Link the new object to the scene
                 current_collection.objects.link(replaced_object)
-                
+
                 replaced_objects_list.append(replaced_object)
                 objects_to_delete.append(source_object)
-            elif "has_linked_objects" in source_object and source_object.get("has_linked_objects", False):
+            elif source_object.get("has_linked_objects", False):
                 new_curve, old_curve = curve.replace_curve_object(source_object, target_object)
                 replaced_objects_list.append(new_curve)
                 objects_to_delete.append(old_curve)
-            
-        # Delete old objects
-        for obj in objects_to_delete:
-            bpy.data.objects.remove(obj, do_unlink=True)
-        
-        # Select the new objects
-        try:
-            if len(replaced_objects_list) > 0:
-                blend_utils.select(replaced_objects_list)
-        except ReferenceError as error:
-            print(error)
-            
-        # delete temp object
-        if self.nms_batch_replace_type == "object_id":
-            bpy.data.objects.remove(target_object, do_unlink=True)
-        
-        return len(replaced_objects_list)
-    
-    
+
+        # one batch, a remove() per object re-syncs the whole scene each time
+        if objects_to_delete:
+            bpy.data.batch_remove(objects_to_delete)
+
+        return replaced_objects_list
+
+    # Select ---
+    def select_matching(self, get_key, title):
+        """Select every object whose key matches one of the selected objects' keys.
+
+        Returns:
+            int: How many objects were found beyond the ones already selected.
+        """
+        selected_objects = bpy.context.selected_objects
+        if not selected_objects:
+            ShowMessageBox(message="Make sure you have an item selected.", title=title)
+            return 0
+
+        keys_to_find = set(filter(lambda key: key is not None, (get_key(obj) for obj in selected_objects)))
+        found_matches = [obj for obj in bpy.context.view_layer.objects if get_key(obj) in keys_to_find]
+
+        if found_matches:
+            blend_utils.select(found_matches)
+
+        return len(found_matches) - len(keys_to_find)
+
     def select_same_colored_objects(self):
-        """Selects objects with same UserData, for easy experimentation with colors"""
-        
-        selected_objects = bpy.context.selected_objects
-        
-        if not selected_objects:
-            ShowMessageBox(
-                message="Make sure you have an item selected.", title="Find Objects with same Color"
-            )
-            return 0
-        
-        #Gather unique keys from selected obejcts
-        keys_to_find = []
-        for obj in selected_objects:
+        """Selects parts with the same ObjectID and UserData, for easy experimentation with colors"""
+        def get_key(obj):
             if "ObjectID" not in obj:
-                continue
-            
-            obj_id = obj["ObjectID"]
-            user_data = obj["UserData"]
-            if (obj_id,user_data) not in keys_to_find:
-                keys_to_find.append((obj_id,user_data))
-        
-        #Iterate through all objects to collect matches with keys_to_find
-        found_matches = []
-        for obj in bpy.data.objects:
+                return None
+            return (obj["ObjectID"], str(obj.get("UserData", 0)))
+
+        return self.select_matching(get_key, "Find Objects with same Color")
+
+    def select_all_same_colored_objects(self):
+        """Selects parts with the same UserData, whatever part they are"""
+        def get_key(obj):
             if "ObjectID" not in obj:
-                continue
-            
-            obj_id = obj["ObjectID"]
-            user_data = obj["UserData"]
-            
-            new_key = (obj_id, user_data)
-            if new_key in keys_to_find:
-                found_matches.append(obj)
-        
-        if len(found_matches) > 0:
-            blend_utils.select(found_matches)
-            
-        return len(found_matches) - len(keys_to_find)
-    
-    
+                return None
+            return str(obj.get("UserData", 0))
+
+        return self.select_matching(get_key, "Find Objects with same Color")
+
     def select_same_objects(self):
-        """Selects objects with same ObjectIDs"""
-        
-        selected_objects = bpy.context.selected_objects
-        
-        if not selected_objects:
-            ShowMessageBox(
-                message="Make sure you have an item selected.", title="Select same Objects"
-            )
-            return 0
-        
-        #Gather unique keys from selected obejcts
-        keys_to_find = []
-        for obj in selected_objects:
-            if "ObjectID" not in obj:
-                continue
-            
-            obj_id = obj["ObjectID"]
-            if obj_id not in keys_to_find:
-                keys_to_find.append(obj_id)
-        
-        #Iterate through all objects to collect matches with keys_to_find
-        found_matches = []
-        for obj in bpy.data.objects:
-            if "ObjectID" not in obj:
-                continue
-            
-            obj_id = obj["ObjectID"]
-            if obj_id in keys_to_find:
-                found_matches.append(obj)
-        
-        if len(found_matches) > 0:
+        """Selects parts with the same ObjectID and groups with the same GroupID"""
+        def get_key(obj):
+            return obj.get("ObjectID") or obj.get(Group.PROP_GROUP_ID)
+
+        return self.select_matching(get_key, "Select same Objects")
+
+    def select_all_groups(self):
+        found_matches = [obj for obj in bpy.context.view_layer.objects if Group.PROP_GROUP_ID in obj]
+        if found_matches:
             blend_utils.select(found_matches)
-            
-        return len(found_matches) - len(keys_to_find)
-    
-    
+        return len(found_matches)

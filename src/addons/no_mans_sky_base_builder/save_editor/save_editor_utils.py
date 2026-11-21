@@ -9,17 +9,20 @@ import re
 from pathlib import Path
 from datetime import datetime
 
-from . import save_translation
+from . import gamepass, save_translation
 from .save_translation import SaveTranslation
+from .. import addon_preferences
+from ..utils.blend_utils import ShowMessageBox
 
 system = platform.system()
-ADDON_ID = __package__.rsplit(".", 1)[0]
 
 class BaseType:
     CORVETTE = "PlayerShipBase"
     BASE = "HomePlanetBase"
     FREIGHTER = "FreighterBase"
     EXTERNAL_BASE = "ExternalPlanetBase"
+    SPACESTATION_BASE = "PlayerSpaceStationBase"
+    SPACE_BASE = "PlayerSpaceBase"
     
 class BaseData:
     
@@ -55,14 +58,8 @@ class BaseData:
         self.galactic_address = str(base[SaveTranslation.galactic_address])
         self.base_type = in_base_type
         self.parts_count = parts_count
-        
-        
-# called to display messages/notificatoin
-def ShowMessageBox(message="", title="Message Box", icon="INFO"):
-    def draw(self, context):
-        self.layout.label(text=message)
-    bpy.context.window_manager.popup_menu(draw, title=title, icon=icon)
-    
+
+
 # return save folder path for different OS versions
 def get_default_save_folder():
     if system == "Windows":
@@ -115,87 +112,133 @@ def get_hg_files_in_folder(folder):
             hg_files_list.append(file)
     return hg_files_list
 
-#Returns all account folders
+#Returns all account folders, Steam accounts from the save folder and Game Pass accounts found on this machine
 def get_accounts_list(context):
-    prefs = context.preferences.addons[ADDON_ID].preferences
-    save_folder_path = prefs.nms_save_folder_path
-    
+    return get_steam_accounts_list() + get_gamepass_accounts_list()
+
+def get_steam_accounts_list():
+    save_folder_path = addon_preferences.get_save_folder_path()
+    if not save_folder_path or not os.path.isdir(save_folder_path):
+        return []
+
     steam_names = get_steam_names()
     accounts_list = []
     root_dir = Path(save_folder_path)
     for folder in root_dir.iterdir():
         if not folder.is_dir():
             continue
-        # Steam/Gamepass account folders
+        # Steam account folders
         if folder.name.startswith("st_"):
             files_list = get_hg_files_in_folder(str(folder))
             account_number = folder.name[3:]
             steam_persona = steam_names.get(account_number,None)
             if files_list is not None:
                 if len(files_list) > 0:
+                    label = folder.name if steam_persona is None else f"{steam_persona} ( {folder.name[-3:]} )"
                     accounts_list.append({
-                        "steam_persona" : steam_persona,
+                        "label" : label,
                         "folder"  : folder
                     })
     return accounts_list
+
+# Game Pass saves are found on their own, no save folder needs to be selected for them
+def get_gamepass_accounts_list():
+    return [
+        {"label": gamepass.get_account_label(folder), "folder": folder}
+        for folder in gamepass.find_account_folders()
+    ]
     
 
 # Returns list of save slot data that contains save name and save files lines
 def get_save_slots_list(account):
-    from .save_file import SaveFile
-    
+    if gamepass.is_account_folder(account):
+        return get_gamepass_save_slots_list(account)
+
     # to validate correct save file name
     pattern = re.compile(r"save(\d+)\.hg")
     # store list of all hg save files
     hg_files_list = get_hg_files_in_folder(account)
-    
+    hg_files_set = set(hg_files_list)
+
     # interate through each save file and record their pairs
     save_slots = []
     for save_2 in hg_files_list:
-        
-        # save type is "Main" for normal save and "Season" for expeditiion
-        try:
-            save_type = SaveFile(save_2).search_property(SaveTranslation.active_context)
-            if save_type is None:
-                continue
-        except:
-            continue
-        
-        # validate name of save file
+
+        # validate name of save file, save.hg has no number and is picked up as the pair of save2.hg
         match = pattern.fullmatch(save_2.name)
         if not match:
             continue
-        
+
         #extract number from name of save file
         file_number = int(match.group(1))
         if file_number %2 == 1:
             continue
-        
+
         #name of linked save file
         save_1_name = "save.hg" if file_number == 2 else f"save{file_number - 1}.hg"
-        save_1 = Path(save_2.parent / save_1_name )
+        save_1 = save_2.parent / save_1_name
         #check if linked save file exits in save folder or not
-        save_1_found = next((p for p in hg_files_list if p == save_1), None)
-        if not save_1_found:
+        if save_1 not in hg_files_set:
             continue
-        
+
         #slot number is always half of second save file's number
-        save_slot_number = file_number//2
-        #links to save files for this slot
-        saves_links = [str(save_1), str(save_2)]
-        #extract save's name from save file data by partially loading it, and increasing efficiency
-        save_name = SaveFile(save_2).search_property(SaveTranslation.save_name) if save_type == "Main" else "Expedition"
-        
-        save_slot = {
-            "slot": save_slot_number,
-            "saves": saves_links,
-            "save_name": save_name or "Un-named"
-        }
-        save_slots.append(save_slot)
-        
+        save_slot = describe_save_slot(file_number//2, [str(save_1), str(save_2)], save_2)
+        if save_slot is not None:
+            save_slots.append(save_slot)
+
     #sort list according to slot number
     save_slots.sort(key=lambda x: x["slot"])
-    return save_slots  
+    return save_slots
+
+# Game Pass slots hold an Auto and a Manual save, either can be missing
+def get_gamepass_save_slots_list(account):
+    try:
+        slots = gamepass.get_save_slots(account)
+    except Exception as error:
+        print(f"Could not read Game Pass saves in {account}: {describe_error(error)}")
+        return []
+
+    save_slots = []
+    for slot_number, saves_links in slots.items():
+        # a save whose files are missing is left out of the slot
+        readable_links = []
+        for save_link in saves_links:
+            try:
+                resolve_save_path(save_link)
+                readable_links.append(save_link)
+            except Exception:
+                pass
+        if not readable_links:
+            continue
+
+        newest_path = resolve_save_path(get_lastes_save_file_location(readable_links))
+        save_slot = describe_save_slot(slot_number, readable_links, newest_path)
+        if save_slot is not None:
+            save_slots.append(save_slot)
+
+    save_slots.sort(key=lambda x: x["slot"])
+    return save_slots
+
+# slot data for the UI, None when the save can't be read
+def describe_save_slot(slot_number, saves_links, save_path):
+    from .save_file import SaveFile
+
+    # save type is "Main" for normal save and "Season" for expeditiion
+    # both properties sit near the top of the save, so only the first block is usually decompressed
+    try:
+        properties = SaveFile(save_path).search_properties([SaveTranslation.active_context, SaveTranslation.save_name])
+    except Exception:
+        return None
+    save_type = properties[SaveTranslation.active_context]
+    if save_type is None:
+        return None
+
+    save_name = properties[SaveTranslation.save_name] if save_type == "Main" else "Expedition"
+    return {
+        "slot": slot_number,
+        "saves": saves_links,
+        "save_name": save_name or "Un-named"
+    }
 
 # returns list of data related to bses present in a save slot
 def extract_bases_list_from_save(save_slot):
@@ -210,6 +253,9 @@ def extract_bases_list_from_save(save_slot):
     corvettes = []
     external = []
     freighter = None
+    
+    space = []
+    space_station = []
     
     total_parts_count = 0
     
@@ -231,6 +277,10 @@ def extract_bases_list_from_save(save_slot):
             case BaseType.EXTERNAL_BASE:
                 if base_data.parts_count > 0:
                     external.append(base_data)
+            case BaseType.SPACE_BASE:
+                space.append(base_data)
+            case BaseType.SPACESTATION_BASE:
+                space_station.append(base_data)
         
         if base_data.base_type != BaseType.EXTERNAL_BASE:
             total_parts_count += base_data.parts_count
@@ -244,25 +294,64 @@ def extract_bases_list_from_save(save_slot):
         "bases":bases,
         "external":external,
         "freighter": freighter,
+        "space":space + space_station,
+        "spacestation":space_station,
         "total_parts_count": total_parts_count,
     }
     
     
+# a save link is the path of a Steam save file, or a Game Pass link that is resolved to its current file
+
+def is_gamepass_link(save_link):
+    return gamepass.is_link(save_link)
+
+# path of the file holding the save's data
+def resolve_save_path(save_link):
+    if is_gamepass_link(save_link):
+        return gamepass.resolve_data_path(save_link)
+    return Path(save_link)
+
+def get_save_modified_time(save_link):
+    if is_gamepass_link(save_link):
+        return gamepass.get_modified_time(save_link)
+    return os.path.getmtime(save_link)
+
+# name shown in messages
+def get_save_link_name(save_link):
+    if is_gamepass_link(save_link):
+        return gamepass.get_link_name(save_link)
+    return Path(save_link).name
+
+def write_save_data(save_link, data):
+    from .save_file import write_file_atomic
+    if is_gamepass_link(save_link):
+        gamepass.write_save(save_link, data)
+    else:
+        write_file_atomic(save_link, data)
+
+# backs up one save before it is written, returns what restore_save_backup needs
+def make_save_backup(save_link):
+    from .save_file import SaveFile
+    if is_gamepass_link(save_link):
+        return gamepass.make_backup(save_link)
+    return SaveFile(save_link).make_backup()
+
+def restore_save_backup(save_link, backup):
+    from .save_file import write_file_atomic
+    if is_gamepass_link(save_link):
+        gamepass.restore_backup(save_link, backup)
+        return
+    write_file_atomic(save_link, Path(backup).read_bytes())
+    shutil.copystat(backup, save_link)
+
 # active save is most recently modified save file
 def get_lastes_save_file_location(save_slot):
-    save_1 = Path(save_slot[0])
-    save_2 = Path(save_slot[1])
-    
-    # store when last time these save files were modified
-    m_time_save_1 = os.path.getmtime(save_1)
-    m_time_save_2 = os.path.getmtime(save_2)
-    
-    # return the save file that was most recently modified
-    return save_1 if m_time_save_1 > m_time_save_2 else save_2
-    
+    # reversed so the later file wins a tie, as before
+    return max(reversed(save_slot), key=get_save_modified_time)
+
 # helper function that gives returns save file object for easier loading
 def get_save_file(save_slot):
-    save_location = get_lastes_save_file_location(save_slot)
+    save_location = resolve_save_path(get_lastes_save_file_location(save_slot))
     from .save_file import SaveFile
     save_file = SaveFile(save_location)
     return save_file
@@ -271,7 +360,7 @@ def get_save_file(save_slot):
 # impart a base from save file
 def import_paticular_base_from_save(base_identifier,  save_slot):
     save_file = get_save_file(save_slot)
-    data = save_file.load()
+    save_file.load()
     
     # fist see if base actially exists or not
     searched_base = save_file.search_base_with_identifier(base_identifier)
@@ -283,35 +372,116 @@ def import_paticular_base_from_save(base_identifier,  save_slot):
         return None
         
     #return bases after translating it to engish
-    return save_translation.translate_to_eng_data(searched_base)
+    searched_base = save_translation.translate_to_eng_data(searched_base)
+
+    return searched_base
     
+# error with its cause, for messages shown to the user
+# file errors drop their full paths, the message already names the file
+def describe_error(error):
+    if isinstance(error, OSError) and error.strerror:
+        return f"{type(error).__name__}: {error.strerror}"
+    return f"{type(error).__name__}: {error}"
+
 #save a base to save file
-def save_base_to_save_file(objects_data, base_identifier,  save_slot, new_base_name = None):
-    save_file = get_save_file(save_slot)
-    data = save_file.load()
-    
-    # look for base in save file to see it it exist or not
-    in_base = save_file.search_base_with_identifier(base_identifier)
-    if in_base is None:
-        return
-    
-    # here update objects list with list provided
-    in_base[SaveTranslation.objects] = save_translation.translate_to_obf_data(objects_data)
-    
-    
-    # update name of base if provided
-    if new_base_name is not None:
-        ship_ownsership = save_file.get_ship_ownership_pointer()
-        in_base[SaveTranslation.base_name] = new_base_name
-        ship_ownsership[base_identifier["user_data"]][SaveTranslation.base_name] = new_base_name
-    
-    # save the file and make backup after update it
-    save_file.make_backup()
-    save_file.save()
-    return "Base/Corvette saved sucessfully"
+# the newest save file is the one the game loads, so it must contain the base, the older one is updated too when it has it
+# both files are prepared and backed up before anything is written, and the older file is written first so the newest stays newest
+# returns (success, message)
+def save_base_to_save_file(objects_data, base_identifier,  save_slot, base_name = None):
+    from .save_file import SaveFile
+
+    newest = get_lastes_save_file_location(save_slot)
+    ordered_paths = [p for p in save_slot if p != newest] + [newest]
+    obf_objects = save_translation.translate_to_obf_data(objects_data)
+
+    # load, update and compress each file in memory, nothing is written yet
+    prepared = []
+    skipped = []
+    for path in ordered_paths:
+        is_newest = path == newest
+        name = get_save_link_name(path)
+        try:
+            save_file = SaveFile(resolve_save_path(path))
+            save_file.load()
+
+            # look for base in save file to see it it exist or not
+            in_base = save_file.search_base_with_identifier(base_identifier)
+            if in_base is None:
+                if is_newest:
+                    return False, (
+                        f"Export failed: base not found in {name}, the newest save file. "
+                        "Nothing was written, repinning the base may resolve this issue"
+                    )
+                skipped.append(f"{name} (base not found)")
+                continue
+
+            # here update objects list with list provided
+            in_base[SaveTranslation.objects] = obf_objects
+
+            # update name of base if provided
+            if base_name is not None:
+                # update name in PersistentPlayerBases
+                in_base[SaveTranslation.base_name] = base_name
+
+                # update name in ship_ownsership
+                userdata = base_identifier["user_data"]
+                ship_ownsership_element = save_file.get_ship_ownsership_element(userdata)
+                ship_ownsership_element[SaveTranslation.base_name] = base_name
+
+            prepared.append((path, save_file.pack()))
+        except Exception as error:
+            if is_newest:
+                return False, f"Export failed preparing {name}: {describe_error(error)}. Nothing was written"
+            skipped.append(f"{name} ({describe_error(error)})")
+
+    # back up every file before the first write
+    backups = {}
+    for path, _ in prepared:
+        try:
+            backups[path] = make_save_backup(path)
+        except Exception as error:
+            return False, f"Export failed backing up {get_save_link_name(path)}: {describe_error(error)}. Nothing was written"
+
+    # write, and put back files already written if a later one fails, so the slot is never left half exported
+    written = []
+    for path, data in prepared:
+        try:
+            write_save_data(path, data)
+        except Exception as error:
+            message = f"Export failed writing {get_save_link_name(path)}: {describe_error(error)}. "
+            return False, message + restore_from_backups(written, backups)
+        written.append(path)
+
+    message = "Base/Corvette saved sucessfully to " + " and ".join(get_save_link_name(path) for path, _ in reversed(prepared))
+    if skipped:
+        message += ", skipped " + ", ".join(skipped)
+    return True, message
+
+# put written save files back from their backups, keeping their original modified times so the newest file stays newest
+# returns a sentence describing what happened, for the export message
+def restore_from_backups(written, backups):
+    if not written:
+        return "Nothing was written"
+
+    failed = []
+    for path in written:
+        try:
+            restore_save_backup(path, backups[path])
+        except Exception as error:
+            failed.append(f"{get_save_link_name(path)} ({describe_error(error)})")
+
+    if failed:
+        return (
+            "Restoring from backup also failed for " + ", ".join(failed)
+            + ", copy them back by hand from the blender_backup folder"
+        )
+    return ", ".join(get_save_link_name(path) for path in written) + " restored from backup"
 
 # a folder within save_directory , where backups will be stored
+# Game Pass backups are kept outside the Game Pass folders
 def get_backups_folder(save_links):
+    if is_gamepass_link(save_links[0]):
+        return str(gamepass.get_backup_folder(save_links[0]))
     folder = os.path.dirname(save_links[0])
     backup_folder = os.path.join(
         folder,"nms_base_builder_backup",
@@ -320,30 +490,23 @@ def get_backups_folder(save_links):
     os.makedirs(backup_folder, exist_ok=True)
     return backup_folder
 
-# make backup of both save files linked to a save slot
+# make backup of every save file linked to a save slot
 def backup_save_files(save_links):
     backup_folder = get_backups_folder(save_links)
     # add date and time in bakcup file's name to make make manual searching easier
     dat_and_time = datetime.now().strftime("d-%Y-%m-%d_t-%H-%M-%S-%f")[:-3]
-    
-    
-    save_1 = save_links[0]
-    save_2 = save_links[1]
-    s1_name, s1_ext = os.path.splitext(os.path.basename(save_1))
-    s2_name, s2_ext = os.path.splitext(os.path.basename(save_2))
-    
-    save_1_backup = os.path.join(
-        backup_folder,
-        f"{s1_name}{s1_ext}.{dat_and_time}.blender.bak"
-    )
-    save_2_backup = os.path.join(
-        backup_folder,
-        f"{s2_name}{s2_ext}.{dat_and_time}.blender.bak"
-    )
-    
-    #make exact copies of those sace files and just change names
-    shutil.copy2(save_1, save_1_backup)
-    shutil.copy2(save_2, save_2_backup)
+
+    for save_link in save_links:
+        if is_gamepass_link(save_link):
+            gamepass.make_backup(save_link, dat_and_time)
+            continue
+
+        #make exact copies of those sace files and just change names
+        save_backup = os.path.join(
+            backup_folder,
+            f"{os.path.basename(save_link)}.{dat_and_time}.blender.bak"
+        )
+        shutil.copy2(save_link, save_backup)
     
 # Open backup for each OS type
 def open_backup_folder_in_explorer(save_links):

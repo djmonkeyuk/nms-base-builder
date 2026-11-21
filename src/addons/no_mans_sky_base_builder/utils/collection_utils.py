@@ -7,38 +7,6 @@ curve_suffix = "_nmsc"
 LINKED_CURVE_OBJ_COL = "Linked Curve Objects"
 UNLINKED_CURVE_OBJ_COL = "Unlinked Curve Objects"
 
-def move_curve_to_collection(curve_obj):
-    
-    global curve_prefix 
-    global curve_suffix
-    
-    #parent collection of curve
-    master_col = get_parent_collection(curve_obj)
-    if str(master_col.name).endswith(curve_suffix):
-        master_col = get_parent_collection(master_col)
-    
-    if master_col is None:
-        if "master_col" in curve_obj and curve_obj["master_col"] is not None:
-            master_col = curve_obj["master_col"]
-        else :
-            master_col = bpy.context.scene.collection
-            
-    curve_obj["master_col"] = master_col
-    
-    #names for new collections to make
-    curve_collection_name = f"{curve_prefix}{curve_obj.name}{curve_suffix}"
-    curve_col = bpy.data.collections.get(curve_collection_name)
-    
-    # create a collection to house curve and  also house a collection that comtains all children of that curve
-    if not curve_col:
-        curve_col = create_collection(curve_collection_name, "COLOR_02")
-        move_collection_into_collection(master_col, curve_col)
-        curve_obj["parent_col"] = curve_col
-        
-    move_object_into_collection(curve_col, curve_obj)
-        
-    return curve_col
-
 # returns collection or creates a new collection
 def get_collection(collection_name):
     collection = bpy.data.collections.get(collection_name)

@@ -315,6 +315,46 @@ class NMS_OT_browser_share_open(bpy.types.Operator):
 
 
 # Window ---
+# Size the browser window opens at, before UI scale. Close to the old Qt window.
+WINDOW_WIDTH = 1000
+WINDOW_HEIGHT = 720
+
+
+def _render_window_open(window_manager):
+    """True when a render window is open. Show Render would reuse it instead of opening one."""
+    for window in window_manager.windows:
+        screen = window.screen
+        if screen is not None and screen.is_temporary and any(area.type == "IMAGE_EDITOR" for area in screen.areas):
+            return True
+    return False
+
+
+def _open_sized_window(context):
+    """Open a new window at WINDOW_WIDTH x WINDOW_HEIGHT. Returns False when it can't.
+
+    Python can't size a window, and wm.window_new copies the size of the current
+    one. Show Render opens its window at the render resolution, so the
+    resolution and the render display setting are set for the call and put back
+    straight after.
+    """
+    if context.scene is None or _render_window_open(context.window_manager):
+        return False
+    render = context.scene.render
+    view = context.preferences.view
+    scale = context.preferences.system.ui_scale
+    saved = (render.resolution_x, render.resolution_y, render.resolution_percentage, view.render_display_type)
+    try:
+        render.resolution_x = int(WINDOW_WIDTH * scale)
+        render.resolution_y = int(WINDOW_HEIGHT * scale)
+        render.resolution_percentage = 100
+        view.render_display_type = "WINDOW"
+        return "FINISHED" in bpy.ops.render.view_show("INVOKE_DEFAULT")
+    except RuntimeError:
+        return False
+    finally:
+        render.resolution_x, render.resolution_y, render.resolution_percentage, view.render_display_type = saved
+
+
 class NMS_OT_browser_open_window(bpy.types.Operator):
     """Open the asset browser in its own window"""
 
@@ -330,7 +370,8 @@ class NMS_OT_browser_open_window(bpy.types.Operator):
             self.report({"INFO"}, "The asset browser window is already open")
             return {"FINISHED"}
         before = {window.as_pointer() for window in window_manager.windows}
-        bpy.ops.wm.window_new()
+        if not _open_sized_window(context):
+            bpy.ops.wm.window_new()
         window = next(
             (window for window in window_manager.windows if window.as_pointer() not in before),
             None,

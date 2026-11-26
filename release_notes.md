@@ -1,14 +1,8 @@
-release 7.2.0
+release 7.1.6
 -------------
-* New native Blender Asset Browser, replacing the PySide (Qt) Asset Browser. Nothing extra is installed any more, and it runs in Blender itself so it works the same across Blender versions and platforms.
-*    Opens in its own "No Man's Sky Asset Browser" window, or pick it from any area's editor type menu to dock it into your layout.
-*    Category tree with sub categories, Favourites, Recent, Prefabs and #prefab-share in one place.
-*    #prefab-share feed with search, sort, load more, a resizable details panel and one click import.
-*    No Man's Sky and Blender colour themes (Preferences > Add-ons > No Mans Sky Base Builder).
-*    Favourites and settings from the old browser carry over.
-* Part icons are now loose PNG files (images/part_icons), replacing the 3.9 MB icons.py.
-* Prefab-share cache files no longer show up as prefabs in the Prefabs list.
-* Removed the PySide Asset Browser and its automatic PySide6 install.
+* Added latest parts up to the Holiday Expedition Redux 2026. (Hulk, Slime, and Decal parts)
+* New native Blender Asset Browser. Ported 1 to 1 from the previous implementation. Parts, Prefabs, and Prefab-Share are all still available.
+* Toggleable theme between Blender and No Man's Sky (default:No Mans Sky, switch by going to Preferences > Add-ons > No Mans Sky Base Builder).
 
 
 release 7.0.1

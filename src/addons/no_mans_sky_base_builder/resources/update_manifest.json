@@ -1,6 +1,6 @@
 {
-  "addon_version": "7.1.0",
-  "nms_content_fingerprint": "b85cb76bab19f557cc96867e600e85a3b597b318",
-  "updated_at": "2026-11-09T10:59:20",
+  "addon_version": "7.2.0",
+  "nms_content_fingerprint": "65eed71aa6568369c9ff5ce8c36c1d889845f33a",
+  "updated_at": "2026-11-26T14:57:54",
   "updated_via": "nms-base-builder-updater"
 }

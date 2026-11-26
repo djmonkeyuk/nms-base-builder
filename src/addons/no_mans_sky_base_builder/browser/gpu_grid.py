@@ -348,6 +348,10 @@ class BrowserView:
         self.scrollbar = None
         self.content_key = None
         self.expanded = set()
+        # Grid section headers the user has folded away, keyed by
+        # (mode, category, title) so a "Walls" folded in one category stays
+        # open in another. Session only, like the sidebar tree.
+        self.collapsed = set()
         self.tree_ready = False
         # Prefab Share detail panel width (unscaled), None until read from the store.
         self.share_panel_width = None
@@ -387,9 +391,10 @@ class BrowserView:
         gpu.state.blend_set("ALPHA")
         draw_rect(0, 0, region.width, region.height, T.BACKGROUND)
         sidebar_width = int(190 * ui)
-        self.draw_sidebar(region, ui, browser, sidebar_width)
+        sidebar_margin = int(6 * ui)
+        self.draw_sidebar(region, ui, browser, sidebar_width, sidebar_margin)
 
-        x0 = sidebar_width + 10 * ui
+        x0 = sidebar_margin + sidebar_width + 10 * ui
         x1 = region.width - 16 * ui
         if browser.mode == "SHARE" and not browser.searching():
             self.draw_share(region, ui, x0, x1)
@@ -397,9 +402,16 @@ class BrowserView:
             self.draw_items(region, ui, browser, x0, x1)
         gpu.state.blend_set("NONE")
 
-    def draw_sidebar(self, region, ui, browser, width):
-        """Modes, then a category tree. Expanded categories list their sub categories."""
-        draw_rect(0, 0, width, region.height, T.SIDEBAR)
+    def draw_sidebar(self, region, ui, browser, width, margin=0):
+        """Modes, then a category tree. Expanded categories list their sub categories.
+
+        The sidebar is a panel inset by margin from the region's left, top and
+        bottom edges, with its rows clipped to the panel.
+        """
+        panel_bottom = margin
+        panel_top = region.height - margin
+        panel_height = max(0, panel_top - panel_bottom)
+        draw_rect(margin, panel_bottom, width, panel_height, T.SIDEBAR)
         searching = browser.searching()
         active_category = browser.category_name()
         active_sub = browser.subcategory_name()
@@ -409,13 +421,13 @@ class BrowserView:
             self.expanded.add(active_category)
             self.tree_ready = True
 
-        row_height = 24 * ui
+        row_height = 32 * ui
         sub_height = 20 * ui
         entries = [
             ("mode", "FAVOURITES", "Favourites", "★"),
             ("mode", "RECENT", "Recent", "◷"),
             ("mode", "PREFABS", "Prefabs", "▣"),
-            ("mode", "SHARE", "#prefab-share", "#"),
+            ("mode", "SHARE", "prefab-share", "#"),
             None,
         ]
         catalog = get_catalog()
@@ -427,11 +439,18 @@ class BrowserView:
 
         heights = [8 * ui if entry is None else sub_height if entry[0] == "sub" else row_height for entry in entries]
         self.sidebar_height = sum(heights) + 24 * ui
-        max_scroll = max(0.0, self.sidebar_height - region.height)
+        max_scroll = max(0.0, self.sidebar_height - panel_height)
         self.sidebar_scroll = min(max(0.0, self.sidebar_scroll), max_scroll)
-        y = region.height - 8 * ui + self.sidebar_scroll
+        y = panel_top - 8 * ui + self.sidebar_scroll
         pinned = set(store.pinned_categories())
-        x = 0
+        x = margin
+
+        # Clip rows to the panel so scrolled rows don't spill into the margin.
+        # The scissor is in window coordinates; the region's own scissor gives its origin.
+        region_scissor = gpu.state.scissor_get()
+        gpu.state.scissor_set(
+            region_scissor[0] + margin, region_scissor[1] + panel_bottom, width, panel_height
+        )
         row_width = width - 1
         font_size = int(11 * ui)
 
@@ -439,9 +458,9 @@ class BrowserView:
             y -= height
             if entry is None:
                 # Divider between the modes and the part categories.
-                fill_rect(0, y + height - 1, row_width, 1, T.SIDEBAR_SEPARATOR)
+                fill_rect(x, y + height - 1, row_width, 1, T.SIDEBAR_SEPARATOR)
                 continue
-            if y > region.height or y + height < 0:
+            if y > panel_top or y + height < panel_bottom:
                 continue
             kind, value, label, glyph = entry
             discord = value == "SHARE"
@@ -483,16 +502,16 @@ class BrowserView:
                 color = T.TEXT
 
             # Icons and glyphs sit in the same 16px slot so labels line up.
-            icon_x = x + 8 * ui
+            icon_x = x + 12 * ui
             text_x = icon_x + 22 * ui
             label_width = row_width - (text_x - x) - 6 * ui
             if kind == "mode":
                 glyph_x = icon_x + (16 * ui - text_width(glyph, font_size)) / 2
-                draw_text(glyph, glyph_x, y + 7 * ui, font_size, color)
+                draw_text(glyph, glyph_x, y + (height - 10 * ui) / 2, font_size, color)
             elif kind == "category":
                 texture = thumbnails.image_texture("category:" + value, _category_icon(value))
                 if texture is not None:
-                    draw_texture(texture, icon_x, y + 4 * ui, 16 * ui, 16 * ui)
+                    draw_texture(texture, icon_x, y + (height - 16 * ui) / 2, 16 * ui, 16 * ui)
                 if value in pinned:
                     label = label + "  •"
                 label_width -= 16 * ui
@@ -500,8 +519,12 @@ class BrowserView:
                 text_x += 8 * ui
                 label_width -= 8 * ui
             size = int(10 * ui) if kind == "sub" else font_size
-            draw_text(fit_text(label, label_width, size), text_x, y + (6 if kind == "sub" else 7) * ui, size, color)
-            self.add_hit(x, y, row_width, height, (kind, value))
+            text_y = y + 6 * ui if kind == "sub" else y + (height - 10 * ui) / 2
+            draw_text(fit_text(label, label_width, size), text_x, text_y, size, color)
+            # Hit areas stop at the panel edge, like the clipped row.
+            hit_bottom = max(y, panel_bottom)
+            hit_height = min(y + height, panel_top) - hit_bottom
+            self.add_hit(x, hit_bottom, row_width, hit_height, (kind, value))
 
             if kind == "category":
                 # Disclosure triangle, its own click target.
@@ -510,10 +533,11 @@ class BrowserView:
                 expanded = value in self.expanded
                 triangle_hover = self.hovered(tx - 4 * ui, y, 20 * ui, height)
                 draw_triangle(tx, cy, 7 * ui, expanded, T.TEXT if triangle_hover else T.TEXT_DIM)
-                self.add_hit(tx - 4 * ui, y, 20 * ui, height, ("toggle", value))
+                self.add_hit(tx - 4 * ui, hit_bottom, 20 * ui, hit_height, ("toggle", value))
 
-        fill_rect(width - 1, 0, 1, region.height, T.SIDEBAR_BORDER)
-        self.add_hit(0, 0, width, region.height, ("sidebar", None))
+        gpu.state.scissor_set(*region_scissor)
+        fill_rect(margin + width - 1, panel_bottom, 1, panel_height, T.SIDEBAR_BORDER)
+        self.add_hit(0, 0, margin + width, region.height, ("sidebar", None))
         # Sidebar background hit goes first so entries are found before it.
         self.hits.insert(0, self.hits.pop())
 
@@ -541,8 +565,12 @@ class BrowserView:
         cursor = 0.0
         for title, ids in sections:
             if title:
-                layout.append(("header", title, cursor))
+                section_key = (browser.mode, browser.category_name(), title)
+                folded = section_key in self.collapsed
+                layout.append(("header", (title, section_key, folded, len(ids)), cursor))
                 cursor += header_height
+                if folded:
+                    continue
             for index in range(0, len(ids), columns):
                 layout.append(("row", ids[index : index + columns], cursor))
                 cursor += tile_height + gap
@@ -564,12 +592,25 @@ class BrowserView:
             if y_top - row_height > region.height:
                 continue
             if kind == "header":
+                title, section_key, folded, count = value
+                action = ("section", section_key)
                 bar_y = y_top - header_gap - header_bar
-                fill_rect(x0, bar_y, x1 - x0, header_bar, T.HEADER_BG)
+                if self.is_pressed(action):
+                    draw_rect(x0, bar_y, x1 - x0, header_bar, T.SIDEBAR_PRESSED)
+                elif self.hovered(x0, bar_y, x1 - x0, header_bar):
+                    draw_rect(x0, bar_y, x1 - x0, header_bar, T.SIDEBAR_HOVER)
+                else:
+                    fill_rect(x0, bar_y, x1 - x0, header_bar, T.HEADER_BG)
                 draw_rect(x0, bar_y, x1 - x0, 1, T.HEADER_LINE)
-                title = value.upper() if T.HEADER_UPPER else value
+                # Clicking anywhere on the bar folds/unfolds the section.
+                self.add_hit(x0, bar_y, x1 - x0, header_bar, action)
+                draw_triangle(x0 + 12 * ui, bar_y + header_bar / 2, 9 * ui, not folded, T.HEADER)
+                title = title.upper() if T.HEADER_UPPER else title
+                if folded:
+                    title = "{}  ({})".format(title, count)
                 title_size = int(16 * ui)
-                title = fit_text(title, x1 - x0 - 24 * ui, title_size)
+                # Room for the triangle on both sides keeps the title centred.
+                title = fit_text(title, x1 - x0 - 64 * ui, title_size)
                 # Cap height is about 0.7 of the font size, centre that in the bar.
                 title_y = bar_y + (header_bar - (title_size + FONT_BUMP) * 0.7) / 2
                 draw_text(title, x0 + (x1 - x0 - text_width(title, title_size)) / 2, title_y, title_size, T.HEADER)
@@ -1036,6 +1077,8 @@ class NMS_OT_browser_event(bpy.types.Operator):
             browser.set_category(value)
         elif kind == "toggle":
             view.expanded.symmetric_difference_update({value})
+        elif kind == "section":
+            view.collapsed.symmetric_difference_update({value})
         elif kind == "sub":
             category, sub = value
             browser.search = ""
@@ -1151,6 +1194,7 @@ CLICK_KINDS = {
     "mode",
     "category",
     "toggle",
+    "section",
     "sub",
     "share_select",
     "share_attachment",
@@ -1167,7 +1211,10 @@ KEYMAP_EVENTS = (
     ("MOUSEMOVE", "ANY", False),
 )
 # The wheel is taken by the View2D keymap before the Info keymap is reached.
-WHEEL_EVENTS = (
+# So is a press on the node editor's own scroller zones (right and bottom
+# edges, under the browser scrollbar), which view2d.scroller_activate takes.
+VIEW2D_EVENTS = (
+    ("LEFTMOUSE", "PRESS", False),
     ("WHEELUPMOUSE", "ANY", False),
     ("WHEELDOWNMOUSE", "ANY", False),
     ("WHEELUPMOUSE", "ANY", True),
@@ -1198,7 +1245,7 @@ def register():
     if keyconfig is not None:
         for keymap_name, space_type, events in (
             ("Node Editor", "NODE_EDITOR", KEYMAP_EVENTS),
-            ("View2D", "EMPTY", WHEEL_EVENTS),
+            ("View2D", "EMPTY", VIEW2D_EVENTS),
         ):
             keymap = keyconfig.keymaps.new(name=keymap_name, space_type=space_type)
             for event_type, value, ctrl in events:

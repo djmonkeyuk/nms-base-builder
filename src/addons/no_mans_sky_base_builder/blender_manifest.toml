@@ -3,7 +3,7 @@ schema_version = "1.0.0"
 # Example of manifest file for a Blender extension
 # Change the values according to your extension
 id = "no_mans_sky_base_builder"
-version = "7.0.2"
+version = "7.2.0"
 name = "No Man's Sky Base Builder"
 tagline = "A tool to assist with base building in No Mans Sky"
 maintainer = "DjMonkey <@djmonkeyuk>"
@@ -39,3 +39,7 @@ paths_exclude_pattern = [
    "/.git/",
    "/*.zip",
  ]
+
+[permissions]
+network = "Browse and import prefabs from Discord #prefab-share"
+files = "Read and write prefabs and browser settings"

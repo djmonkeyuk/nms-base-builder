@@ -16,7 +16,7 @@ from bpy.props import (BoolProperty, EnumProperty, FloatProperty, IntProperty,
 from bpy.types import Panel, PropertyGroup
 from numpy import isin
 
-from . import addon_preferences, icons, part, preset
+from . import addon_preferences, browser, icons, part, preset
 from .addon_preferences import NMSAddonPreferences
 from .builder import get_builder
 from .group import Group
@@ -44,7 +44,6 @@ from .utils.blend_utils import ShowMessageBox
 FILE_PATH = os.path.dirname(os.path.realpath(__file__))
 USER_PATH = os.path.join(os.path.expanduser("~"), "NoMansSkyBaseBuilder")
 PRESET_PATH = os.path.join(USER_PATH, "presets")
-ASSET_BROWSER_PATH = os.path.join(FILE_PATH, "asset_browser")
 
 GHOSTED_JSON = os.path.join(FILE_PATH, "resources", "ghosted.json")
 ghosted_reference = python_utils.load_dictionary(GHOSTED_JSON)
@@ -835,7 +834,7 @@ class NMS_PT_hero_panel(Panel):
         workspace_box = workspace_row.box()
         workspace_column = workspace_box.column(align = True)
         workspace_column.label(text = "Workspace")
-        workspace_column.operator("object.nms_launch_asset_browser", text = "Launch Asset Browser", icon = "DESKTOP")
+        workspace_column.operator("nms.browser_open_window", text = "Launch Asset Browser", icon = "DESKTOP")
         if nms_tool.is_workspace_cleaned:
             workspace_column.operator("object.nms_cleanup_workspace", text = "Restore Blender Workspace", icon = "LOOP_BACK")
         else:
@@ -1009,7 +1008,7 @@ class NMS_PT_build_panel(Panel):
         main_col = layout.box().column(align = True)
         col = main_col.column(align=True)
         col.label(text = "Asset Browser")
-        col.operator("object.nms_launch_asset_browser", icon = "DESKTOP" )# icon="COLLECTION_COLOR_03"
+        col.operator("nms.browser_open_window", text = "Launch Asset Browser", icon = "DESKTOP")
 
         presets_box = main_col.column(align = True)
         presets_box.label(text = "Prefabs")
@@ -1304,28 +1303,6 @@ class SaveAsPreset(bpy.types.Operator):
     def invoke(self, context, event):
         wm = context.window_manager
         return wm.invoke_props_dialog(self)
-
-
-class LoadFancyUI(bpy.types.Operator):
-    """Launch the standalone asset browser."""
-
-    bl_idname = "object.nms_launch_asset_browser"
-    bl_label = "Launch Asset Browser..."
-
-    def execute(self, context):
-        from .asset_browser import check_dependencies
-
-        valid = check_dependencies.check_dependencies()
-        if not valid:
-            ShowMessageBox(
-                message="Could not load Asset Browser. See Window > Toggle System Console for detials.",
-                title="Asset Browser",
-            )
-            return {"FINISHED"}
-        from .asset_browser import main as asset_browser_main
-
-        asset_browser_main.load()
-        return {"FINISHED"}
 
 
 class PresetsMenu(bpy.types.Menu):
@@ -2172,7 +2149,6 @@ classes = (
     ApplyColour,
     ApplyDefaultColour,
     SaveAsPreset,
-    LoadFancyUI,
     GetMorePresets,
     PresetsMenu,
     VisitDiscord,
@@ -2271,6 +2247,8 @@ def register():
     if curve_udpate_handler not in bpy.app.handlers.depsgraph_update_post:
         bpy.app.handlers.depsgraph_update_post.append(curve_udpate_handler)
 
+    browser.register()
+
     addon_preferences.apply_duplicate_mesh_setting()
 
 
@@ -2282,6 +2260,8 @@ def unregister():
         bpy.utils.previews.remove(pcoll)
     preview_collections.clear()
     icons.unregister_icons()
+
+    browser.unregister()
 
     for _class in reversed(classes):
         bpy.utils.unregister_class(_class)

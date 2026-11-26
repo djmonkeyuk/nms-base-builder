@@ -1,5 +1,5 @@
 import bpy
-from bpy.props import BoolProperty, StringProperty
+from bpy.props import BoolProperty, EnumProperty, StringProperty
 
 from .save_editor import save_editor_utils
 
@@ -26,6 +26,17 @@ class NMSAddonPreferences(bpy.types.AddonPreferences):
         update=lambda self, context: apply_duplicate_mesh_setting(self),
     )
 
+    browser_theme: EnumProperty(
+        name="Asset Browser Theme",
+        description="Colours of the asset browser window",
+        items=(
+            ("NMS", "No Man's Sky", "Navy and yellow, like the game's build menu"),
+            ("BLENDER", "Blender", "Neutral greys that match Blender's default theme"),
+        ),
+        default="NMS",
+        update=lambda self, context: _redraw_asset_browser(),
+    )
+
     # blender's own Duplicate Data > Mesh value, put back when sharing is turned off
     original_duplicate_mesh: BoolProperty(default=True)
     has_original_duplicate_mesh: BoolProperty(default=False)
@@ -34,6 +45,13 @@ class NMSAddonPreferences(bpy.types.AddonPreferences):
         layout = self.layout
         layout.prop(self, "nms_save_folder_path")
         layout.prop(self, "share_meshes_on_duplicate")
+        layout.prop(self, "browser_theme")
+
+
+def _redraw_asset_browser():
+    from .browser import state
+
+    state.redraw()
 
 
 def get_addon_preferences():

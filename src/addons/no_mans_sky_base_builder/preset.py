@@ -15,6 +15,7 @@ class Preset(object):
     USER_PATH = os.path.join(os.path.expanduser("~"), "NoMansSkyBaseBuilder")
     PRESET_PATH = os.path.join(USER_PATH, "presets")
     PREFAB_SHARE_PATH = os.path.join(USER_PATH, "prefab-share")
+    PREFAB_SHARE_CACHE_FOLDERS = ("messages", "thumbnails")
 
     def __init__(
         self,
@@ -91,7 +92,14 @@ class Preset(object):
             presets = os.listdir(preset_path)
             for preset in presets:
                 full_path = os.path.join(preset_path, preset)
-            # Handle category presets.
+                # prefab-share keeps its Discord message/thumbnail caches in
+                # sub folders, those are not prefabs.
+                if (
+                    preset_path == Preset.PREFAB_SHARE_PATH
+                    and preset in Preset.PREFAB_SHARE_CACHE_FOLDERS
+                ):
+                    continue
+                # Handle category presets.
                 if os.path.isdir(full_path):
                     sub_presets = os.listdir(full_path)
                     for sub_preset in sub_presets:

@@ -65,13 +65,6 @@ These can be downloaded and shared with other people.
 
 Visit the <a href="https://discord.gg/kpGVRKPn5W" target="_blank">Community Discord</a> where creators share their own prefabs!
 
-## Technical Dependencies
-
-Casual users may ignore this section. These Python dependencies are installed automatically on execution of the Asset Browser UI.
-
-* PySide6
-
-
 <a name="credits"></a>
 
 ## Credits & Support

@@ -1,0 +1,1 @@
+blender --command extension build --source-dir .\src\addons\no_mans_sky_base_builder\ --output-dir .\dist

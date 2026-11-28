@@ -422,6 +422,7 @@ class BrowserView:
             self.tree_ready = True
 
         row_height = 32 * ui
+        category_height = 30 * ui
         sub_height = 20 * ui
         entries = [
             ("mode", "FAVOURITES", "Favourites", "★"),
@@ -437,7 +438,16 @@ class BrowserView:
                 for sub in catalog.subcategories(category):
                     entries.append(("sub", (category, sub), sub, None))
 
-        heights = [8 * ui if entry is None else sub_height if entry[0] == "sub" else row_height for entry in entries]
+        heights = [
+            8 * ui
+            if entry is None
+            else sub_height
+            if entry[0] == "sub"
+            else category_height
+            if entry[0] == "category"
+            else row_height
+            for entry in entries
+        ]
         self.sidebar_height = sum(heights) + 24 * ui
         max_scroll = max(0.0, self.sidebar_height - panel_height)
         self.sidebar_scroll = min(max(0.0, self.sidebar_scroll), max_scroll)
@@ -509,12 +519,14 @@ class BrowserView:
                 glyph_x = icon_x + (16 * ui - text_width(glyph, font_size)) / 2
                 draw_text(glyph, glyph_x, y + (height - 10 * ui) / 2, font_size, color)
             elif kind == "category":
+                icon_x += 20 * ui
+                text_x += 20 * ui
+                label_width -= 20 * ui
                 texture = thumbnails.image_texture("category:" + value, _category_icon(value))
                 if texture is not None:
                     draw_texture(texture, icon_x, y + (height - 16 * ui) / 2, 16 * ui, 16 * ui)
                 if value in pinned:
                     label = label + "  •"
-                label_width -= 16 * ui
             else:
                 text_x += 8 * ui
                 label_width -= 8 * ui
@@ -528,7 +540,7 @@ class BrowserView:
 
             if kind == "category":
                 # Disclosure triangle, its own click target.
-                tx = x + row_width - 16 * ui
+                tx = x + 12 * ui
                 cy = y + height / 2
                 expanded = value in self.expanded
                 triangle_hover = self.hovered(tx - 4 * ui, y, 20 * ui, height)
@@ -1019,15 +1031,27 @@ class NMS_OT_browser_event(bpy.types.Operator):
             context.area.tag_redraw()
             return {"PASS_THROUGH"}
 
-        if event.type in {"WHEELUPMOUSE", "WHEELDOWNMOUSE"}:
-            direction = -1 if event.type == "WHEELUPMOUSE" else 1
-            if event.ctrl:
-                store.set_thumbnail_step(store.thumbnail_step() - direction)
-                state.bump(context)
-            elif kind in {"sidebar", "mode", "category", "sub", "toggle"}:
-                view.sidebar_scroll += direction * 48 * context.preferences.system.ui_scale
+        if event.type in {"WHEELUPMOUSE", "WHEELDOWNMOUSE", "TRACKPADPAN"}:
+            is_trackpad_pan = event.type == "TRACKPADPAN"
+            if is_trackpad_pan:
+                scroll_delta = event.mouse_y - event.mouse_prev_y
+                direction = 1 if scroll_delta > 0 else -1 if scroll_delta < 0 else 0
             else:
-                view.scroll += direction * 80 * context.preferences.system.ui_scale
+                direction = -1 if event.type == "WHEELUPMOUSE" else 1
+                scroll_delta = direction * 80 * context.preferences.system.ui_scale
+            sidebar_delta = (
+                scroll_delta
+                if is_trackpad_pan
+                else direction * 48 * context.preferences.system.ui_scale
+            )
+            if event.ctrl:
+                if direction:
+                    store.set_thumbnail_step(store.thumbnail_step() - direction)
+                    state.bump(context)
+            elif kind in {"sidebar", "mode", "category", "sub", "toggle"}:
+                view.sidebar_scroll += sidebar_delta
+            else:
+                view.scroll += scroll_delta
             context.area.tag_redraw()
             return {"FINISHED"}
 
@@ -1209,6 +1233,8 @@ KEYMAP_EVENTS = (
     ("LEFTMOUSE", "RELEASE", False),
     ("RIGHTMOUSE", "PRESS", False),
     ("MOUSEMOVE", "ANY", False),
+    ("TRACKPADPAN", "ANY", False),
+    ("TRACKPADPAN", "ANY", True),
 )
 # The wheel is taken by the View2D keymap before the Info keymap is reached.
 # So is a press on the node editor's own scroller zones (right and bottom
@@ -1219,6 +1245,8 @@ VIEW2D_EVENTS = (
     ("WHEELDOWNMOUSE", "ANY", False),
     ("WHEELUPMOUSE", "ANY", True),
     ("WHEELDOWNMOUSE", "ANY", True),
+    ("TRACKPADPAN", "ANY", False),
+    ("TRACKPADPAN", "ANY", True),
 )
 
 
